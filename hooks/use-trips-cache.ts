@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react"
 import { db } from "@/lib/firebase"
 import { collection, query, where, limit, onSnapshot } from "firebase/firestore"
+import { useAuth } from "@/lib/auth-context"
 
 export interface Trip {
   id: string
@@ -14,17 +15,14 @@ export interface Trip {
 }
 
 const CACHE_KEY = "tanoukli_trips_cache"
-const USER_ID = "0775453629"
-const TRIPS_LIMIT = 20 // Limit queries for performance
+const TRIPS_LIMIT = 20
 
-// Get cached trips instantly
 function getCachedTrips(): Trip[] {
   if (typeof window === "undefined") return []
   try {
     const cached = localStorage.getItem(CACHE_KEY)
     if (cached) {
       const { data, timestamp } = JSON.parse(cached)
-      // Cache valid for 2 minutes
       if (Date.now() - timestamp < 2 * 60 * 1000) {
         return data as Trip[]
       }
@@ -35,33 +33,38 @@ function getCachedTrips(): Trip[] {
   return []
 }
 
-// Save trips to cache
 function setCachedTrips(trips: Trip[]) {
   if (typeof window === "undefined") return
   try {
-    localStorage.setItem(CACHE_KEY, JSON.stringify({
-      data: trips,
-      timestamp: Date.now()
-    }))
+    localStorage.setItem(CACHE_KEY, JSON.stringify({ data: trips, timestamp: Date.now() }))
   } catch {
     // Ignore cache errors
   }
 }
 
 export function useTripsCache() {
-  // Initialize with cached data for instant display
-  const cachedData = getCachedTrips()
-  const [trips, setTrips] = useState<Trip[]>(cachedData)
-  const [isLoading, setIsLoading] = useState(cachedData.length === 0)
+  const { firestoreUserId, isAuthLoading } = useAuth()
+
+  const [trips, setTrips] = useState<Trip[]>(() =>
+    firestoreUserId ? getCachedTrips() : []
+  )
+  const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
+    if (isAuthLoading) return
+
+    if (!firestoreUserId) {
+      setTrips([])
+      setIsLoading(false)
+      return
+    }
+
+    setIsLoading(true)
     const tripsCollectionRef = collection(db, "trips")
-    // Simplified query to avoid composite index requirement
-    // We filter by userId only and sort client-side
     const tripsQuery = query(
       tripsCollectionRef,
-      where("userId", "==", USER_ID),
-      limit(TRIPS_LIMIT * 2) // Fetch more to allow for client-side sorting
+      where("userId", "==", firestoreUserId),
+      limit(TRIPS_LIMIT * 2)
     )
 
     const unsubscribe = onSnapshot(
@@ -75,8 +78,7 @@ export function useTripsCache() {
           createdAt: doc.data().createdAt,
           userId: doc.data().userId,
         }))
-        
-        // Sort client-side by timestamp (descending) and limit
+
         const sortedTrips = tripsData
           .sort((a, b) => {
             const timeA = a.timestamp?.seconds || 0
@@ -84,23 +86,19 @@ export function useTripsCache() {
             return timeB - timeA
           })
           .slice(0, TRIPS_LIMIT)
-        
+
         setTrips(sortedTrips)
         setCachedTrips(sortedTrips)
         setIsLoading(false)
       },
       (error) => {
         console.error("Error fetching trips:", error)
-        // Keep showing cached data on error
         setIsLoading(false)
       }
     )
 
     return () => unsubscribe()
-  }, [])
+  }, [firestoreUserId, isAuthLoading])
 
-  return {
-    trips,
-    isLoading
-  }
+  return { trips, isLoading }
 }

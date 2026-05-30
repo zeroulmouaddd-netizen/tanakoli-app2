@@ -6,6 +6,7 @@ import { TrackingProvider } from '@/lib/tracking-context'
 import { ThemeProvider } from '@/lib/theme-context'
 import { BusSimulationProvider } from '@/lib/bus-simulation'
 import { DriverModeProvider } from '@/lib/driver-mode-context'
+import { AuthProvider } from '@/lib/auth-context'
 import './globals.css'
 
 const notoArabic = Noto_Sans_Arabic({ 
@@ -53,16 +54,18 @@ export default function RootLayout({
   return (
     <html lang="ar" dir="rtl" suppressHydrationWarning>
       <body className={`${notoArabic.variable} font-sans antialiased theme-transition`}>
-        <ThemeProvider>
-          <DriverModeProvider>
-            <BusSimulationProvider>
-              <TrackingProvider>
-                {children}
-              </TrackingProvider>
-            </BusSimulationProvider>
-          </DriverModeProvider>
-          <Toaster />
-        </ThemeProvider>
+        <AuthProvider>
+          <ThemeProvider>
+            <DriverModeProvider>
+              <BusSimulationProvider>
+                <TrackingProvider>
+                  {children}
+                </TrackingProvider>
+              </BusSimulationProvider>
+            </DriverModeProvider>
+            <Toaster />
+          </ThemeProvider>
+        </AuthProvider>
         <Analytics />
       </body>
     </html>

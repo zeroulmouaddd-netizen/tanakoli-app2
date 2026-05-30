@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react"
 import { db } from "@/lib/firebase"
 import { doc, onSnapshot } from "firebase/firestore"
+import { useAuth } from "@/lib/auth-context"
 
 interface UserData {
   fullName: string
@@ -14,16 +15,13 @@ interface UserData {
 }
 
 const CACHE_KEY = "tanoukli_user_cache"
-const USER_DOC_ID = "0775453629"
 
-// Get cached data instantly from localStorage
 function getCachedUserData(): UserData | null {
   if (typeof window === "undefined") return null
   try {
     const cached = localStorage.getItem(CACHE_KEY)
     if (cached) {
       const { data, timestamp } = JSON.parse(cached)
-      // Cache valid for 5 minutes
       if (Date.now() - timestamp < 5 * 60 * 1000) {
         return data as UserData
       }
@@ -34,75 +32,87 @@ function getCachedUserData(): UserData | null {
   return null
 }
 
-// Save data to cache
 function setCachedUserData(data: UserData) {
   if (typeof window === "undefined") return
   try {
-    localStorage.setItem(CACHE_KEY, JSON.stringify({
-      data,
-      timestamp: Date.now()
-    }))
+    localStorage.setItem(CACHE_KEY, JSON.stringify({ data, timestamp: Date.now() }))
   } catch {
     // Ignore cache errors
   }
 }
 
-// Clear cache on logout
 export function clearUserCache() {
   if (typeof window === "undefined") return
   try {
     localStorage.removeItem(CACHE_KEY)
+    localStorage.removeItem("tanoukli_trips_cache")
+    localStorage.removeItem("tanoukli_transactions_cache")
+    localStorage.removeItem("tanoukli_driver_mode")
   } catch {
     // Ignore errors
   }
 }
 
 export function useUserCache() {
-  // Initialize with cached data for instant display
-  const [userData, setUserData] = useState<UserData | null>(() => getCachedUserData())
-  const [isLoading, setIsLoading] = useState(!getCachedUserData())
-  const [isLoggedIn, setIsLoggedIn] = useState(!!getCachedUserData())
+  const { currentUser, firestoreUserId, isAuthLoading } = useAuth()
+
+  const [userData, setUserData] = useState<UserData | null>(() =>
+    firestoreUserId ? getCachedUserData() : null
+  )
+  const [isLoading, setIsLoading] = useState(true)
+  const [isLoggedIn, setIsLoggedIn] = useState(false)
 
   useEffect(() => {
-    const userDocRef = doc(db, "users", USER_DOC_ID)
-    
+    if (isAuthLoading) return
+
+    if (!firestoreUserId) {
+      setUserData(null)
+      setIsLoggedIn(false)
+      setIsLoading(false)
+      return
+    }
+
+    setIsLoading(true)
+    const userDocRef = doc(db, "users", firestoreUserId)
+
     const unsubscribe = onSnapshot(
       userDocRef,
       (docSnapshot) => {
         if (docSnapshot.exists()) {
           const data = docSnapshot.data() as UserData
           setUserData(data)
-          setIsLoggedIn(true)
-          // Update cache with fresh data
           setCachedUserData(data)
         } else {
           setUserData(null)
-          setIsLoggedIn(false)
         }
+        setIsLoggedIn(true)
         setIsLoading(false)
       },
       (error) => {
         console.error("Error fetching user data:", error)
-        // Keep showing cached data on error
         setIsLoading(false)
       }
     )
 
     return () => unsubscribe()
-  }, [])
+  }, [firestoreUserId, isAuthLoading])
+
+  useEffect(() => {
+    if (!isAuthLoading && !currentUser) {
+      setUserData(null)
+      setIsLoggedIn(false)
+    }
+  }, [currentUser, isAuthLoading])
 
   const refreshCache = useCallback(() => {
-    // Force refresh by clearing cache timestamp
-    if (userData) {
-      setCachedUserData(userData)
-    }
+    if (userData) setCachedUserData(userData)
   }, [userData])
 
   return {
     userData,
-    isLoading,
+    isLoading: isAuthLoading || isLoading,
     isLoggedIn,
     refreshCache,
-    clearCache: clearUserCache
+    clearCache: clearUserCache,
   }
 }

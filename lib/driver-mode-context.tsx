@@ -3,9 +3,9 @@
 import { createContext, useContext, useState, useCallback, useEffect, type ReactNode } from "react"
 import { db } from "@/lib/firebase"
 import { doc, getDoc } from "firebase/firestore"
+import { useAuth } from "@/lib/auth-context"
 
 const DRIVER_MODE_KEY = "tanoukli_driver_mode"
-const USER_DOC_ID = "0775453629"
 
 interface DriverModeContextType {
   isDriverMode: boolean
@@ -18,7 +18,6 @@ interface DriverModeContextType {
 
 const DriverModeContext = createContext<DriverModeContextType | null>(null)
 
-// Persist driver mode to localStorage
 function getPersistedDriverMode(): boolean {
   if (typeof window === "undefined") return false
   try {
@@ -42,71 +41,85 @@ function setPersistedDriverMode(value: boolean): void {
 }
 
 export function DriverModeProvider({ children }: { children: ReactNode }) {
+  const { firestoreUserId, currentUser, isAuthLoading } = useAuth()
   const [isDriverMode, setIsDriverMode] = useState(false)
   const [isCheckingRole, setIsCheckingRole] = useState(false)
   const [roleError, setRoleError] = useState<string | null>(null)
 
-  // Restore driver mode on mount (check role first)
   useEffect(() => {
+    if (isAuthLoading) return
+
+    if (!firestoreUserId) {
+      setIsDriverMode(false)
+      setPersistedDriverMode(false)
+      return
+    }
+
     const restoreDriverMode = async () => {
       const persisted = getPersistedDriverMode()
       if (persisted) {
-        // Verify the user still has driver role
         try {
-          const userDocRef = doc(db, "users", USER_DOC_ID)
+          const userDocRef = doc(db, "users", firestoreUserId)
           const userDoc = await getDoc(userDocRef)
           if (userDoc.exists() && userDoc.data()?.role === "driver") {
             setIsDriverMode(true)
           } else {
-            // Role no longer valid, clear persistence
             setPersistedDriverMode(false)
           }
         } catch {
-          // On error, clear persistence for safety
           setPersistedDriverMode(false)
         }
       }
     }
-    
+
     restoreDriverMode()
-  }, [])
+  }, [firestoreUserId, isAuthLoading])
+
+  useEffect(() => {
+    if (!isAuthLoading && !currentUser) {
+      setIsDriverMode(false)
+      setPersistedDriverMode(false)
+    }
+  }, [currentUser, isAuthLoading])
 
   const enterDriverMode = useCallback(async (): Promise<boolean> => {
+    if (!firestoreUserId) {
+      setRoleError("يجب تسجيل الدخول أولاً")
+      return false
+    }
+
     setIsCheckingRole(true)
     setRoleError(null)
-    
+
     try {
-      // Fetch user role from Firestore
-      const userDocRef = doc(db, "users", USER_DOC_ID)
+      const userDocRef = doc(db, "users", firestoreUserId)
       const userDoc = await getDoc(userDocRef)
-      
+
       if (!userDoc.exists()) {
         setRoleError("عذراً، لم يتم العثور على حسابك")
         setIsCheckingRole(false)
         return false
       }
-      
+
       const userData = userDoc.data()
-      
+
       if (userData?.role !== "driver") {
         setRoleError("عذراً، هذا الحساب غير مصرح له بالدخول كونه ليس سائقاً معتمداً")
         setIsCheckingRole(false)
         return false
       }
-      
-      // User is a driver, enter driver mode
+
       setIsDriverMode(true)
       setPersistedDriverMode(true)
       setIsCheckingRole(false)
       return true
-      
     } catch (error) {
       console.error("Error checking driver role:", error)
       setRoleError("حدث خطأ أثناء التحقق من الصلاحيات")
       setIsCheckingRole(false)
       return false
     }
-  }, [])
+  }, [firestoreUserId])
 
   const exitDriverMode = useCallback(() => {
     setIsDriverMode(false)
@@ -119,13 +132,13 @@ export function DriverModeProvider({ children }: { children: ReactNode }) {
   }, [])
 
   return (
-    <DriverModeContext.Provider value={{ 
-      isDriverMode, 
-      isCheckingRole, 
-      roleError, 
-      enterDriverMode, 
+    <DriverModeContext.Provider value={{
+      isDriverMode,
+      isCheckingRole,
+      roleError,
+      enterDriverMode,
       exitDriverMode,
-      clearRoleError
+      clearRoleError,
     }}>
       {children}
     </DriverModeContext.Provider>
