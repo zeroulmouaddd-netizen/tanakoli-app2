@@ -8,6 +8,7 @@ import { usePathname } from "next/navigation"
 import { motion, AnimatePresence } from "framer-motion"
 import dynamic from "next/dynamic"
 import { useUserCache } from "@/hooks/use-user-cache"
+import { useAuth } from "@/lib/auth-context"
 
 // Dynamic import with SSR disabled for QR code
 const QRCodeDisplay = dynamic(
@@ -161,6 +162,7 @@ interface PaymentQRModalProps {
 
 function PaymentQRModal({ isOpen, onClose }: PaymentQRModalProps) {
   const { userData, isLoading } = useUserCache()
+  const { firestoreUserId } = useAuth()
 
   useEffect(() => {
     if (!isOpen) return
@@ -263,9 +265,9 @@ function PaymentQRModal({ isOpen, onClose }: PaymentQRModalProps) {
                 </div>
 
                 <QRCodeDisplay 
-                  userId="0775453629"
+                  userId={firestoreUserId || ""}
                   userName={userData?.fullName || ""}
-                  userPhone={userData?.Phone || ""}
+                  userPhone={userData?.Phone || firestoreUserId || ""}
                 />
 
                 {/* Scan Instruction */}
