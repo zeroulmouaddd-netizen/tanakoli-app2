@@ -1,5 +1,11 @@
-import { initializeApp, getApps } from "firebase/app"
-import { getFirestore, enableIndexedDbPersistence, CACHE_SIZE_UNLIMITED, initializeFirestore, persistentLocalCache, persistentMultipleTabManager } from "firebase/firestore"
+import { initializeApp, getApps, getApp } from "firebase/app"
+import {
+  getFirestore,
+  initializeFirestore,
+  persistentLocalCache,
+  persistentMultipleTabManager,
+  CACHE_SIZE_UNLIMITED,
+} from "firebase/firestore"
 import { getAuth } from "firebase/auth"
 
 const firebaseConfig = {
@@ -11,15 +17,22 @@ const firebaseConfig = {
   appId: '1:757217321198:web:1cbdfd808a180b6ff9d3ff'
 }
 
-// Initialize Firebase only if it hasn't been initialized
-const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0]
+const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp()
 
-// Initialize Firestore with persistent cache for offline support and faster loads
-export const db = initializeFirestore(app, {
-  localCache: persistentLocalCache({
-    tabManager: persistentMultipleTabManager(),
-    cacheSizeBytes: CACHE_SIZE_UNLIMITED
+// initializeFirestore throws if called more than once on the same app instance
+// (happens on hot reloads). Fall back to getFirestore if already initialized.
+let db: ReturnType<typeof getFirestore>
+try {
+  db = initializeFirestore(app, {
+    localCache: persistentLocalCache({
+      tabManager: persistentMultipleTabManager(),
+      cacheSizeBytes: CACHE_SIZE_UNLIMITED,
+    }),
   })
-})
+} catch {
+  db = getFirestore(app)
+}
 
-export const auth = getAuth(app)
+const auth = getAuth(app)
+
+export { db, auth }
