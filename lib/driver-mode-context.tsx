@@ -114,43 +114,20 @@ export function DriverModeProvider({ children }: { children: ReactNode }) {
   }, [currentUser, isAuthLoading])
 
   const enterDriverMode = useCallback(async (): Promise<boolean> => {
-    if (!firestoreUserId) {
+    if (!currentUser) {
       setRoleError("يجب تسجيل الدخول أولاً")
       return false
     }
 
-    setIsCheckingRole(true)
-    setRoleError(null)
-
-    try {
-      const userDocRef = doc(db, "users", firestoreUserId)
-      const userDoc = await getDoc(userDocRef)
-
-      if (!userDoc.exists()) {
-        setRoleError("عذراً، لم يتم العثور على حسابك")
-        setIsCheckingRole(false)
-        return false
-      }
-
-      const userData = userDoc.data()
-
-      if (userData?.role !== "driver") {
-        setRoleError("عذراً، هذا الحساب غير مصرح له بالدخول كونه ليس سائقاً معتمداً")
-        setIsCheckingRole(false)
-        return false
-      }
-
-      setIsDriverMode(true)
-      setPersistedDriverMode(true)
-      setIsCheckingRole(false)
-      return true
-    } catch (error) {
-      console.error("Error checking driver role:", error)
-      setRoleError("حدث خطأ أثناء التحقق من الصلاحيات")
-      setIsCheckingRole(false)
+    if (!isAuthorizedDriverPhone(currentUser.phoneNumber)) {
+      setRoleError("عذراً، هذا الحساب غير مصرح له بالدخول كونه ليس سائقاً معتمداً")
       return false
     }
-  }, [firestoreUserId])
+
+    setIsDriverMode(true)
+    setPersistedDriverMode(true)
+    return true
+  }, [currentUser])
 
   const exitDriverMode = useCallback(() => {
     setIsDriverMode(false)
