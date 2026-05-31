@@ -101,33 +101,81 @@ export function OnboardingScreen() {
     return () => clearInterval(interval)
   }, [step, canResend])
 
+  // Converts any Algerian number format to E.164 (+213XXXXXXXXX)
   const formatPhone = (local: string): string => {
     const digits = local.replace(/\D/g, "")
-    if (digits.startsWith("213")) return "+" + digits
-    if (digits.startsWith("0")) return "+213" + digits.slice(1)
-    return "+213" + digits
+    let e164: string
+    if (digits.startsWith("213")) {
+      e164 = "+" + digits
+    } else if (digits.startsWith("0")) {
+      e164 = "+213" + digits.slice(1)
+    } else {
+      e164 = "+213" + digits
+    }
+    console.log("[Auth] Raw input:", local, "→ E.164:", e164)
+    return e164
   }
 
-  const initRecaptcha = () => {
-    if (recaptchaRef.current) { recaptchaRef.current.clear(); recaptchaRef.current = null }
-    recaptchaRef.current = new RecaptchaVerifier(auth, "ob-recaptcha", { size: "invisible" })
+  // Validates the local number has enough digits (9 after stripping leading 0)
+  const validatePhone = (local: string): string | null => {
+    const digits = local.replace(/\D/g, "")
+    const core = digits.startsWith("0") ? digits.slice(1) : digits.startsWith("213") ? digits.slice(3) : digits
+    if (core.length < 9) return "يجب أن يتكوّن رقم الهاتف من 9 أرقام على الأقل."
+    if (core.length > 9) return "رقم الهاتف طويل جداً."
+    return null
+  }
+
+  // Creates a fresh invisible RecaptchaVerifier and renders it before use
+  const initRecaptcha = async (): Promise<void> => {
+    try {
+      if (recaptchaRef.current) {
+        recaptchaRef.current.clear()
+        recaptchaRef.current = null
+      }
+    } catch {}
+
+    recaptchaRef.current = new RecaptchaVerifier(auth, "ob-recaptcha", {
+      size: "invisible",
+      callback: () => {
+        console.log("[Auth] reCAPTCHA solved successfully")
+      },
+      "expired-callback": () => {
+        console.warn("[Auth] reCAPTCHA expired — will reinitialize on next attempt")
+        if (recaptchaRef.current) { recaptchaRef.current.clear(); recaptchaRef.current = null }
+      },
+    })
+
+    // Must call render() and await it before passing to signInWithPhoneNumber
+    await recaptchaRef.current.render()
+    console.log("[Auth] reCAPTCHA rendered and ready")
   }
 
   const handleSendOTP = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!name.trim() || !phone.trim()) return
+
+    const validationError = validatePhone(phone)
+    if (validationError) { setError(validationError); return }
+
     setError("")
     setIsLoading(true)
     try {
-      initRecaptcha()
-      const result = await signInWithPhoneNumber(auth, formatPhone(phone), recaptchaRef.current!)
+      await initRecaptcha()
+      const formatted = formatPhone(phone)
+      console.log("[Auth] Calling signInWithPhoneNumber with:", formatted)
+      const result = await signInWithPhoneNumber(auth, formatted, recaptchaRef.current!)
       confirmationRef.current = result
+      console.log("[Auth] OTP sent successfully — confirmation result received")
       setStep("otp")
     } catch (err: any) {
-      if (err.code === "auth/invalid-phone-number") setError("رقم الهاتف غير صحيح.")
-      else if (err.code === "auth/too-many-requests") setError("طلبات كثيرة جداً. حاول لاحقاً.")
-      else setError("خطأ أثناء إرسال الرمز. حاول مرة أخرى.")
-      if (recaptchaRef.current) { recaptchaRef.current.clear(); recaptchaRef.current = null }
+      console.error("[Auth] signInWithPhoneNumber failed:", err?.code, err?.message, err)
+      if (err?.code === "auth/invalid-phone-number") setError("رقم الهاتف غير صحيح. تحقق من الصيغة.")
+      else if (err?.code === "auth/too-many-requests") setError("طلبات كثيرة جداً. انتظر قليلاً وحاول مرة أخرى.")
+      else if (err?.code === "auth/operation-not-allowed") setError("المصادقة بالهاتف غير مفعّلة. تواصل مع الدعم.")
+      else if (err?.code === "auth/captcha-check-failed") setError("فشل التحقق الأمني. أعد تحميل الصفحة وحاول مجدداً.")
+      else if (err?.code === "auth/missing-phone-number") setError("الرجاء إدخال رقم الهاتف.")
+      else setError(`خطأ أثناء إرسال الرمز (${err?.code ?? "unknown"}). حاول مرة أخرى.`)
+      try { if (recaptchaRef.current) { recaptchaRef.current.clear(); recaptchaRef.current = null } } catch {}
     } finally {
       setIsLoading(false)
     }
@@ -140,11 +188,17 @@ export function OnboardingScreen() {
     setCanResend(false)
     setResendTimer(60)
     try {
-      initRecaptcha()
-      const result = await signInWithPhoneNumber(auth, formatPhone(phone), recaptchaRef.current!)
+      await initRecaptcha()
+      const formatted = formatPhone(phone)
+      console.log("[Auth] Resending OTP to:", formatted)
+      const result = await signInWithPhoneNumber(auth, formatted, recaptchaRef.current!)
       confirmationRef.current = result
-    } catch {
-      setError("فشل إعادة الإرسال. حاول مرة أخرى.")
+      console.log("[Auth] OTP resent successfully")
+    } catch (err: any) {
+      console.error("[Auth] Resend failed:", err?.code, err?.message, err)
+      if (err?.code === "auth/too-many-requests") setError("طلبات كثيرة جداً. انتظر قليلاً.")
+      else setError(`فشل إعادة الإرسال (${err?.code ?? "unknown"}). حاول مرة أخرى.`)
+      try { if (recaptchaRef.current) { recaptchaRef.current.clear(); recaptchaRef.current = null } } catch {}
     } finally {
       setIsLoading(false)
     }
@@ -183,9 +237,11 @@ export function OnboardingScreen() {
       try { sessionStorage.setItem("splashShown", "true") } catch {}
       setStep("success")
     } catch (err: any) {
-      if (err.code === "auth/invalid-verification-code") setError("رمز التحقق غير صحيح.")
-      else if (err.code === "auth/code-expired") setError("انتهت صلاحية الرمز. أعد الإرسال.")
-      else setError("حدث خطأ. حاول مرة أخرى.")
+      console.error("[Auth] OTP confirm failed:", err?.code, err?.message, err)
+      if (err?.code === "auth/invalid-verification-code") setError("رمز التحقق غير صحيح. تحقق من الأرقام وأعد المحاولة.")
+      else if (err?.code === "auth/code-expired") setError("انتهت صلاحية الرمز. اضغط على إعادة الإرسال.")
+      else if (err?.code === "auth/session-expired") setError("انتهت الجلسة. اضغط على إعادة الإرسال.")
+      else setError(`خطأ في التحقق (${err?.code ?? "unknown"}). حاول مرة أخرى.`)
     } finally {
       setIsLoading(false)
     }
