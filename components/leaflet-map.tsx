@@ -9,7 +9,7 @@ import "leaflet.markercluster/dist/MarkerCluster.Default.css"
 import { db } from "@/lib/firebase"
 import { collection, onSnapshot } from "firebase/firestore"
 import { motion, AnimatePresence } from "framer-motion"
-import { Layers, ChevronDown, ChevronUp, Eye, EyeOff, MapPin } from "lucide-react"
+import { Layers, ChevronDown, ChevronUp, Eye, EyeOff, MapPin, Maximize2, Minimize2, ZoomIn, ZoomOut } from "lucide-react"
 import { useTheme } from "@/lib/theme-context"
 import { useRouteSubStations } from "@/hooks/use-routes"
 import { useBusSimulation, type SimulatedBus } from "@/lib/bus-simulation"
@@ -633,9 +633,10 @@ function RouteController({
 
 interface LeafletMapProps {
   trackingLineId?: string | null
+  isFullscreen?: boolean
 }
 
-export default function LeafletMap({ trackingLineId }: LeafletMapProps) {
+export default function LeafletMap({ trackingLineId, isFullscreen = false }: LeafletMapProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<L.Map | null>(null)
   const tileLayerRef = useRef<L.TileLayer | null>(null)
@@ -1169,14 +1170,56 @@ const marker = L.marker(subStation.coords, {
   return (
     <div className="relative h-full w-full">
       <div ref={containerRef} className="h-full w-full" />
-<RouteController
-  viewMode={viewMode}
-  setViewMode={setViewMode}
-  selectedRoute={selectedRoute}
-  setSelectedRoute={setSelectedRoute}
-  onRouteSelect={handleRouteSelect}
-  isDark={isDark}
-  />
+      
+      {/* Floating Glassmorphism Control Menu - Bottom Right */}
+      <motion.div
+        className="absolute bottom-4 right-4 z-[999] flex flex-col gap-2"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.6, duration: 0.3 }}
+      >
+        {/* Zoom Controls */}
+        <div className="flex flex-col gap-1 rounded-xl bg-white/10 dark:bg-slate-800/40 backdrop-blur-lg border border-white/20 dark:border-slate-700/50 shadow-xl p-1">
+          <button
+            onClick={() => mapRef.current?.zoomIn()}
+            className="flex h-10 w-10 items-center justify-center rounded-lg text-foreground hover:bg-white/20 dark:hover:bg-slate-700/50 transition-colors"
+            aria-label="تكبير الخريطة"
+            title="تكبير"
+          >
+            <ZoomIn className="h-4 w-4" />
+          </button>
+          <div className="h-px bg-white/10 dark:bg-slate-700/30 mx-1" />
+          <button
+            onClick={() => mapRef.current?.zoomOut()}
+            className="flex h-10 w-10 items-center justify-center rounded-lg text-foreground hover:bg-white/20 dark:hover:bg-slate-700/50 transition-colors"
+            aria-label="تصغير الخريطة"
+            title="تصغير"
+          >
+            <ZoomOut className="h-4 w-4" />
+          </button>
+        </div>
+        
+        {/* Legend Toggle */}
+        <motion.button
+          onClick={() => setShowLegend(!showLegend)}
+          className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/90 hover:bg-primary text-primary-foreground shadow-lg transition-all backdrop-blur-lg"
+          whileTap={{ scale: 0.95 }}
+          aria-label="إظهار/إخفاء وسيلة الإيضاح"
+          title="وسيلة الإيضاح"
+        >
+          <Layers className="h-4 w-4" />
+        </motion.button>
+      </motion.div>
+
+      {/* Route Controller - Keep existing */}
+      <RouteController
+        viewMode={viewMode}
+        setViewMode={setViewMode}
+        selectedRoute={selectedRoute}
+        setSelectedRoute={setSelectedRoute}
+        onRouteSelect={handleRouteSelect}
+        isDark={isDark}
+      />
     </div>
   )
 }

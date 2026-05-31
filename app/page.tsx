@@ -9,9 +9,20 @@ import { AppWrapper } from "@/components/app-wrapper"
 import { PageTransition } from "@/components/page-transition"
 import { DriverDashboard } from "@/components/driver-dashboard"
 import { useDriverMode } from "@/lib/driver-mode-context"
+import { useState, useEffect } from "react"
 
 function HomeContent() {
   const { isDriverMode } = useDriverMode()
+  const [isMapFullscreen, setIsMapFullscreen] = useState(false)
+
+  // Listen for fullscreen state changes from MapSection
+  useEffect(() => {
+    const handleFullscreenChange = (e: any) => {
+      setIsMapFullscreen(e.detail?.isFullscreen || false)
+    }
+    window.addEventListener("mapFullscreenChange", handleFullscreenChange)
+    return () => window.removeEventListener("mapFullscreenChange", handleFullscreenChange)
+  }, [])
 
   if (isDriverMode) {
     return <DriverDashboard />
@@ -19,18 +30,20 @@ function HomeContent() {
 
   return (
     <PageTransition>
-      <main className="min-h-screen bg-background pb-24">
-        <AppHeader />
+      <main className={`${isMapFullscreen ? "h-screen overflow-hidden" : "min-h-screen pb-24"} bg-background`}>
+        {!isMapFullscreen && <AppHeader />}
 
-        <div className="pt-16">
+        <div className={isMapFullscreen ? "h-screen" : "pt-16"}>
           <MapSection />
         </div>
 
-        <SearchBar />
-
-        <StationsList />
-
-        <BottomNav />
+        {!isMapFullscreen && (
+          <>
+            <SearchBar />
+            <StationsList />
+            <BottomNav />
+          </>
+        )}
       </main>
     </PageTransition>
   )
