@@ -2,7 +2,6 @@
 
 import { AppHeader } from "@/components/app-header"
 import { MapSection } from "@/components/map-section"
-import { SearchBar } from "@/components/search-bar"
 import { StationsList } from "@/components/stations-list"
 import { BottomNav } from "@/components/bottom-nav"
 import { AppWrapper } from "@/components/app-wrapper"
@@ -39,7 +38,6 @@ function HomeContent() {
 
         {!isMapFullscreen && (
           <>
-            <SearchBar />
             <StationsList />
             <BottomNav />
           </>

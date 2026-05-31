@@ -9,7 +9,7 @@ import "leaflet.markercluster/dist/MarkerCluster.Default.css"
 import { db } from "@/lib/firebase"
 import { collection, onSnapshot } from "firebase/firestore"
 import { motion, AnimatePresence } from "framer-motion"
-import { Layers, ChevronDown, ChevronUp, MapPin, Maximize2, Minimize2, ZoomIn, ZoomOut } from "lucide-react"
+import { Layers, ChevronDown, ChevronUp, MapPin, Maximize2, Minimize2 } from "lucide-react"
 import { useTheme } from "@/lib/theme-context"
 import { useRouteSubStations } from "@/hooks/use-routes"
 import { useBusSimulation, type SimulatedBus } from "@/lib/bus-simulation"
@@ -1121,36 +1121,7 @@ const marker = L.marker(subStation.coords, {
     <div className="relative h-full w-full">
       <div ref={containerRef} className="h-full w-full" />
       
-      {/* Floating Glassmorphism Control Menu - Bottom Right */}
-      <motion.div
-        className="absolute bottom-4 right-4 z-[999] flex flex-col gap-2"
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.6, duration: 0.3 }}
-      >
-        {/* Zoom Controls */}
-        <div className="flex flex-col gap-1 rounded-xl bg-white/10 dark:bg-slate-800/40 backdrop-blur-lg border border-white/20 dark:border-slate-700/50 shadow-xl p-1">
-          <button
-            onClick={() => mapRef.current?.zoomIn()}
-            className="flex h-10 w-10 items-center justify-center rounded-lg text-foreground hover:bg-white/20 dark:hover:bg-slate-700/50 transition-colors"
-            aria-label="تكبير الخريطة"
-            title="تكبير"
-          >
-            <ZoomIn className="h-4 w-4" />
-          </button>
-          <div className="h-px bg-white/10 dark:bg-slate-700/30 mx-1" />
-          <button
-            onClick={() => mapRef.current?.zoomOut()}
-            className="flex h-10 w-10 items-center justify-center rounded-lg text-foreground hover:bg-white/20 dark:hover:bg-slate-700/50 transition-colors"
-            aria-label="تصغير الخريطة"
-            title="تصغير"
-          >
-            <ZoomOut className="h-4 w-4" />
-          </button>
-        </div>
-      </motion.div>
-
-      {/* Route Controller - Keep existing */}
+      {/* Route Controller - Top Right */}
       <RouteController
         viewMode={viewMode}
         setViewMode={setViewMode}
