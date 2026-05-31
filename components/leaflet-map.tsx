@@ -743,6 +743,7 @@ const { subStations } = useRouteSubStations(selectedRoute)
     isInitializedRef.current = true
 
     const map = L.map(container, {
+      attributionControl: false,
       center: KHENCHELA_CITY_CENTER,
       zoom: 13,
       zoomControl: false,
@@ -755,7 +756,6 @@ const { subStations } = useRouteSubStations(selectedRoute)
 
     // Add initial tile layer (will be updated based on theme)
     tileLayerRef.current = L.tileLayer(TILE_LAYERS.light, {
-      attribution: '&copy; <a href="https://carto.com/">CARTO</a> | &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
     }).addTo(map)
 
 L.control.zoom({ position: "bottomright" }).addTo(map)
