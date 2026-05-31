@@ -91,7 +91,8 @@ const urbanRoutePolylines: { id: string; coords: [number, number][]; color: stri
   }
 ]
 
-// Removed intercity route polylines - Urban routes only
+// All routes (urban only)
+const allRoutes = [...urbanRoutePolylines]
 
 // Bus Hub Locations for the fleet (URBAN STATIONS ONLY)
 // Buses exist only at urban terminals - No intercity hubs
