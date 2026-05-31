@@ -27,7 +27,6 @@ interface Bus {
   name?: string
   current_route_id?: string
   isLive?: boolean // true when receiving GPS from Driver App
-  category?: "urban" | "intercity" // Bus type for coloring
 }
 
 type RouteViewMode = "all" | "single"
@@ -37,18 +36,16 @@ type SelectedRoute = string | null
 const KHENCHELA_PROVINCE_CENTER: [number, number] = [35.40, 7.15]
 const KHENCHELA_CITY_CENTER: [number, number] = [35.4377, 7.1458]
 
-// Route categories with colors
+// Route categories with colors - Urban only
 const ROUTE_CATEGORIES = {
   urban: { label: "داخل المدينة", labelEn: "Urban", color: "#00A651" },
-  intercity: { label: "بين البلديات", labelEn: "Inter-city", color: "#3B82F6" },
-  express: { label: "سريع / طلاب", labelEn: "Express", color: "#F59E0B" },
 }
 
 // All main stations in Khenchela city (urban)
 const urbanStations: { position: [number, number]; name: string; nameEn: string; lines: string[]; isMain: boolean; category: "urban" }[] = [
   { position: [35.4420, 7.1380], name: "الجامعة", nameEn: "University", lines: ["01"], isMain: true, category: "urban" },
   { position: [35.4377, 7.1458], name: "وسط المدينة", nameEn: "City Center", lines: ["01", "02", "03"], isMain: true, category: "urban" },
-  { position: [35.4350, 7.1350], name: "محطة خنشلة البرية", nameEn: "Khenchela Bus Station", lines: ["01", "02", "03", "K1", "K2", "K3", "K4", "K5", "K6", "K7"], isMain: true, category: "urban" },
+  { position: [35.4350, 7.1350], name: "محطة خنشلة البرية", nameEn: "Khenchela Bus Station", lines: ["01", "02", "03"], isMain: true, category: "urban" },
   { position: [35.4330, 7.1520], name: "المستشفى", nameEn: "Hospital", lines: ["01", "02"], isMain: true, category: "urban" },
   { position: [35.4400, 7.1550], name: "السوق المركزي", nameEn: "Central Market", lines: ["01", "03"], isMain: true, category: "urban" },
   { position: [35.4400, 7.1480], name: "ملعب أول نوفمبر", nameEn: "Stadium", lines: ["02", "03"], isMain: false, category: "urban" },
@@ -58,23 +55,7 @@ const urbanStations: { position: [number, number]; name: string; nameEn: string;
   { position: [35.4310, 7.1430], name: "حي الأمل", nameEn: "El Amel", lines: ["03"], isMain: false, category: "urban" },
 ]
 
-// Inter-city stations (municipalities)
-const intercityStations: { position: [number, number]; name: string; nameEn: string; municipality: string; lines: string[]; isMain: boolean; category: "intercity" }[] = [
-  { position: [35.3650, 7.0650], name: "وسط قايس", nameEn: "Kais Center", municipality: "قايس", lines: ["K1"], isMain: true, category: "intercity" },
-  { position: [35.3800, 7.0800], name: "مدخل قايس", nameEn: "Kais Entrance", municipality: "قايس", lines: ["K1"], isMain: false, category: "intercity" },
-  { position: [35.2640, 7.7600], name: "وسط الشريعة", nameEn: "Cheria Center", municipality: "الشريعة", lines: ["K2"], isMain: true, category: "intercity" },
-  { position: [35.2700, 7.7500], name: "مدخل الشريعة", nameEn: "Cheria Entrance", municipality: "الشريعة", lines: ["K2"], isMain: false, category: "intercity" },
-  { position: [35.3300, 6.9900], name: "وسط بوحمامة", nameEn: "Bouhmama Center", municipality: "بوحمامة", lines: ["K3"], isMain: true, category: "intercity" },
-  { position: [35.4500, 7.1600], name: "مفترق بوحمامة", nameEn: "Bouhmama Junction", municipality: "خنشلة", lines: ["K3"], isMain: false, category: "intercity" },
-  { position: [35.3850, 7.0850], name: "وسط ششار", nameEn: "Chechar Center", municipality: "ششار", lines: ["K4"], isMain: true, category: "intercity" },
-  { position: [35.3900, 7.0900], name: "قرية ششار", nameEn: "Chechar Village", municipality: "ششار", lines: ["K4"], isMain: false, category: "intercity" },
-  { position: [35.5000, 7.0400], name: "وسط عين الطويلة", nameEn: "Ain Touila Center", municipality: "عين الطويلة", lines: ["K5"], isMain: true, category: "intercity" },
-  { position: [35.4900, 7.0500], name: "مدخل عين الطويلة", nameEn: "Ain Touila Entrance", municipality: "عين الطويلة", lines: ["K5"], isMain: false, category: "intercity" },
-  { position: [35.5200, 7.2000], name: "وسط المحمل", nameEn: "El Mahmel Center", municipality: "المحمل", lines: ["K6"], isMain: true, category: "intercity" },
-  { position: [35.4600, 7.1500], name: "طريق المحمل", nameEn: "El Mahmel Road", municipality: "خنشلة", lines: ["K6"], isMain: false, category: "intercity" },
-  { position: [35.4100, 7.0500], name: "وسط طامزة", nameEn: "Tamza Center", municipality: "طامزة", lines: ["K7"], isMain: true, category: "intercity" },
-  { position: [35.4200, 7.0700], name: "مدخل طامزة", nameEn: "Tamza Entrance", municipality: "طامزة", lines: ["K7"], isMain: false, category: "intercity" },
-]
+// Removed intercity stations - Urban routes only
 
 // Urban route polylines - Green category
 const urbanRoutePolylines: { id: string; coords: [number, number][]; color: string; name: string; category: "urban" }[] = [
@@ -110,107 +91,26 @@ const urbanRoutePolylines: { id: string; coords: [number, number][]; color: stri
   }
 ]
 
-// Inter-city route polylines - Blue category
-const intercityRoutePolylines: { id: string; coords: [number, number][]; color: string; name: string; category: "intercity" }[] = [
-  {
-    id: "K1",
-    name: "K1 - خنشلة - قايس",
-    color: "#3B82F6",
-    category: "intercity",
-    coords: [
-      [35.4350, 7.1350], [35.4100, 7.1200], [35.3800, 7.0800], [35.3650, 7.0650],
-    ]
-  },
-  {
-    id: "K2",
-    name: "K2 - خنشلة - الشريعة",
-    color: "#3B82F6",
-    category: "intercity",
-    coords: [
-      [35.4350, 7.1350], [35.3900, 7.2000], [35.2700, 7.7500], [35.2640, 7.7600],
-    ]
-  },
-  {
-    id: "K3",
-    name: "K3 - خنشلة - ب����حمامة",
-    color: "#3B82F6",
-    category: "intercity",
-    coords: [
-      [35.4350, 7.1350], [35.4500, 7.1600], [35.3300, 6.9900],
-    ]
-  },
-  {
-    id: "K4",
-    name: "K4 - خنشلة - ششار",
-    color: "#3B82F6",
-    category: "intercity",
-    coords: [
-      [35.4350, 7.1350], [35.4200, 7.1200], [35.3900, 7.0900], [35.3850, 7.0850],
-    ]
-  },
-  {
-    id: "K5",
-    name: "K5 - خنشلة - عين الطويلة",
-    color: "#3B82F6",
-    category: "intercity",
-    coords: [
-      [35.4350, 7.1350], [35.4500, 7.1100], [35.4900, 7.0500], [35.5000, 7.0400],
-    ]
-  },
-  {
-    id: "K6",
-    name: "K6 - خنشلة - المحمل",
-    color: "#3B82F6",
-    category: "intercity",
-    coords: [
-      [35.4350, 7.1350], [35.4600, 7.1500], [35.5200, 7.2000],
-    ]
-  },
-  {
-    id: "K7",
-    name: "K7 - خنشلة - طامزة",
-    color: "#3B82F6",
-    category: "intercity",
-    coords: [
-      [35.4350, 7.1350], [35.4200, 7.0700], [35.4100, 7.0500],
-    ]
-  },
-]
+// Removed intercity route polylines - Urban routes only
 
-// All routes combined
-const allRoutes = [...urbanRoutePolylines, ...intercityRoutePolylines]
-
-// Bus Hub Locations for the 35-bus fleet (FIXED STATION-BASED ONLY)
-// Buses ONLY exist at these 4 coordinates - NO line-based distribution
+// Bus Hub Locations for the fleet (URBAN STATIONS ONLY)
+// Buses exist only at urban terminals - No intercity hubs
 const BUS_HUBS = {
   trainStation: { 
     coords: [35.4123, 7.1456] as [number, number], 
     name: "محطة القطار خنشلة",
     nameEn: "Train Station (Khenchela)",
-    count: 10 
+    count: 15 
   },
   newBusTerminal: { 
     coords: [35.4080, 7.1320] as [number, number], 
     name: "المحطة الجديدة",
     nameEn: "New Bus Terminal",
-    count: 10 
-  },
-  kaisCenter: { 
-    coords: [35.4110, 6.9150] as [number, number], 
-    name: "مركز قايس",
-    nameEn: "Kais Center",
-    count: 10 
-  },
-  cheriaCenter: { 
-    coords: [35.3450, 7.3120] as [number, number], 
-    name: "مركز الشريعة",
-    nameEn: "Cheria Center",
-    count: 5 
+    count: 20 
   },
 }
 
-// Generate exactly 35 static fleet buses at FIXED station coordinates ONLY
-// NO line-based distribution - buses ONLY exist at the 4 hub coordinates
+// Generate static fleet buses at FIXED urban station coordinates ONLY
 // Uses circular parking layout with random jitter for natural appearance
 function generateFleetBuses(): Bus[] {
   const buses: Bus[] = []
@@ -248,7 +148,7 @@ function generateFleetBuses(): Bus[] {
     ]
   }
   
-  // Train Station (Khenchela) - 10 buses (urban)
+  // Train Station (Khenchela) - urban buses
   for (let i = 0; i < BUS_HUBS.trainStation.count; i++) {
     const pos = addParkingOffset(BUS_HUBS.trainStation.coords, i, BUS_HUBS.trainStation.count, 1)
     buses.push({
@@ -258,12 +158,11 @@ function generateFleetBuses(): Bus[] {
       name: `حافلة ${busIndex} - ${BUS_HUBS.trainStation.name}`,
       current_route_id: ["01", "02", "03"][i % 3],
       isLive: false,
-      category: "urban",
     })
     busIndex++
   }
   
-  // New Bus Terminal - 10 buses (urban)
+  // New Bus Terminal - urban buses
   for (let i = 0; i < BUS_HUBS.newBusTerminal.count; i++) {
     const pos = addParkingOffset(BUS_HUBS.newBusTerminal.coords, i, BUS_HUBS.newBusTerminal.count, 2)
     buses.push({
@@ -273,37 +172,6 @@ function generateFleetBuses(): Bus[] {
       name: `حافلة ${busIndex} - ${BUS_HUBS.newBusTerminal.name}`,
       current_route_id: ["01", "02", "03"][i % 3],
       isLive: false,
-      category: "urban",
-    })
-    busIndex++
-  }
-  
-  // Kais Center - 10 buses (intercity)
-  for (let i = 0; i < BUS_HUBS.kaisCenter.count; i++) {
-    const pos = addParkingOffset(BUS_HUBS.kaisCenter.coords, i, BUS_HUBS.kaisCenter.count, 3)
-    buses.push({
-      id: `fleet-${busIndex.toString().padStart(3, "0")}`,
-      latitude: pos[0],
-      longitude: pos[1],
-      name: `حافلة ${busIndex} - ${BUS_HUBS.kaisCenter.name}`,
-      current_route_id: ["K1", "K3", "K4", "K7"][i % 4],
-      isLive: false,
-      category: "intercity",
-    })
-    busIndex++
-  }
-  
-  // Cheria Center - 5 buses (intercity)
-  for (let i = 0; i < BUS_HUBS.cheriaCenter.count; i++) {
-    const pos = addParkingOffset(BUS_HUBS.cheriaCenter.coords, i, BUS_HUBS.cheriaCenter.count, 4)
-    buses.push({
-      id: `fleet-${busIndex.toString().padStart(3, "0")}`,
-      latitude: pos[0],
-      longitude: pos[1],
-      name: `حافلة ${busIndex} - ${BUS_HUBS.cheriaCenter.name}`,
-      current_route_id: ["K2", "K5", "K6"][i % 3],
-      isLive: false,
-      category: "intercity",
     })
     busIndex++
   }
@@ -346,7 +214,6 @@ if (typeof document !== "undefined") {
         transition: all 0.3s ease;
       }
       .bus-marker-mini.urban { background: #00A651; }
-      .bus-marker-mini.intercity { background: #3B82F6; }
       .bus-marker-mini.live { animation: bus-pulse-mini 2s ease-in-out infinite; }
       @keyframes bus-pulse-mini {
         0%, 100% { transform: scale(1); }
@@ -361,7 +228,6 @@ if (typeof document !== "undefined") {
         transition: all 0.3s ease;
       }
       .bus-marker-medium.urban { background: #00A651; box-shadow: 0 1px 3px rgba(0,166,81,0.4); }
-      .bus-marker-medium.intercity { background: #3B82F6; box-shadow: 0 1px 3px rgba(59,130,246,0.4); }
       .bus-marker-medium.live { animation: bus-pulse 2s ease-in-out infinite; }
       /* Full zoom: full bus icon (20px) */
       .bus-marker-full {
@@ -374,10 +240,6 @@ if (typeof document !== "undefined") {
       .bus-marker-full.urban { 
         background: linear-gradient(135deg, #00A651 0%, #22C55E 100%);
         box-shadow: 0 2px 5px rgba(0,166,81,0.4);
-      }
-      .bus-marker-full.intercity { 
-        background: linear-gradient(135deg, #3B82F6 0%, #60A5FA 100%);
-        box-shadow: 0 2px 5px rgba(59,130,246,0.4);
       }
       .bus-marker-full.live { animation: bus-pulse 2s ease-in-out infinite; }
       .bus-marker-full:hover { transform: scale(1.1); }
@@ -393,9 +255,6 @@ if (typeof document !== "undefined") {
       }
       .bus-marker-icon.urban { 
         background: linear-gradient(135deg, #00A651 0%, #22C55E 100%);
-      }
-      .bus-marker-icon.intercity { 
-        background: linear-gradient(135deg, #3B82F6 0%, #60A5FA 100%);
       }
       .bus-marker-icon.live { animation: bus-pulse 2s ease-in-out infinite; }
       .bus-marker-icon:hover { transform: scale(1.15); z-index: 1000 !important; }
@@ -436,7 +295,6 @@ if (typeof document !== "undefined") {
         animation: bus-ping 2s cubic-bezier(0, 0, 0.2, 1) infinite;
       }
       .bus-ping.urban { background: rgba(0, 166, 81, 0.3); }
-      .bus-ping.intercity { background: rgba(59, 130, 246, 0.3); }
       /* Custom cluster styles */
       .marker-cluster {
         background: rgba(30, 41, 59, 0.85) !important;
@@ -501,20 +359,6 @@ if (typeof document !== "undefined") {
         width: 18px; height: 18px;
         background: rgba(0,166,81,0.85);
       }
-      .intercity-station-marker {
-        width: 28px; height: 28px;
-        background: #3B82F6; border: 3px solid white; border-radius: 50%;
-        box-shadow: 0 2px 8px rgba(59,130,246,0.5);
-        display: flex; align-items: center; justify-content: center;
-      }
-      .intercity-station-marker.main {
-        width: 32px; height: 32px;
-        box-shadow: 0 3px 12px rgba(59,130,246,0.6);
-      }
-      .intercity-station-marker.minor {
-        width: 20px; height: 20px; border-width: 2px;
-        background: rgba(59,130,246,0.85);
-      }
       .leaflet-popup-content-wrapper { 
         border-radius: 12px; backdrop-filter: blur(8px);
         background: rgba(255, 255, 255, 0.95); padding: 0;
@@ -574,8 +418,6 @@ if (typeof document !== "undefined") {
         box-shadow: 0 2px 8px rgba(0,0,0,0.2);
       }
       .station-line-badge.urban { background: #00A651; }
-      .station-line-badge.intercity { background: #3B82F6; }
-      .station-line-badge.express { background: #F59E0B; }
       .route-polyline { transition: opacity 0.3s ease, stroke-width 0.3s ease; }
       .route-polyline-faded { opacity: 0.15 !important; }
       .route-polyline-highlighted { opacity: 1 !important; }
@@ -777,37 +619,6 @@ function RouteController({
                       </button>
                     ))}
                   </div>
-
-                  {/* Intercity Routes */}
-                  <div>
-                    <div className="mb-1 px-2 text-[11px] font-semibold" style={{ color: mutedTextColor }}>
-                      بين البلديات
-                    </div>
-                    {intercityRoutePolylines.map((route) => (
-                      <button
-                        key={route.id}
-                        onClick={() => handleRouteClick(route.id)}
-                        className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm transition-colors"
-                        style={{ 
-                          backgroundColor: selectedRoute === route.id ? activeBg : "transparent",
-                          color: selectedRoute === route.id ? "#3B82F6" : textColor
-                        }}
-                        onMouseEnter={(e) => { if (selectedRoute !== route.id) e.currentTarget.style.backgroundColor = hoverBg }}
-                        onMouseLeave={(e) => { if (selectedRoute !== route.id) e.currentTarget.style.backgroundColor = "transparent" }}
-                      >
-                        <div 
-                          className="h-3 w-3 rounded-full"
-                          style={{ 
-                            backgroundColor: ROUTE_CATEGORIES.intercity.color,
-                            boxShadow: selectedRoute === route.id ? `0 0 0 2px ${ROUTE_CATEGORIES.intercity.color}40` : "none"
-                          }}
-                        />
-                        <span className={selectedRoute === route.id ? "font-bold" : "font-medium"}>
-                          {route.name.split(" - ")[1] || route.id}
-                        </span>
-                      </button>
-                    ))}
-                  </div>
                 </div>
               </motion.div>
             )}
@@ -949,7 +760,6 @@ const { subStations } = useRouteSubStations(selectedRoute)
             name: doc.data().name,
             current_route_id: doc.data().current_route_id,
             isLive: true, // Firebase buses are live
-            category: doc.data().category || "urban",
           }))
           setBuses(busesData)
         },
@@ -1054,31 +864,10 @@ L.control.zoom({ position: "bottomright" }).addTo(map)
       routePolylinesRef.current.set(route.id, polyline)
     })
 
-    // Add intercity route polylines (Blue)
-    intercityRoutePolylines.forEach((route) => {
-      const polyline = L.polyline(route.coords, {
-        color: ROUTE_CATEGORIES.intercity.color,
-        weight: 3,
-        opacity: 0.7,
-        className: "route-polyline",
-      }).addTo(map)
-      
-      polyline.bindPopup(`
-        <div class="station-popup">
-          <div class="station-popup-name">${route.name}</div>
-          <div style="font-size:11px;color:#666;">خط بين البلديات</div>
-        </div>
-      `)
-      
-      routePolylinesRef.current.set(route.id, polyline)
-    })
-
     // Function to create line badges HTML
     const createLineBadges = (lines: string[]) => {
       return lines.map(line => {
-        const isIntercity = line.startsWith("K")
-        const category = isIntercity ? "intercity" : "urban"
-        return `<span class="station-line-badge ${category}" data-line="${line}">خط ${line}</span>`
+        return `<span class="station-line-badge urban" data-line="${line}">خط ${line}</span>`
       }).join("")
     }
 
@@ -1115,42 +904,6 @@ const marker = L.marker(station.position, {
     
     stationMarkersRef.current.set(station.name, marker)
   })
-  
-  // Add intercity station markers
-    intercityStations.forEach((station) => {
-      const markerClass = station.isMain ? "intercity-station-marker" : "intercity-station-marker minor"
-      
-      const stationIcon = L.divIcon({
-        className: "station-marker",
-        html: `<div class="${markerClass}">
-          ${station.isMain ? `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/>
-            <circle cx="12" cy="10" r="3"/>
-          </svg>` : ""}
-        </div>`,
-        iconSize: station.isMain ? [28, 28] : [20, 20],
-        iconAnchor: station.isMain ? [14, 14] : [10, 10],
-      })
-
-const marker = L.marker(station.position, { 
-      icon: stationIcon,
-      zIndexOffset: 200 // Ensure stations appear above buses
-    })
-      .addTo(map)
-      .bindPopup(`
-        <div class="station-popup">
-          <div class="station-popup-name">${station.name}</div>
-          <div class="station-popup-municipality">${station.municipality}</div>
-          <div style="font-size:11px;color:#666;margin-bottom:4px;">${station.nameEn}</div>
-          <div class="station-popup-lines">
-            <div class="station-popup-lines-title">الخطوط المارة</div>
-            ${createLineBadges(station.lines)}
-            </div>
-          </div>
-        `)
-
-      stationMarkersRef.current.set(station.name, marker)
-    })
 
     // Current location marker
     const currentLocationIcon = L.divIcon({
@@ -1255,7 +1008,7 @@ L.marker(KHENCHELA_CITY_CENTER, { icon: currentLocationIcon })
     // Find the route color
     const route = allRoutes.find(r => r.id === selectedRoute)
     const routeColor = route 
-      ? (route.category === "urban" ? ROUTE_CATEGORIES.urban.color : ROUTE_CATEGORIES.intercity.color)
+      ? ROUTE_CATEGORIES.urban.color
       : "#FF6B00"
 
     // Create sub-station markers
@@ -1318,7 +1071,6 @@ const marker = L.marker(subStation.coords, {
     // Update or create markers for moving buses
     validMovingBuses.forEach((bus) => {
       const existingMarker = busMarkersRef.current.get(bus.id)
-      const categoryLabel = bus.category === "intercity" ? "خارجي" : "داخلي"
       
       // Status for simulated buses
       const statusLabel = bus.status === "at_station" 
@@ -1330,7 +1082,7 @@ const marker = L.marker(subStation.coords, {
         <div class="station-popup">
           <div class="station-popup-name">${bus.name}</div>
           <div style="font-size:11px;margin-top:4px;">
-            <span style="color:${bus.category === "intercity" ? "#3B82F6" : "#00A651"};font-weight:600;">${categoryLabel}</span>
+            <span style="color:#00A651;font-weight:600;">داخلي</span>
             <span style="color:#666;margin:0 4px;">•</span>
             <span style="color:${statusColor};font-weight:500;">${statusLabel}</span>
           </div>
@@ -1383,7 +1135,6 @@ const marker = L.marker(subStation.coords, {
     validStaticBuses.forEach((bus) => {
       if (fleetMarkersRef.current.has(bus.id)) return // Already exists
       
-      const categoryLabel = bus.category === "intercity" ? "خارجي" : "داخلي"
       const statusLabel = bus.isLive ? "نشط" : "في الانتظار"
       const statusColor = bus.isLive ? "#22C55E" : "#94A3B8"
       const route = allRoutes.find(r => r.id === bus.current_route_id)
@@ -1393,7 +1144,7 @@ const marker = L.marker(subStation.coords, {
         <div class="station-popup">
           <div class="station-popup-name">${bus.name || `حافلة ${bus.id}`}</div>
           <div style="font-size:11px;margin-top:4px;">
-            <span style="color:${bus.category === "intercity" ? "#3B82F6" : "#00A651"};font-weight:600;">${categoryLabel}</span>
+            <span style="color:#00A651;font-weight:600;">داخلي</span>
             <span style="color:#666;margin:0 4px;">•</span>
             <span style="color:${statusColor};font-weight:500;">${statusLabel}</span>
           </div>
