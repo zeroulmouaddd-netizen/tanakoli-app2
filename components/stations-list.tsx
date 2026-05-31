@@ -65,8 +65,16 @@ function MiniMapComponent({ station }: { station: Station }) {
   useEffect(() => {
     if (!mapContainer.current) return
 
-    // Initialize map
-    map.current = L.map(mapContainer.current).setView(station.coordinates, 17)
+    // Initialize map with disabled interactions
+    map.current = L.map(mapContainer.current, {
+      zoomControl: false,
+      dragging: false,
+      scrollWheelZoom: false,
+      doubleClickZoom: false,
+      touchZoom: false,
+      boxZoom: false,
+      keyboard: false,
+    }).setView(station.coordinates, 17)
 
     // Add tile layer with dark theme
     const isDark = document.documentElement.classList.contains("dark")
@@ -97,11 +105,16 @@ function MiniMapComponent({ station }: { station: Station }) {
   }, [station])
 
   return (
-    <div
-      ref={mapContainer}
-      className="h-48 w-full rounded-xl border border-border/50 bg-muted"
-      style={{ overflow: "hidden" }}
-    />
+    <div className="relative overflow-hidden rounded-2xl bg-muted shadow-inner">
+      {/* Dark gradient overlay for seamless blending */}
+      <div className="pointer-events-none absolute inset-0 z-10 bg-gradient-to-br from-black/5 via-transparent to-black/5 rounded-2xl" />
+      
+      {/* Map container */}
+      <div
+        ref={mapContainer}
+        className="h-48 w-full"
+      />
+    </div>
   )
 }
 
@@ -160,12 +173,12 @@ function ExpandableStationCard({ station }: { station: Station }) {
             transition={{ duration: 0.3, ease: "easeInOut" }}
             className="overflow-hidden"
           >
-            <div className="mx-4 mb-4 space-y-4">
+            <div className="space-y-4 px-4 py-4">
               {/* Mini-Map */}
               <MiniMapComponent station={station} />
 
               {/* Route Details */}
-              <div className="grid grid-cols-2 gap-3 rounded-lg bg-primary/5 p-4">
+              <div className="grid grid-cols-2 gap-3 rounded-xl bg-primary/5 px-4 py-3">
                 <div className="flex flex-col items-end gap-1">
                   <span className="text-xs font-medium text-muted-foreground">المسافة سيراً</span>
                   <span className="text-lg font-bold text-foreground">{station.distance}</span>
