@@ -1,3 +1,5 @@
+'use client'
+
 import { initializeApp, getApps, getApp } from "firebase/app"
 import {
   getFirestore,
@@ -21,13 +23,30 @@ const firebaseConfig = {
 // Guard against re-initialization on hot reloads
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp()
 
-// Analytics only runs in the browser (not during SSR)
+// Analytics initialization - only in browser
 if (typeof window !== "undefined") {
-  import("firebase/analytics").then(({ getAnalytics, isSupported }) => {
-    isSupported().then((supported) => {
-      if (supported) getAnalytics(app)
+  try {
+    Promise.resolve().then(() => {
+      return import("firebase/analytics").then(({ getAnalytics, isSupported }) => {
+        return isSupported().then((supported) => {
+          if (supported) {
+            try {
+              getAnalytics(app)
+            } catch (e) {
+              // Analytics may fail, but it shouldn't break the app
+              console.error("[v0] Failed to initialize analytics:", e)
+            }
+          }
+        })
+      })
+    }).catch((e) => {
+      // Catch any errors from analytics initialization
+      console.error("[v0] Analytics import error:", e)
     })
-  })
+  } catch (e) {
+    // Fallback error handling
+    console.error("[v0] Analytics setup error:", e)
+  }
 }
 
 // initializeFirestore throws if called more than once on the same app instance

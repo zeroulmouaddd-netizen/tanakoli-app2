@@ -66,13 +66,13 @@ export function BottomNav() {
   return (
     <>
       <motion.nav
-        className="fixed bottom-0 left-0 right-0 z-30"
+        className="fixed bottom-0 left-0 right-0 z-[999]"
         initial={{ y: 100, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ type: "spring", stiffness: 300, damping: 30, delay: 0.2 }}
       >
         {/* Solid nav bar with glass effect and top border */}
-        <div className="border-t border-border/50 bg-card/95 pb-safe backdrop-blur-xl">
+        <div className="border-t border-border/50 bg-card pb-safe backdrop-blur-xl">
           {/* Subtle top shadow for depth */}
           <div className="absolute inset-x-0 -top-px h-px bg-gradient-to-r from-transparent via-border/30 to-transparent" />
           

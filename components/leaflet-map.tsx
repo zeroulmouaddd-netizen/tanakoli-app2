@@ -203,8 +203,8 @@ if (typeof document !== "undefined") {
         0% { transform: scale(1); opacity: 1; }
         75%, 100% { transform: scale(2); opacity: 0; }
       }
-      /* Bus marker container - lower z-index than stations */
-      .bus-marker-container { position: relative; z-index: 100 !important; }
+      /* Bus marker container - lower z-index than stations and below bottom nav */
+      .bus-marker-container { position: relative; z-index: 50 !important; }
       /* Waiting buses: reduced opacity */
       .bus-marker-waiting { opacity: 0.65; }
       .bus-marker-live { opacity: 1; }
@@ -340,12 +340,12 @@ if (typeof document !== "undefined") {
       .leaflet-cluster-anim .leaflet-marker-shadow {
         transition: transform 0.3s ease-out, opacity 0.3s ease-out;
       }
-      /* Station markers - higher z-index than buses */
+      /* Station markers - higher z-index than buses, but below bottom nav */
       .station-marker { 
         transition: transform 0.2s ease, opacity 0.3s ease;
-        z-index: 200 !important;
+        z-index: 75 !important;
       }
-      .station-marker:hover { transform: scale(1.15); z-index: 300 !important; }
+      .station-marker:hover { transform: scale(1.15); z-index: 85 !important; }
       .station-marker.faded { opacity: 0.3; }
       .urban-station-marker {
         width: 24px; height: 24px;
@@ -743,6 +743,7 @@ const { subStations } = useRouteSubStations(selectedRoute)
     isInitializedRef.current = true
 
     const map = L.map(container, {
+      attributionControl: false,
       center: KHENCHELA_CITY_CENTER,
       zoom: 13,
       zoomControl: false,
@@ -755,7 +756,6 @@ const { subStations } = useRouteSubStations(selectedRoute)
 
     // Add initial tile layer (will be updated based on theme)
     tileLayerRef.current = L.tileLayer(TILE_LAYERS.light, {
-      attribution: '&copy; <a href="https://carto.com/">CARTO</a> | &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
     }).addTo(map)
 
 L.control.zoom({ position: "bottomright" }).addTo(map)
