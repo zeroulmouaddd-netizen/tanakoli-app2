@@ -657,8 +657,7 @@ const { subStations } = useRouteSubStations(selectedRoute)
         markerElement.style.opacity = "1"
       } else {
         // Check if this station is on the selected route
-        const allStations = [...urbanStations, ...intercityStations]
-        const station = allStations.find(s => s.name === name)
+        const station = urbanStations.find(s => s.name === name)
         if (station && station.lines.includes(routeId)) {
           markerElement.classList.remove("faded")
           markerElement.style.opacity = "1"
