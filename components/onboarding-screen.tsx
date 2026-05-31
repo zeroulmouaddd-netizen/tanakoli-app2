@@ -1,14 +1,84 @@
 "use client"
 
 import { useState, useRef, useCallback, useEffect } from "react"
-import Image from "next/image"
 import { motion, AnimatePresence } from "framer-motion"
 import { auth, db } from "@/lib/firebase"
 import { signInWithPhoneNumber, RecaptchaVerifier, type ConfirmationResult } from "firebase/auth"
 import { doc, setDoc } from "firebase/firestore"
-import { User, Phone, Shield, ArrowRight, Loader2, Check } from "lucide-react"
+import { Phone, ArrowRight, Loader2, Check, MapPin } from "lucide-react"
 
 type Step = "splash" | "register" | "otp" | "success"
+
+// Premium SVG Logo - Modern Urban Transit
+function TanakaliLogo({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 240 240" className={className} xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="tkGrad1" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#06B6D4" />
+          <stop offset="100%" stopColor="#0EA5E9" />
+        </linearGradient>
+        <linearGradient id="tkGrad2" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#10B981" />
+          <stop offset="100%" stopColor="#06B6D4" />
+        </linearGradient>
+        <filter id="tkGlow">
+          <feGaussianBlur stdDeviation="2" result="coloredBlur" />
+          <feMerge>
+            <feMergeNode in="coloredBlur" />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
+        </filter>
+      </defs>
+
+      {/* Background circle */}
+      <circle cx="120" cy="120" r="110" fill="none" stroke="url(#tkGrad1)" strokeWidth="1" opacity="0.3" />
+
+      {/* Main route line with arrow - flowing upward */}
+      <g filter="url(#tkGlow)">
+        {/* Curved path representing a route */}
+        <path
+          d="M 120 180 Q 90 140, 100 80 Q 110 40, 120 20"
+          stroke="url(#tkGrad1)"
+          strokeWidth="8"
+          fill="none"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        
+        {/* Accent secondary path */}
+        <path
+          d="M 120 180 Q 150 140, 140 80 Q 130 40, 120 20"
+          stroke="url(#tkGrad2)"
+          strokeWidth="6"
+          fill="none"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          opacity="0.8"
+        />
+
+        {/* Arrow head at top */}
+        <g transform="translate(120, 10)">
+          <polygon points="0,-6 -8,8 8,8" fill="url(#tkGrad1)" />
+        </g>
+
+        {/* Location pin/marker points */}
+        <circle cx="120" cy="175" r="6" fill="url(#tkGrad1)" />
+        <circle cx="120" cy="175" r="9" fill="none" stroke="url(#tkGrad1)" strokeWidth="2" opacity="0.5" />
+        
+        <circle cx="105" cy="95" r="4" fill="url(#tkGrad2)" opacity="0.8" />
+        <circle cx="135" cy="95" r="4" fill="url(#tkGrad2)" opacity="0.8" />
+      </g>
+
+      {/* Decorative dots (stations) */}
+      <g opacity="0.6">
+        <circle cx="75" cy="140" r="2.5" fill="#06B6D4" />
+        <circle cx="165" cy="135" r="2.5" fill="#10B981" />
+        <circle cx="85" cy="65" r="2.5" fill="#0EA5E9" />
+      </g>
+    </svg>
+  )
+}
 
 export function OnboardingScreen() {
   const [step, setStep] = useState<Step>("splash")
@@ -217,93 +287,99 @@ export function OnboardingScreen() {
         {step === "splash" && (
           <motion.div
             key="splash"
-            className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900"
+            className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 overflow-hidden"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0, scale: 0.98 }}
-            transition={{ duration: 0.4 }}
+            transition={{ duration: 0.5 }}
           >
+            {/* Animated gradient background */}
             <div className="absolute inset-0">
-              <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-emerald-900/20 via-transparent to-blue-900/20" />
-              <div className="absolute left-1/4 top-1/4 h-96 w-96 rounded-full bg-emerald-500/10 blur-3xl" />
-              <div className="absolute right-1/4 bottom-1/4 h-96 w-96 rounded-full bg-blue-500/10 blur-3xl" />
+              <div className="absolute inset-0 bg-[radial-gradient(ellipse_120%_120%_at_50%_50%,_rgba(6,182,212,0.15)_0%,_transparent_50%)]" />
+              <motion.div
+                className="absolute -left-32 top-0 h-64 w-64 rounded-full bg-gradient-to-br from-cyan-500/20 to-blue-500/20 blur-3xl"
+                animate={{ y: [0, 30, 0], x: [0, 20, 0] }}
+                transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
+              />
+              <motion.div
+                className="absolute -right-32 bottom-0 h-64 w-64 rounded-full bg-gradient-to-tl from-emerald-500/20 to-cyan-500/20 blur-3xl"
+                animate={{ y: [0, -30, 0], x: [0, -20, 0] }}
+                transition={{ duration: 7, repeat: Infinity, ease: "easeInOut" }}
+              />
             </div>
 
-            <div className="relative z-10 flex flex-col items-center gap-6 px-6 text-center">
+            <div className="relative z-10 flex flex-col items-center gap-8 px-6 text-center">
+              {/* Logo with entry animation */}
               <motion.div
                 className="relative"
-                initial={{ scale: 0.8, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                transition={{ duration: 0.6, ease: "easeOut" }}
+                initial={{ scale: 0, opacity: 0, rotateY: -90 }}
+                animate={{ scale: 1, opacity: 1, rotateY: 0 }}
+                transition={{ duration: 0.8, ease: "easeOut", delay: 0.1 }}
               >
-                <div className="absolute -inset-8 rounded-full opacity-60"
-                  style={{ background: "radial-gradient(circle, rgba(16,185,129,0.4) 0%, rgba(59,130,246,0.3) 40%, transparent 70%)" }}
-                />
-                <div className="relative flex h-44 w-44 items-center justify-center overflow-hidden border border-white/20 bg-white/10 backdrop-blur-xl"
-                  style={{ 
-                    borderRadius: "32px",
-                    boxShadow: "0 8px 32px rgba(16,185,129,0.2), 0 0 60px rgba(59,130,246,0.15), inset 0 1px 0 rgba(255,255,255,0.1)"
+                <motion.div
+                  className="absolute -inset-12 rounded-full"
+                  style={{
+                    background: "radial-gradient(circle, rgba(6,182,212,0.4) 0%, rgba(16,185,129,0.2) 40%, transparent 70%)"
                   }}
-                >
-                  <Image
-                    src="/tanakoli-logo.png"
-                    alt="تنقلي خنشلة"
-                    width={176}
-                    height={176}
-                    className="w-full h-full object-cover"
-                    style={{ borderRadius: "32px" }}
-                    priority
-                  />
+                  animate={{ scale: [1, 1.2, 1] }}
+                  transition={{ duration: 4, repeat: Infinity }}
+                />
+                <div className="relative flex h-56 w-56 items-center justify-center rounded-3xl border border-cyan-500/30 bg-gradient-to-br from-white/10 via-cyan-500/5 to-blue-500/10 backdrop-blur-xl shadow-2xl">
+                  <TanakaliLogo className="h-48 w-48" />
                 </div>
               </motion.div>
 
+              {/* Title section */}
               <motion.div
-                className="space-y-2"
+                className="space-y-3"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.3, duration: 0.5 }}
+                transition={{ delay: 0.4, duration: 0.6 }}
               >
-                <h1 className="bg-gradient-to-r from-emerald-300 via-white to-blue-300 bg-clip-text text-5xl font-bold tracking-tight text-transparent drop-shadow-lg">
-                  تنقلي خنشلة
+                <h1 className="text-6xl font-bold tracking-tight">
+                  <span className="bg-gradient-to-r from-cyan-300 via-white to-emerald-300 bg-clip-text text-transparent">تنقلي</span>
                 </h1>
-                <p className="text-xl font-medium tracking-wide text-white/80">Tanakoli Khenchela</p>
+                <p className="text-3xl font-light text-white/90">خنشلة</p>
+                <p className="mt-4 text-sm tracking-widest text-white/50 uppercase">Urban Transit Network</p>
               </motion.div>
 
+              {/* Tagline */}
               <motion.p
-                className="text-lg font-medium text-white/90"
+                className="max-w-sm text-lg text-white/70 leading-relaxed"
                 initial={{ opacity: 0, y: 15 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.5, duration: 0.5 }}
+                transition={{ delay: 0.6, duration: 0.6 }}
               >
-                مدينتك، نقلك. لنبدأ الرحلة!
+                نقلك الموثوق إلى كل مكان. اكتشف المدينة بكل سهولة وراحة.
               </motion.p>
 
+              {/* Start button */}
               <motion.button
                 onClick={() => setStep("register")}
-                className="relative mt-4 flex h-14 w-52 items-center justify-center overflow-hidden rounded-full border border-white/20 bg-gradient-to-r from-emerald-500 via-teal-500 to-blue-500 text-lg font-bold text-white shadow-2xl transition-transform duration-200 hover:scale-105 active:scale-95"
+                className="group relative mt-6 overflow-hidden rounded-2xl px-10 py-4 font-semibold text-white transition-all duration-300"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: showSplashButton ? 1 : 0, y: showSplashButton ? 0 : 20 }}
-                transition={{ duration: 0.5 }}
+                transition={{ duration: 0.5, delay: 0.8 }}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.98 }}
               >
-                <div className="absolute -inset-2 rounded-full bg-gradient-to-r from-emerald-400/30 via-teal-400/30 to-blue-400/30 blur-xl" />
-                <span className="relative z-10 flex items-center gap-3 text-xl">
+                <div className="absolute inset-0 bg-gradient-to-r from-cyan-500 via-teal-500 to-emerald-500 group-hover:from-cyan-600 group-hover:via-teal-600 group-hover:to-emerald-600 transition-all duration-300" />
+                <div className="absolute inset-0 bg-gradient-to-r from-cyan-500 via-teal-500 to-emerald-500 blur-lg opacity-50 group-hover:opacity-75 transition-opacity -z-10" />
+                <span className="relative flex items-center justify-center gap-3">
+                  <MapPin className="h-5 w-5" />
                   ابدأ الآن
-                  <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                  </svg>
+                  <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-1" />
                 </span>
               </motion.button>
             </div>
 
+            {/* Bottom accent */}
             <motion.div
-              className="absolute bottom-8 z-10 text-center"
+              className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-slate-950/50 to-transparent pointer-events-none"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              transition={{ delay: 0.7 }}
-            >
-              <p className="text-sm text-white/50">ETUS Khenchela</p>
-              <p className="mt-1 text-xs text-white/30">مؤسسة النقل الحضري</p>
-            </motion.div>
+              transition={{ delay: 0.5 }}
+            />
           </motion.div>
         )}
 
@@ -311,91 +387,157 @@ export function OnboardingScreen() {
         {step === "register" && (
           <motion.div
             key="register"
-            className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900 px-6"
-            initial={{ opacity: 0, x: 40 }}
+            className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 px-6"
+            initial={{ opacity: 0, x: 100 }}
             animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -40 }}
-            transition={{ duration: 0.35, ease: "easeOut" }}
+            exit={{ opacity: 0, x: -100 }}
+            transition={{ duration: 0.4, ease: "easeOut" }}
           >
-            <div className="absolute inset-0">
-              <div className="absolute left-1/4 top-1/4 h-96 w-96 rounded-full bg-emerald-500/10 blur-3xl" />
-              <div className="absolute right-1/4 bottom-1/4 h-96 w-96 rounded-full bg-blue-500/10 blur-3xl" />
+            <div className="absolute inset-0 overflow-hidden">
+              <motion.div
+                className="absolute -left-40 top-10 h-72 w-72 rounded-full bg-gradient-to-br from-cyan-500/15 to-blue-500/15 blur-3xl"
+                animate={{ y: [0, 20, 0] }}
+                transition={{ duration: 5, repeat: Infinity }}
+              />
+              <motion.div
+                className="absolute -right-40 bottom-10 h-72 w-72 rounded-full bg-gradient-to-tl from-emerald-500/15 to-cyan-500/15 blur-3xl"
+                animate={{ y: [0, -20, 0] }}
+                transition={{ duration: 6, repeat: Infinity, delay: 0.5 }}
+              />
             </div>
 
-            <div className="relative z-10 w-full max-w-sm">
-              <button
+            <div className="relative z-10 w-full max-w-sm space-y-8">
+              {/* Back button */}
+              <motion.button
                 onClick={() => { setError(""); setStep("splash") }}
-                className="mb-6 flex items-center gap-2 text-sm text-white/60 hover:text-white/90 transition-colors"
+                className="flex items-center gap-2 text-sm text-white/50 hover:text-white/80 transition-colors group"
+                whileHover={{ x: -4 }}
               >
-                <ArrowRight className="h-4 w-4" />
+                <ArrowRight className="h-4 w-4 group-hover:-translate-x-1 transition-transform" />
                 <span>رجوع</span>
-              </button>
+              </motion.button>
 
-              <div className="mb-8 text-center">
-                <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-white/10 backdrop-blur-sm border border-white/20">
-                  <User className="h-8 w-8 text-emerald-400" />
+              {/* Header */}
+              <motion.div
+                className="space-y-3 text-center"
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.1 }}
+              >
+                <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-xl bg-gradient-to-br from-cyan-500/30 to-emerald-500/30 border border-cyan-400/30 backdrop-blur-sm">
+                  <MapPin className="h-6 w-6 text-cyan-300" />
                 </div>
-                <h2 className="text-2xl font-bold text-white">إنشاء حساب</h2>
-                <p className="mt-1 text-sm text-white/60">أدخل بياناتك للبدء</p>
-              </div>
+                <h2 className="text-3xl font-bold bg-gradient-to-r from-cyan-200 to-white bg-clip-text text-transparent">إنشاء حسابك</h2>
+                <p className="text-white/60 text-sm">ابدأ رحلتك معنا في ثانية واحدة</p>
+              </motion.div>
 
-              <form onSubmit={handleSendOTP} className="space-y-4">
-                <div>
-                  <label className="mb-2 block text-sm font-medium text-white/80">الاسم الكامل</label>
-                  <div className="relative">
-                    <User className="absolute right-3 top-1/2 h-5 w-5 -translate-y-1/2 text-white/40" />
-                    <input
-                      type="text"
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      placeholder="أدخل اسمك الكامل"
-                      required
-                      className="w-full rounded-xl border border-white/20 bg-white/10 py-3 pr-10 pl-4 text-white placeholder:text-white/30 backdrop-blur-sm focus:border-emerald-500/60 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
-                    />
+              <motion.form
+                onSubmit={handleSendOTP}
+                className="space-y-6"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2 }}
+              >
+                {/* Full Name Input */}
+                <motion.div
+                  className="space-y-2"
+                  whileFocus={{ scale: 1.02 }}
+                >
+                  <label htmlFor="name" className="block text-xs font-semibold text-white/70 uppercase tracking-wide">
+                    الاسم الكامل
+                  </label>
+                  <div className="relative group">
+                    <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-cyan-500/20 to-emerald-500/20 opacity-0 group-focus-within:opacity-100 transition-opacity blur" />
+                    <div className="relative flex items-center rounded-xl border border-white/15 bg-white/5 backdrop-blur-md transition-all group-focus-within:border-cyan-400/50 group-focus-within:bg-white/10">
+                      <input
+                        id="name"
+                        type="text"
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        placeholder="محمد علي"
+                        required
+                        className="w-full bg-transparent py-3.5 pr-4 pl-4 text-white placeholder:text-white/25 outline-none text-sm"
+                      />
+                      <MapPin className="absolute left-4 h-5 w-5 text-white/30 group-focus-within:text-cyan-400 transition-colors" />
+                    </div>
                   </div>
-                </div>
+                </motion.div>
 
-                <div>
-                  <label className="mb-2 block text-sm font-medium text-white/80">رقم الهاتف</label>
-                  <div className="relative">
-                    <Phone className="absolute right-3 top-1/2 h-5 w-5 -translate-y-1/2 text-white/40" />
-                    <input
-                      type="tel"
-                      value={phone}
-                      onChange={(e) => { setPhone(e.target.value); setError("") }}
-                      placeholder="07XX XXX XXX"
-                      required
-                      dir="ltr"
-                      className="w-full rounded-xl border border-white/20 bg-white/10 py-3 pr-10 pl-4 text-white placeholder:text-white/30 backdrop-blur-sm focus:border-emerald-500/60 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
-                    />
+                {/* Phone Input */}
+                <motion.div
+                  className="space-y-2"
+                  whileFocus={{ scale: 1.02 }}
+                >
+                  <label htmlFor="phone" className="block text-xs font-semibold text-white/70 uppercase tracking-wide">
+                    رقم الهاتف
+                  </label>
+                  <div className="relative group">
+                    <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-cyan-500/20 to-emerald-500/20 opacity-0 group-focus-within:opacity-100 transition-opacity blur" />
+                    <div className="relative flex items-center rounded-xl border border-white/15 bg-white/5 backdrop-blur-md transition-all group-focus-within:border-cyan-400/50 group-focus-within:bg-white/10">
+                      <input
+                        id="phone"
+                        type="tel"
+                        value={phone}
+                        onChange={(e) => { setPhone(e.target.value); setError("") }}
+                        placeholder="07XX XXX XXX"
+                        required
+                        dir="ltr"
+                        className="w-full bg-transparent py-3.5 pr-4 pl-4 text-white placeholder:text-white/25 outline-none text-sm"
+                      />
+                      <Phone className="absolute left-4 h-5 w-5 text-white/30 group-focus-within:text-cyan-400 transition-colors" />
+                    </div>
                   </div>
-                </div>
+                </motion.div>
 
-                {error && (
-                  <p className="rounded-lg bg-red-500/10 border border-red-500/20 px-3 py-2 text-center text-sm text-red-400">
-                    {error}
-                  </p>
-                )}
+                {/* Error message */}
+                <AnimatePresence>
+                  {error && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -10 }}
+                      className="rounded-xl bg-gradient-to-r from-red-500/20 to-red-500/10 border border-red-500/30 px-4 py-3 text-center text-sm text-red-300"
+                    >
+                      {error}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
 
-                <button
+                {/* Submit button */}
+                <motion.button
                   type="submit"
                   disabled={isLoading}
-                  className="w-full rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 py-3.5 font-bold text-white shadow-lg transition-all hover:from-emerald-400 hover:to-teal-400 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="group relative w-full overflow-hidden rounded-xl py-3.5 font-semibold text-white transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+                  whileHover={{ scale: isLoading ? 1 : 1.02 }}
+                  whileTap={{ scale: isLoading ? 1 : 0.98 }}
                 >
-                  {isLoading ? (
-                    <div className="flex items-center justify-center gap-2">
-                      <Loader2 className="h-5 w-5 animate-spin" />
-                      <span>جاري إرسال الرمز...</span>
-                    </div>
-                  ) : (
-                    "إرسال رمز التحقق"
-                  )}
-                </button>
-              </form>
+                  <div className="absolute inset-0 bg-gradient-to-r from-cyan-500 via-teal-500 to-emerald-500 transition-all group-hover:from-cyan-600 group-hover:via-teal-600 group-hover:to-emerald-600" />
+                  <div className="absolute inset-0 bg-gradient-to-r from-cyan-500 via-teal-500 to-emerald-500 blur-lg opacity-50 group-hover:opacity-75 -z-10" />
+                  <span className="relative flex items-center justify-center gap-2">
+                    {isLoading ? (
+                      <>
+                        <Loader2 className="h-5 w-5 animate-spin" />
+                        جاري إرسال الرمز
+                      </>
+                    ) : (
+                      <>
+                        إرسال رمز التحقق
+                        <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+                      </>
+                    )}
+                  </span>
+                </motion.button>
+              </motion.form>
 
-              <p className="mt-6 text-center text-xs text-white/30">
-                بالمتابعة، أنت توافق على شروط الاستخدام وسياسة الخصوصية
-              </p>
+              {/* Terms text */}
+              <motion.p
+                className="text-center text-xs text-white/40 leading-relaxed"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.4 }}
+              >
+                بالمتابعة، أنت توافق على <span className="text-cyan-400">شروط الاستخدام</span> و<span className="text-cyan-400">سياسة الخصوصية</span>
+              </motion.p>
             </div>
           </motion.div>
         )}
@@ -404,38 +546,63 @@ export function OnboardingScreen() {
         {step === "otp" && (
           <motion.div
             key="otp"
-            className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900 px-6"
-            initial={{ opacity: 0, x: 40 }}
+            className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 px-6"
+            initial={{ opacity: 0, x: 100 }}
             animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -40 }}
-            transition={{ duration: 0.35, ease: "easeOut" }}
+            exit={{ opacity: 0, x: -100 }}
+            transition={{ duration: 0.4, ease: "easeOut" }}
           >
-            <div className="absolute inset-0">
-              <div className="absolute left-1/4 top-1/4 h-96 w-96 rounded-full bg-emerald-500/10 blur-3xl" />
-              <div className="absolute right-1/4 bottom-1/4 h-96 w-96 rounded-full bg-blue-500/10 blur-3xl" />
+            <div className="absolute inset-0 overflow-hidden">
+              <motion.div
+                className="absolute -left-40 top-20 h-72 w-72 rounded-full bg-gradient-to-br from-cyan-500/15 to-blue-500/15 blur-3xl"
+                animate={{ y: [0, 25, 0] }}
+                transition={{ duration: 6, repeat: Infinity }}
+              />
+              <motion.div
+                className="absolute -right-40 bottom-20 h-72 w-72 rounded-full bg-gradient-to-tl from-emerald-500/15 to-cyan-500/15 blur-3xl"
+                animate={{ y: [0, -25, 0] }}
+                transition={{ duration: 7, repeat: Infinity, delay: 0.5 }}
+              />
             </div>
 
-            <div className="relative z-10 w-full max-w-sm">
-              <button
+            <div className="relative z-10 w-full max-w-sm space-y-8">
+              {/* Back button */}
+              <motion.button
                 onClick={() => { setError(""); setOtp(["","","","","",""]); setStep("register") }}
-                className="mb-6 flex items-center gap-2 text-sm text-white/60 hover:text-white/90 transition-colors"
+                className="flex items-center gap-2 text-sm text-white/50 hover:text-white/80 transition-colors group"
+                whileHover={{ x: -4 }}
               >
-                <ArrowRight className="h-4 w-4" />
+                <ArrowRight className="h-4 w-4 group-hover:-translate-x-1 transition-transform" />
                 <span>رجوع</span>
-              </button>
+              </motion.button>
 
-              <div className="mb-8 text-center">
-                <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-white/10 backdrop-blur-sm border border-white/20">
-                  <Shield className="h-8 w-8 text-emerald-400" />
+              {/* Header */}
+              <motion.div
+                className="space-y-4 text-center"
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.1 }}
+              >
+                <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-cyan-500/30 to-blue-500/30 border border-cyan-400/30 backdrop-blur-sm">
+                  <Phone className="h-8 w-8 text-cyan-300 animate-pulse" />
                 </div>
-                <h2 className="text-2xl font-bold text-white">التحقق من الهاتف</h2>
-                <p className="mt-1 text-sm text-white/60">تم إرسال رمز مكوّن من 6 أرقام إلى</p>
-                <p className="mt-1 text-sm font-bold text-emerald-400" dir="ltr">{phone}</p>
-              </div>
+                <div>
+                  <h2 className="text-3xl font-bold bg-gradient-to-r from-cyan-200 to-white bg-clip-text text-transparent">التحقق من الهاتف</h2>
+                  <p className="mt-2 text-white/60 text-sm">أدخل الرمز المكوّن من 6 أرقام</p>
+                  <p className="mt-1 text-cyan-300 font-mono text-sm" dir="ltr">{phone}</p>
+                </div>
+              </motion.div>
 
-              <div className="mb-6 flex justify-center gap-2" dir="ltr">
+              {/* OTP Input Fields */}
+              <motion.div
+                className="flex justify-center gap-3"
+                dir="ltr"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2 }}
+              >
                 {otp.map((digit, i) => (
-                  <input
+                  <motion.input
                     key={i}
                     id={`ob-otp-${i}`}
                     type="text"
@@ -447,52 +614,87 @@ export function OnboardingScreen() {
                       if (e.key === "Backspace" && !digit && i > 0)
                         document.getElementById(`ob-otp-${i - 1}`)?.focus()
                     }}
-                    className={`h-12 w-10 rounded-xl border-2 bg-white/10 text-center text-xl font-bold text-white backdrop-blur-sm transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-500/30 ${
-                      error ? "border-red-500/60" : digit ? "border-emerald-500/60" : "border-white/20"
-                    }`}
+                    className={`h-14 w-12 rounded-xl text-center text-2xl font-bold backdrop-blur-md border-2 transition-all outline-none ${
+                      digit
+                        ? "border-cyan-400/60 bg-cyan-500/10 text-white"
+                        : error
+                        ? "border-red-500/40 bg-red-500/5 text-white"
+                        : "border-white/15 bg-white/5 text-white/70"
+                    } focus:border-cyan-400 focus:bg-cyan-500/15 focus:text-white`}
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ delay: i * 0.05 }}
                   />
                 ))}
-              </div>
+              </motion.div>
 
-              {error && (
-                <p className="mb-4 rounded-lg bg-red-500/10 border border-red-500/20 px-3 py-2 text-center text-sm text-red-400">
-                  {error}
-                </p>
-              )}
+              {/* Error message */}
+              <AnimatePresence>
+                {error && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    className="rounded-xl bg-gradient-to-r from-red-500/20 to-red-500/10 border border-red-500/30 px-4 py-3 text-center text-sm text-red-300"
+                  >
+                    {error}
+                  </motion.div>
+                )}
+              </AnimatePresence>
 
-              <button
+              {/* Verify button */}
+              <motion.button
                 onClick={handleVerify}
                 disabled={otp.some((d) => !d) || isLoading}
-                className="w-full rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 py-3.5 font-bold text-white shadow-lg transition-all hover:from-emerald-400 hover:to-teal-400 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="group relative w-full overflow-hidden rounded-xl py-3.5 font-semibold text-white transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+                whileHover={{ scale: otp.every(d => d) && !isLoading ? 1.02 : 1 }}
+                whileTap={{ scale: otp.every(d => d) && !isLoading ? 0.98 : 1 }}
               >
-                {isLoading ? (
-                  <div className="flex items-center justify-center gap-2">
-                    <Loader2 className="h-5 w-5 animate-spin" />
-                    <span>جاري التحقق...</span>
-                  </div>
-                ) : (
-                  "تأكيد الرمز"
-                )}
-              </button>
+                <div className="absolute inset-0 bg-gradient-to-r from-cyan-500 via-teal-500 to-emerald-500 transition-all group-hover:from-cyan-600 group-hover:via-teal-600 group-hover:to-emerald-600" />
+                <div className="absolute inset-0 bg-gradient-to-r from-cyan-500 via-teal-500 to-emerald-500 blur-lg opacity-50 group-hover:opacity-75 -z-10" />
+                <span className="relative flex items-center justify-center gap-2">
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="h-5 w-5 animate-spin" />
+                      جاري التحقق
+                    </>
+                  ) : (
+                    <>
+                      تأكيد الرمز
+                      <Check className="h-4 w-4 transition-transform group-hover:scale-110" />
+                    </>
+                  )}
+                </span>
+              </motion.button>
 
-              <div className="mt-5 text-center">
-                <p className="text-xs text-white/40 mb-2">لم تستلم الرمز؟</p>
-                <button
+              {/* Resend section */}
+              <motion.div
+                className="text-center space-y-3"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.3 }}
+              >
+                <p className="text-xs text-white/40">لم تستلم الرمز؟</p>
+                <motion.button
                   onClick={handleResend}
                   disabled={!canResend || isLoading}
                   className={`text-sm font-medium transition-colors ${
-                    canResend ? "text-emerald-400 hover:text-emerald-300 cursor-pointer" : "text-white/30 cursor-not-allowed"
+                    canResend ? "text-cyan-400 hover:text-cyan-300 cursor-pointer" : "text-white/30 cursor-not-allowed"
                   }`}
+                  whileHover={canResend ? { scale: 1.05 } : {}}
                 >
-                  {canResend ? "إعادة الإرسال" : (
-                    <span>
-                      إعادة الإرسال بعد{" "}
-                      <span className="inline-block w-6 text-center font-bold tabular-nums">{resendTimer}</span>
-                      {" "}ثانية
+                  {canResend ? (
+                    "إعادة الإرسال الآن"
+                  ) : (
+                    <span className="space-x-1">
+                      <span>إعادة الإرسال خلال</span>
+                      <span className="inline-block w-8 text-center font-bold text-cyan-400 tabular-nums">
+                        {String(resendTimer).padStart(2, '0')}
+                      </span>
                     </span>
                   )}
-                </button>
-              </div>
+                </motion.button>
+              </motion.div>
             </div>
           </motion.div>
         )}
@@ -501,38 +703,80 @@ export function OnboardingScreen() {
         {step === "success" && (
           <motion.div
             key="success"
-            className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900"
+            className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 overflow-hidden"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            transition={{ duration: 0.4 }}
+            transition={{ duration: 0.5 }}
           >
             <div className="absolute inset-0">
-              <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-emerald-900/30 via-transparent to-transparent" />
-            </div>
-            <div className="relative z-10 flex flex-col items-center gap-5 px-6 text-center">
               <motion.div
-                className="flex h-24 w-24 items-center justify-center rounded-full bg-gradient-to-br from-emerald-500 to-teal-500 shadow-2xl"
+                className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-emerald-500/30 via-transparent to-transparent"
+                animate={{ scale: [1, 1.2, 1] }}
+                transition={{ duration: 3, repeat: Infinity }}
+              />
+              <motion.div
+                className="absolute -left-40 top-1/2 h-80 w-80 rounded-full bg-gradient-to-br from-cyan-500/20 to-emerald-500/20 blur-3xl"
+                animate={{ y: [0, 30, 0] }}
+                transition={{ duration: 5, repeat: Infinity }}
+              />
+            </div>
+
+            <div className="relative z-10 flex flex-col items-center gap-8 px-6 text-center">
+              {/* Success checkmark animation */}
+              <motion.div
+                className="relative"
                 initial={{ scale: 0, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
-                transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                transition={{ type: "spring", stiffness: 200, damping: 15, delay: 0.1 }}
               >
-                <Check className="h-12 w-12 text-white" strokeWidth={3} />
+                <motion.div
+                  className="absolute inset-0 rounded-full bg-gradient-to-r from-cyan-400/40 to-emerald-400/40 blur-2xl"
+                  animate={{ scale: [1, 1.3, 1] }}
+                  transition={{ duration: 2, repeat: Infinity }}
+                />
+                <div className="relative flex h-28 w-28 items-center justify-center rounded-full bg-gradient-to-br from-cyan-500 via-teal-500 to-emerald-500 shadow-2xl">
+                  <motion.div
+                    initial={{ scale: 0, rotate: -180 }}
+                    animate={{ scale: 1, rotate: 0 }}
+                    transition={{ delay: 0.3, type: "spring", stiffness: 300 }}
+                  >
+                    <Check className="h-16 w-16 text-white" strokeWidth={2.5} />
+                  </motion.div>
+                </div>
               </motion.div>
+
+              {/* Success text */}
               <motion.div
-                initial={{ opacity: 0, y: 15 }}
+                className="space-y-3"
+                initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.2 }}
+                transition={{ delay: 0.4, duration: 0.6 }}
               >
-                <h2 className="text-2xl font-bold text-white">مرحباً {name}!</h2>
-                <p className="mt-2 text-white/60">تم التسجيل بنجاح. جاري تحميل التطبيق...</p>
+                <h2 className="text-4xl font-bold bg-gradient-to-r from-cyan-200 via-white to-emerald-200 bg-clip-text text-transparent">
+                  مرحباً {name}!
+                </h2>
+                <p className="text-lg text-white/70">تم تفعيل حسابك بنجاح</p>
+                <p className="text-sm text-white/50">الآن يمكنك الاستمتاع برحلات آمنة وموثوقة</p>
               </motion.div>
+
+              {/* Loading indicator */}
               <motion.div
-                className="mt-2"
+                className="space-y-4"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                transition={{ delay: 0.4 }}
+                transition={{ delay: 0.6 }}
               >
-                <Loader2 className="h-6 w-6 animate-spin text-emerald-400" />
+                <div className="flex justify-center">
+                  <div className="relative h-2 w-64 rounded-full bg-white/10 overflow-hidden">
+                    <motion.div
+                      className="absolute inset-y-0 left-0 bg-gradient-to-r from-cyan-500 via-teal-500 to-emerald-500 rounded-full"
+                      initial={{ width: 0 }}
+                      animate={{ width: "100%" }}
+                      transition={{ duration: 2 }}
+                    />
+                  </div>
+                </div>
+                <p className="text-xs text-white/40">جاري تحضير التطبيق...</p>
               </motion.div>
             </div>
           </motion.div>
