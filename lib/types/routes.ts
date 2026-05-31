@@ -1,5 +1,5 @@
 // Route category type
-export type RouteCategory = "urban" | "intercity"
+export type RouteCategory = "urban"
 
 // Sub-station type for intermediate stops
 export interface SubStation {
@@ -38,10 +38,8 @@ export interface BusRoute {
   frequency: number // minutes between buses
   stops: RouteStop[]
   sub_stations?: SubStation[] // Intermediate sub-stations along the route
-  category: RouteCategory // "urban" or "intercity"
-  municipalities?: string[] // List of municipalities this route connects (for intercity)
-  distance?: number // Distance in km (for intercity)
-  duration?: number // Duration in minutes (for intercity)
+  category: RouteCategory // "urban" only
+  distance?: number // Distance in km (removed for urban only)
 }
 
 // Station type
