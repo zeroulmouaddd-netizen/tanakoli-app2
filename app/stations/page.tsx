@@ -264,7 +264,7 @@ export default function StationsPage() {
   return (
     <ErrorBoundary>
       <PageTransition>
-        <main className="min-h-screen bg-background pb-40">
+        <main className="min-h-screen bg-background pb-28 md:pb-32">
           <AppHeader />
         
           <div className="px-4 pt-20">
@@ -392,7 +392,7 @@ export default function StationsPage() {
                           className="mt-4 rounded-xl bg-primary px-6 py-2 text-sm font-medium text-primary-foreground"
                           whileTap={{ scale: 0.95 }}
                         >
-                          عرض جميع الخطوط
+                          عرض جميع ال��طوط
                         </motion.button>
                       )}
                     </motion.div>
