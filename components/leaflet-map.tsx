@@ -9,7 +9,7 @@ import "leaflet.markercluster/dist/MarkerCluster.Default.css"
 import { db } from "@/lib/firebase"
 import { collection, onSnapshot } from "firebase/firestore"
 import { motion, AnimatePresence } from "framer-motion"
-import { Layers, ChevronDown, ChevronUp, Eye, EyeOff, MapPin, Maximize2, Minimize2, ZoomIn, ZoomOut } from "lucide-react"
+import { Layers, ChevronDown, ChevronUp, MapPin, Maximize2, Minimize2, ZoomIn, ZoomOut } from "lucide-react"
 import { useTheme } from "@/lib/theme-context"
 import { useRouteSubStations } from "@/hooks/use-routes"
 import { useBusSimulation, type SimulatedBus } from "@/lib/bus-simulation"
@@ -457,7 +457,6 @@ function RouteController({
   isDark: boolean
 }) {
   const [isExpanded, setIsExpanded] = useState(false)
-  const [showLegend, setShowLegend] = useState(true)
   
   // Dark mode colors
   const bgColor = isDark ? "rgba(30, 41, 59, 0.95)" : "rgba(255, 255, 255, 0.95)"
@@ -489,56 +488,8 @@ function RouteController({
 
   return (
     <>
-{/* Legend - Bottom Left */}
-      <AnimatePresence>
-        {showLegend && (
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -20 }}
-            className="absolute bottom-24 left-3 z-[1000] rounded-xl p-3 shadow-lg backdrop-blur-sm"
-            style={{ direction: "rtl", backgroundColor: bgColor, border: `1px solid ${borderColor}` }}
-          >
-            <div className="mb-2 flex items-center justify-between">
-              <span className="text-xs font-semibold" style={{ color: textColor }}>دليل الألوان</span>
-              <button 
-                onClick={() => setShowLegend(false)}
-                className="transition-colors"
-                style={{ color: mutedTextColor }}
-              >
-                <EyeOff className="h-3.5 w-3.5" />
-              </button>
-            </div>
-            <div className="space-y-1.5">
-              {Object.entries(ROUTE_CATEGORIES).map(([key, { label, color }]) => (
-                <div key={key} className="flex items-center gap-2">
-                  <div 
-                    className="h-3 w-6 rounded-full" 
-                    style={{ backgroundColor: color }}
-                  />
-                  <span className="text-[11px]" style={{ color: mutedTextColor }}>{label}</span>
-                </div>
-              ))}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Show Legend Button */}
-      {!showLegend && (
-        <motion.button
-          initial={{ opacity: 0, scale: 0.8 }}
-          animate={{ opacity: 1, scale: 1 }}
-          onClick={() => setShowLegend(true)}
-          className="absolute bottom-24 left-3 z-[1000] flex h-10 w-10 items-center justify-center rounded-xl shadow-lg backdrop-blur-sm"
-          style={{ backgroundColor: bgColor, border: `1px solid ${borderColor}` }}
-        >
-          <Eye className="h-5 w-5" style={{ color: textColor }} />
-        </motion.button>
-      )}
-
       {/* Route Controller - Top Right */}
-      <div className="absolute right-3 top-3 z-[1000]" style={{ direction: "rtl" }}>
+      <div className="absolute right-4 top-4 z-[1000]" style={{ direction: "rtl" }}>
         <motion.div
           layout
           className="overflow-hidden rounded-xl shadow-lg backdrop-blur-sm"
@@ -587,7 +538,7 @@ function RouteController({
                     onMouseEnter={(e) => { if (viewMode !== "all") e.currentTarget.style.backgroundColor = hoverBg }}
                     onMouseLeave={(e) => { if (viewMode !== "all") e.currentTarget.style.backgroundColor = "transparent" }}
                   >
-                    <Eye className="h-4 w-4" style={{ color: viewMode === "all" ? "#22C55E" : mutedTextColor }} />
+                    <MapPin className="h-4 w-4" style={{ color: viewMode === "all" ? "#22C55E" : mutedTextColor }} />
                     <span className="font-medium">عرض كل الخطوط</span>
                   </button>
 
@@ -1198,17 +1149,6 @@ const marker = L.marker(subStation.coords, {
             <ZoomOut className="h-4 w-4" />
           </button>
         </div>
-        
-        {/* Legend Toggle */}
-        <motion.button
-          onClick={() => setShowLegend(!showLegend)}
-          className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/90 hover:bg-primary text-primary-foreground shadow-lg transition-all backdrop-blur-lg"
-          whileTap={{ scale: 0.95 }}
-          aria-label="إظهار/إخفاء وسيلة الإيضاح"
-          title="وسيلة الإيضاح"
-        >
-          <Layers className="h-4 w-4" />
-        </motion.button>
       </motion.div>
 
       {/* Route Controller - Keep existing */}
