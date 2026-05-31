@@ -43,13 +43,14 @@ export function AppHeader() {
         <SheetContent side="right" className="flex w-[300px] max-h-dvh flex-col border-l-0 bg-card/95 p-0 backdrop-blur-xl" style={{ zIndex: 9999 }}>
           <SheetHeader className="shrink-0 border-b border-border bg-primary p-6 text-primary-foreground">
             <div className="flex items-center gap-3">
-              <div className="flex h-12 w-12 items-center justify-center rounded-lg overflow-hidden flex-shrink-0">
+              <div className="flex h-12 w-12 items-center justify-center overflow-hidden flex-shrink-0" style={{ borderRadius: "16px" }}>
                 <Image
                   src="/tanakoli-logo.png"
                   alt="تنقلي خنشلة"
                   width={48}
                   height={48}
-                  className="w-full h-full object-cover rounded-lg"
+                  className="w-full h-full object-cover"
+                  style={{ borderRadius: "16px" }}
                 />
               </div>
               <div className="text-right">
@@ -181,13 +182,14 @@ export function AppHeader() {
           <h1 className="text-lg font-bold text-foreground">تنقلي خنشلة</h1>
           <span className="text-xs text-muted-foreground">النقل الحضري</span>
         </div>
-        <div className="flex h-10 w-10 items-center justify-center rounded-lg overflow-hidden flex-shrink-0">
+        <div className="flex h-10 w-10 items-center justify-center overflow-hidden flex-shrink-0" style={{ borderRadius: "12px" }}>
           <Image
             src="/tanakoli-logo.png"
             alt="تنقلي خنشلة"
             width={40}
             height={40}
-            className="w-full h-full object-cover rounded-lg"
+            className="w-full h-full object-cover"
+            style={{ borderRadius: "12px" }}
           />
         </div>
       </div>

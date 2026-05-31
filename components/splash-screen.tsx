@@ -1,98 +1,8 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import Image from "next/image"
 import { motion } from "framer-motion"
-
-// Modern TK Logo: Road-path T integrated with sleek bus silhouette
-function TKLogo({ className }: { className?: string }) {
-  return (
-    <svg
-      viewBox="0 0 200 200"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-      className={className}
-    >
-      <defs>
-        {/* Emerald Green to Electric Blue gradient */}
-        <linearGradient id="tkGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#10B981" />
-          <stop offset="40%" stopColor="#059669" />
-          <stop offset="70%" stopColor="#0EA5E9" />
-          <stop offset="100%" stopColor="#3B82F6" />
-        </linearGradient>
-        <linearGradient id="tkGradientLight" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#34D399" />
-          <stop offset="100%" stopColor="#60A5FA" />
-        </linearGradient>
-        <linearGradient id="roadGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-          <stop offset="0%" stopColor="#10B981" stopOpacity="0.9" />
-          <stop offset="100%" stopColor="#3B82F6" stopOpacity="0.9" />
-        </linearGradient>
-        {/* Glow filter */}
-        <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
-          <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
-          <feMerge>
-            <feMergeNode in="coloredBlur"/>
-            <feMergeNode in="SourceGraphic"/>
-          </feMerge>
-        </filter>
-        {/* Drop shadow */}
-        <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
-          <feDropShadow dx="0" dy="4" stdDeviation="8" floodColor="#000" floodOpacity="0.3"/>
-        </filter>
-      </defs>
-      
-      {/* Background circle with glass effect */}
-      <circle cx="100" cy="100" r="90" fill="white" fillOpacity="0.1" />
-      <circle cx="100" cy="100" r="88" stroke="url(#tkGradientLight)" strokeWidth="2" strokeOpacity="0.5" fill="none" />
-      
-      {/* Stylized "T" as a road/path */}
-      <g filter="url(#shadow)">
-        {/* Horizontal road (top of T) */}
-        <rect x="35" y="45" width="130" height="22" rx="11" fill="url(#tkGradient)" />
-        {/* Road markings on horizontal */}
-        <line x1="50" y1="56" x2="65" y2="56" stroke="white" strokeWidth="2" strokeLinecap="round" strokeDasharray="6 4" opacity="0.7" />
-        <line x1="80" y1="56" x2="95" y2="56" stroke="white" strokeWidth="2" strokeLinecap="round" strokeDasharray="6 4" opacity="0.7" />
-        <line x1="110" y1="56" x2="125" y2="56" stroke="white" strokeWidth="2" strokeLinecap="round" strokeDasharray="6 4" opacity="0.7" />
-        <line x1="140" y1="56" x2="150" y2="56" stroke="white" strokeWidth="2" strokeLinecap="round" strokeDasharray="6 4" opacity="0.7" />
-        
-        {/* Vertical road (stem of T) with perspective */}
-        <path d="M88 67 L112 67 L118 145 L82 145 Z" fill="url(#roadGradient)" />
-        {/* Road center line */}
-        <line x1="100" y1="75" x2="100" y2="90" stroke="white" strokeWidth="2" strokeLinecap="round" opacity="0.7" />
-        <line x1="100" y1="100" x2="100" y2="115" stroke="white" strokeWidth="2" strokeLinecap="round" opacity="0.7" />
-        <line x1="100" y1="125" x2="100" y2="138" stroke="white" strokeWidth="2" strokeLinecap="round" opacity="0.7" />
-      </g>
-      
-      {/* Minimalist Bus Silhouette on the road */}
-      <g filter="url(#glow)" transform="translate(72, 95)">
-        {/* Bus body */}
-        <rect x="0" y="5" width="56" height="28" rx="6" fill="white" />
-        {/* Bus roof */}
-        <rect x="4" y="0" width="48" height="8" rx="4" fill="white" />
-        {/* Windows */}
-        <rect x="6" y="10" width="10" height="10" rx="2" fill="url(#tkGradient)" opacity="0.8" />
-        <rect x="19" y="10" width="10" height="10" rx="2" fill="url(#tkGradient)" opacity="0.8" />
-        <rect x="32" y="10" width="10" height="10" rx="2" fill="url(#tkGradient)" opacity="0.8" />
-        {/* Front section */}
-        <rect x="44" y="10" width="8" height="10" rx="2" fill="url(#tkGradient)" opacity="0.6" />
-        {/* Wheels */}
-        <circle cx="14" cy="35" r="6" fill="#1E293B" />
-        <circle cx="14" cy="35" r="3" fill="#64748B" />
-        <circle cx="42" cy="35" r="6" fill="#1E293B" />
-        <circle cx="42" cy="35" r="3" fill="#64748B" />
-        {/* Headlight */}
-        <circle cx="50" cy="25" r="2.5" fill="#FCD34D" />
-      </g>
-      
-      {/* "K" stylized hint - subtle accent */}
-      <g opacity="0.15">
-        <path d="M145 75 L165 55" stroke="url(#tkGradient)" strokeWidth="8" strokeLinecap="round" />
-        <path d="M145 75 L165 95" stroke="url(#tkGradient)" strokeWidth="8" strokeLinecap="round" />
-      </g>
-    </svg>
-  )
-}
 
 // City silhouette pattern for background
 function CitySilhouette({ className }: { className?: string }) {
@@ -178,14 +88,23 @@ export function SplashScreen({ onComplete }: { onComplete: () => void }) {
             }}
           />
           
-          {/* Logo container */}
+          {/* Logo container with image masking */}
           <div
-            className="relative flex h-44 w-44 items-center justify-center rounded-[2rem] border border-white/20 bg-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.3),inset_0_1px_0_rgba(255,255,255,0.1)] backdrop-blur-xl"
+            className="relative flex h-56 w-56 items-center justify-center overflow-hidden border border-white/20 bg-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.3),inset_0_1px_0_rgba(255,255,255,0.1)] backdrop-blur-xl flex-shrink-0"
             style={{
+              borderRadius: "40px",
               boxShadow: "0 8px 32px rgba(16,185,129,0.2), 0 0 60px rgba(59,130,246,0.15), inset 0 1px 0 rgba(255,255,255,0.1)"
             }}
           >
-            <TKLogo className="h-40 w-40" />
+            <Image
+              src="/tanakoli-logo.png"
+              alt="تنقلي خنشلة"
+              width={224}
+              height={224}
+              className="w-full h-full object-cover"
+              style={{ borderRadius: "40px" }}
+              priority
+            />
           </div>
         </motion.div>
 
