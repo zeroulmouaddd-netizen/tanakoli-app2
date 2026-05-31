@@ -9,18 +9,29 @@ import {
 import { getAuth } from "firebase/auth"
 
 const firebaseConfig = {
-  apiKey: 'AIzaSyCz62DFbbD89fpYUXdg38nRCohX-yTJ4z8',
-  authDomain: 'tanakoli-khenchela.firebaseapp.com',
-  projectId: 'tanakoli-khenchela',
-  storageBucket: 'tanakoli-khenchela.firebasestorage.app',
-  messagingSenderId: '757217321198',
-  appId: '1:757217321198:web:1cbdfd808a180b6ff9d3ff'
+  apiKey: "AIzaSyCz62DFbbD89fpYUXdg38nRCohX-yTJ4z8",
+  authDomain: "tanakoli-khenchela.firebaseapp.com",
+  projectId: "tanakoli-khenchela",
+  storageBucket: "tanakoli-khenchela.firebasestorage.app",
+  messagingSenderId: "757217321198",
+  appId: "1:757217321198:web:1cbdfd808a180b6ff9d3ff",
+  measurementId: "G-S4BJ4GEEKF",
 }
 
+// Guard against re-initialization on hot reloads
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp()
 
+// Analytics only runs in the browser (not during SSR)
+if (typeof window !== "undefined") {
+  import("firebase/analytics").then(({ getAnalytics, isSupported }) => {
+    isSupported().then((supported) => {
+      if (supported) getAnalytics(app)
+    })
+  })
+}
+
 // initializeFirestore throws if called more than once on the same app instance
-// (happens on hot reloads). Fall back to getFirestore if already initialized.
+// (happens on hot reloads in dev). Fall back to getFirestore if already initialized.
 let db: ReturnType<typeof getFirestore>
 try {
   db = initializeFirestore(app, {
@@ -33,6 +44,7 @@ try {
   db = getFirestore(app)
 }
 
-const auth = getAuth(app)
+// Initialize and export Firebase Auth
+export const auth = getAuth(app)
 
-export { db, auth }
+export { db }
