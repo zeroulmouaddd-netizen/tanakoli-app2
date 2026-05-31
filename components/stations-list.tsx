@@ -65,6 +65,7 @@ function MiniMapComponent({ station }: { station: Station }) {
 
     // Initialize map with disabled interactions
     map.current = L.map(mapContainer.current, {
+      attributionControl: false,
       zoomControl: false,
       dragging: false,
       scrollWheelZoom: false,
@@ -81,7 +82,6 @@ function MiniMapComponent({ station }: { station: Station }) {
       : "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
 
     L.tileLayer(tileUrl, {
-      attribution: '&copy; OpenStreetMap contributors',
       maxZoom: 19,
     }).addTo(map.current)
 
