@@ -125,29 +125,41 @@ export function OnboardingScreen() {
     return null
   }
 
-  // Creates a fresh invisible RecaptchaVerifier and renders it before use
+  // Formats and logs a raw Firebase error into a visible string
+  const formatFirebaseError = (stage: string, err: any): string => {
+    const code = err?.code ?? "no-code"
+    const msg = err?.message ?? "no-message"
+    // Log the full object so nothing is hidden
+    console.error(`[Auth][${stage}] code=${code}`, `message=${msg}`, err)
+    return `[${stage}] ${code}: ${msg}`
+  }
+
+  // Creates a fresh invisible RecaptchaVerifier and renders it
   const initRecaptcha = async (): Promise<void> => {
     try {
       if (recaptchaRef.current) {
         recaptchaRef.current.clear()
         recaptchaRef.current = null
       }
-    } catch {}
+    } catch (e) {
+      console.warn("[Auth] clear() threw (non-fatal):", e)
+    }
 
+    console.log("[Auth] Creating RecaptchaVerifier on element #ob-recaptcha, auth:", auth)
     recaptchaRef.current = new RecaptchaVerifier(auth, "ob-recaptcha", {
       size: "invisible",
-      callback: () => {
-        console.log("[Auth] reCAPTCHA solved successfully")
+      callback: (token: string) => {
+        console.log("[Auth] reCAPTCHA solved — token length:", token?.length ?? 0)
       },
       "expired-callback": () => {
-        console.warn("[Auth] reCAPTCHA expired — will reinitialize on next attempt")
-        if (recaptchaRef.current) { recaptchaRef.current.clear(); recaptchaRef.current = null }
+        console.warn("[Auth] reCAPTCHA token expired")
+        try { if (recaptchaRef.current) { recaptchaRef.current.clear(); recaptchaRef.current = null } } catch {}
       },
     })
 
-    // Must call render() and await it before passing to signInWithPhoneNumber
-    await recaptchaRef.current.render()
-    console.log("[Auth] reCAPTCHA rendered and ready")
+    console.log("[Auth] Calling render()...")
+    const widgetId = await recaptchaRef.current.render()
+    console.log("[Auth] render() resolved — widgetId:", widgetId)
   }
 
   const handleSendOTP = async (e: React.FormEvent) => {
@@ -159,31 +171,26 @@ export function OnboardingScreen() {
 
     setError("")
     setIsLoading(true)
+
+    // Step 1: init reCAPTCHA — separate try/catch so we know if THIS is what fails
     try {
       await initRecaptcha()
+    } catch (err: any) {
+      setError(formatFirebaseError("RecaptchaVerifier.render", err))
+      setIsLoading(false)
+      return
+    }
+
+    // Step 2: send OTP
+    try {
       const formatted = formatPhone(phone)
-      console.log("[Auth] Calling signInWithPhoneNumber with:", formatted)
+      console.log("[Auth] signInWithPhoneNumber →", formatted)
       const result = await signInWithPhoneNumber(auth, formatted, recaptchaRef.current!)
       confirmationRef.current = result
-      console.log("[Auth] OTP sent successfully — confirmation result received")
+      console.log("[Auth] OTP sent — confirmation:", result)
       setStep("otp")
     } catch (err: any) {
-      console.error("[Auth] signInWithPhoneNumber failed:", err?.code, err?.message, err)
-      if (err?.code === "auth/invalid-phone-number") {
-        setError("رقم الهاتف غير صحيح. تحقق من الصيغة.")
-      } else if (err?.code === "auth/too-many-requests") {
-        setError("طلبات كثيرة جداً. انتظر قليلاً وحاول مرة أخرى.")
-      } else if (err?.code === "auth/operation-not-allowed") {
-        setError("خطأ: المصادقة بالهاتف غير مفعّلة في Firebase Console. فعّل 'Phone' ضمن Authentication → Sign-in method.")
-      } else if (err?.code === "auth/unauthorized-domain") {
-        setError(`خطأ: النطاق غير مصرّح به في Firebase. أضف "${window.location.hostname}" إلى Authentication → Settings → Authorized domains.`)
-      } else if (err?.code === "auth/captcha-check-failed") {
-        setError(`خطأ reCAPTCHA: تأكد من إضافة النطاق "${window.location.hostname}" إلى Authorized domains في Firebase Console.`)
-      } else if (err?.code === "auth/missing-phone-number") {
-        setError("الرجاء إدخال رقم الهاتف.")
-      } else {
-        setError(`خطأ (${err?.code ?? "unknown"}): ${err?.message ?? "حاول مرة أخرى."}`)
-      }
+      setError(formatFirebaseError("signInWithPhoneNumber", err))
       try { if (recaptchaRef.current) { recaptchaRef.current.clear(); recaptchaRef.current = null } } catch {}
     } finally {
       setIsLoading(false)
@@ -199,14 +206,12 @@ export function OnboardingScreen() {
     try {
       await initRecaptcha()
       const formatted = formatPhone(phone)
-      console.log("[Auth] Resending OTP to:", formatted)
+      console.log("[Auth] Resend → signInWithPhoneNumber →", formatted)
       const result = await signInWithPhoneNumber(auth, formatted, recaptchaRef.current!)
       confirmationRef.current = result
       console.log("[Auth] OTP resent successfully")
     } catch (err: any) {
-      console.error("[Auth] Resend failed:", err?.code, err?.message, err)
-      if (err?.code === "auth/too-many-requests") setError("طلبات كثيرة جداً. انتظر قليلاً.")
-      else setError(`فشل إعادة الإرسال (${err?.code ?? "unknown"}). حاول مرة أخرى.`)
+      setError(formatFirebaseError("resend", err))
       try { if (recaptchaRef.current) { recaptchaRef.current.clear(); recaptchaRef.current = null } } catch {}
     } finally {
       setIsLoading(false)
