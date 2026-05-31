@@ -1,12 +1,10 @@
 "use client"
 
-import { MapPin, Navigation, Building2, GraduationCap, Hospital, ShoppingBag, ChevronDown, Clock } from "lucide-react"
+import { MapPin, Navigation, Building2, GraduationCap, Hospital, ShoppingBag, Clock } from "lucide-react"
 import { Card } from "@/components/ui/card"
-import { useState, useEffect, useRef } from "react"
-import dynamic from "next/dynamic"
+import { useEffect, useRef } from "react"
 import L from "leaflet"
 import "leaflet/dist/leaflet.css"
-import { motion, AnimatePresence } from "framer-motion"
 
 interface Station {
   id: string
@@ -118,22 +116,14 @@ function MiniMapComponent({ station }: { station: Station }) {
   )
 }
 
-// Expandable Station Card
-function ExpandableStationCard({ station }: { station: Station }) {
-  const [isExpanded, setIsExpanded] = useState(false)
-
+// Station Card - Premium Static Widget
+function StationCard({ station }: { station: Station }) {
   return (
-    <motion.div
-      layout
-      className="overflow-hidden"
-      transition={{ duration: 0.3, ease: "easeInOut" }}
-    >
-      <Card
-        onClick={() => setIsExpanded(!isExpanded)}
-        className="flex cursor-pointer items-center gap-4 p-4 transition-all hover:shadow-md active:scale-[0.98]"
-      >
-        <div className="flex flex-1 flex-col items-end gap-1">
-          <h3 className="font-semibold text-card-foreground">{station.name}</h3>
+    <Card className="flex flex-col gap-4 overflow-hidden p-4">
+      {/* Top: Station Info and Icon */}
+      <div className="flex items-start justify-between gap-4">
+        <div className="flex flex-1 flex-col items-end gap-2">
+          <h3 className="text-lg font-semibold text-card-foreground">{station.name}</h3>
           <div className="flex flex-wrap justify-end gap-1">
             {station.lines.map((line) => (
               <span
@@ -145,57 +135,32 @@ function ExpandableStationCard({ station }: { station: Station }) {
             ))}
           </div>
         </div>
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <span>{station.distance}</span>
-          <MapPin className="h-4 w-4" />
+        <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+          {station.icon}
         </div>
-        <div className="flex items-center gap-3">
-          <motion.div
-            animate={{ rotate: isExpanded ? 180 : 0 }}
-            transition={{ duration: 0.3 }}
-            className="flex h-6 w-6 items-center justify-center"
-          >
-            <ChevronDown className="h-5 w-5 text-muted-foreground" />
-          </motion.div>
-          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-primary">
-            {station.icon}
+      </div>
+
+      {/* Middle: Mini-Map */}
+      <MiniMapComponent station={station} />
+
+      {/* Bottom: Route Details */}
+      <div className="grid grid-cols-2 gap-3 rounded-xl bg-primary/5 px-4 py-3">
+        <div className="flex flex-col items-end gap-1">
+          <span className="text-xs font-medium text-muted-foreground">المسافة سيراً</span>
+          <div className="flex items-center gap-1">
+            <span className="text-lg font-bold text-foreground">{station.distance}</span>
+            <MapPin className="h-4 w-4 text-muted-foreground" />
           </div>
         </div>
-      </Card>
-
-      {/* Expanded Content */}
-      <AnimatePresence>
-        {isExpanded && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: "auto" }}
-            exit={{ opacity: 0, height: 0 }}
-            transition={{ duration: 0.3, ease: "easeInOut" }}
-            className="overflow-hidden"
-          >
-            <div className="space-y-4 px-4 py-4">
-              {/* Mini-Map */}
-              <MiniMapComponent station={station} />
-
-              {/* Route Details */}
-              <div className="grid grid-cols-2 gap-3 rounded-xl bg-primary/5 px-4 py-3">
-                <div className="flex flex-col items-end gap-1">
-                  <span className="text-xs font-medium text-muted-foreground">المسافة سيراً</span>
-                  <span className="text-lg font-bold text-foreground">{station.distance}</span>
-                </div>
-                <div className="flex flex-col items-end gap-1">
-                  <div className="flex items-center gap-1 text-xs font-medium text-muted-foreground">
-                    <Clock className="h-3 w-3" />
-                    <span>الوقت</span>
-                  </div>
-                  <span className="text-lg font-bold text-foreground">{station.walkingTime}</span>
-                </div>
-              </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </motion.div>
+        <div className="flex flex-col items-end gap-1">
+          <div className="flex items-center gap-1 text-xs font-medium text-muted-foreground">
+            <Clock className="h-3 w-3" />
+            <span>الوقت</span>
+          </div>
+          <span className="text-lg font-bold text-foreground">{station.walkingTime}</span>
+        </div>
+      </div>
+    </Card>
   )
 }
 
@@ -210,9 +175,9 @@ export function StationsList() {
         <h2 className="text-lg font-semibold text-foreground">المحطات القريبة</h2>
       </div>
 
-      <div className="flex flex-col gap-3">
+      <div className="flex flex-col gap-4">
         {stations.map((station) => (
-          <ExpandableStationCard key={station.id} station={station} />
+          <StationCard key={station.id} station={station} />
         ))}
       </div>
     </div>
