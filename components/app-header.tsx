@@ -21,7 +21,7 @@ const menuItems = [
 export function AppHeader() {
   const [isOpen, setIsOpen] = useState(false)
   const { theme, toggleTheme, isDark } = useTheme()
-  const { enterDriverMode, isCheckingRole, roleError, clearRoleError } = useDriverMode()
+  const { enterDriverMode, isAuthorizedDriver, isCheckingRole, roleError, clearRoleError } = useDriverMode()
 
   const handleEnterDriverMode = async () => {
     const success = await enterDriverMode()
@@ -113,50 +113,51 @@ export function AppHeader() {
               ))}
             </nav>
 
-            {/* Driver Mode Switch */}
-            <div className="mt-auto border-t border-border p-4">
-              {/* Error Message */}
-              <AnimatePresence>
-                {roleError && (
-                  <motion.div
-                    className="mb-3 flex items-start gap-2 rounded-xl bg-destructive/10 p-3"
-                    initial={{ opacity: 0, y: -10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -10 }}
-                  >
-                    <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-destructive" />
-                    <p className="flex-1 text-sm text-destructive">{roleError}</p>
-                    <button 
-                      onClick={clearRoleError}
-                      className="shrink-0 text-destructive/60 hover:text-destructive"
+            {/* Driver Mode Switch — only visible to authorized driver phones */}
+            {isAuthorizedDriver && (
+              <div className="mt-auto border-t border-border p-4">
+                <AnimatePresence>
+                  {roleError && (
+                    <motion.div
+                      className="mb-3 flex items-start gap-2 rounded-xl bg-destructive/10 p-3"
+                      initial={{ opacity: 0, y: -10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -10 }}
                     >
-                      <X className="h-4 w-4" />
-                    </button>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-
-              <button
-                onClick={handleEnterDriverMode}
-                disabled={isCheckingRole}
-                className="flex w-full items-center gap-3 rounded-xl bg-gradient-to-l from-amber-500 to-orange-500 p-4 text-white transition-all hover:from-amber-600 hover:to-orange-600 active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed"
-              >
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-white/20">
-                  {isCheckingRole ? (
-                    <Loader2 className="h-5 w-5 animate-spin" />
-                  ) : (
-                    <ScanLine className="h-5 w-5" />
+                      <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-destructive" />
+                      <p className="flex-1 text-sm text-destructive">{roleError}</p>
+                      <button
+                        onClick={clearRoleError}
+                        className="shrink-0 text-destructive/60 hover:text-destructive"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    </motion.div>
                   )}
-                </div>
-                <div className="flex-1 text-right">
-                  <p className="font-bold">
-                    {isCheckingRole ? "جارٍ التحقق..." : "التبديل إلى وضع السائق"}
-                  </p>
-                  <p className="text-xs opacity-80">Driver Mode</p>
-                </div>
-                {!isCheckingRole && <ChevronLeft className="h-5 w-5" />}
-              </button>
-            </div>
+                </AnimatePresence>
+
+                <button
+                  onClick={handleEnterDriverMode}
+                  disabled={isCheckingRole}
+                  className="flex w-full items-center gap-3 rounded-xl bg-gradient-to-l from-amber-500 to-orange-500 p-4 text-white transition-all hover:from-amber-600 hover:to-orange-600 active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed"
+                >
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-white/20">
+                    {isCheckingRole ? (
+                      <Loader2 className="h-5 w-5 animate-spin" />
+                    ) : (
+                      <ScanLine className="h-5 w-5" />
+                    )}
+                  </div>
+                  <div className="flex-1 text-right">
+                    <p className="font-bold">
+                      {isCheckingRole ? "جارٍ التحقق..." : "التبديل إلى وضع السائق"}
+                    </p>
+                    <p className="text-xs opacity-80">Driver Mode</p>
+                  </div>
+                  {!isCheckingRole && <ChevronLeft className="h-5 w-5" />}
+                </button>
+              </div>
+            )}
 
             {/* Version info */}
             <div className="border-t border-border p-4">

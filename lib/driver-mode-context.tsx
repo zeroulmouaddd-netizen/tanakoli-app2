@@ -4,11 +4,14 @@ import { createContext, useContext, useState, useCallback, useEffect, type React
 import { db } from "@/lib/firebase"
 import { doc, getDoc } from "firebase/firestore"
 import { useAuth } from "@/lib/auth-context"
+import { isAuthorizedDriverPhone } from "@/lib/driver-config"
 
 const DRIVER_MODE_KEY = "tanoukli_driver_mode"
+const DRIVER_AUTH_SESSION_KEY = "tanakoli_is_driver"
 
 interface DriverModeContextType {
   isDriverMode: boolean
+  isAuthorizedDriver: boolean
   isCheckingRole: boolean
   roleError: string | null
   enterDriverMode: () => Promise<boolean>
@@ -43,8 +46,34 @@ function setPersistedDriverMode(value: boolean): void {
 export function DriverModeProvider({ children }: { children: ReactNode }) {
   const { firestoreUserId, currentUser, isAuthLoading } = useAuth()
   const [isDriverMode, setIsDriverMode] = useState(false)
+  const [isAuthorizedDriver, setIsAuthorizedDriver] = useState(false)
   const [isCheckingRole, setIsCheckingRole] = useState(false)
   const [roleError, setRoleError] = useState<string | null>(null)
+
+  // Compute driver authorization from the phone whitelist, cached in sessionStorage
+  useEffect(() => {
+    if (isAuthLoading) return
+
+    if (!currentUser?.phoneNumber) {
+      setIsAuthorizedDriver(false)
+      try { sessionStorage.removeItem(DRIVER_AUTH_SESSION_KEY) } catch {}
+      return
+    }
+
+    // Check sessionStorage cache first to avoid recomputing every render
+    try {
+      const cached = sessionStorage.getItem(DRIVER_AUTH_SESSION_KEY)
+      if (cached !== null) {
+        setIsAuthorizedDriver(cached === "true")
+        return
+      }
+    } catch {}
+
+    // Not in cache — compute from whitelist and store
+    const authorized = isAuthorizedDriverPhone(currentUser.phoneNumber)
+    setIsAuthorizedDriver(authorized)
+    try { sessionStorage.setItem(DRIVER_AUTH_SESSION_KEY, String(authorized)) } catch {}
+  }, [currentUser, isAuthLoading])
 
   useEffect(() => {
     if (isAuthLoading) return
@@ -78,7 +107,9 @@ export function DriverModeProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!isAuthLoading && !currentUser) {
       setIsDriverMode(false)
+      setIsAuthorizedDriver(false)
       setPersistedDriverMode(false)
+      try { sessionStorage.removeItem(DRIVER_AUTH_SESSION_KEY) } catch {}
     }
   }, [currentUser, isAuthLoading])
 
@@ -134,6 +165,7 @@ export function DriverModeProvider({ children }: { children: ReactNode }) {
   return (
     <DriverModeContext.Provider value={{
       isDriverMode,
+      isAuthorizedDriver,
       isCheckingRole,
       roleError,
       enterDriverMode,

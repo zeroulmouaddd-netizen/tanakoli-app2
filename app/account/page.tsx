@@ -101,6 +101,7 @@ export default function AccountPage() {
         localStorage.removeItem("tanoukli_transactions_cache")
         localStorage.removeItem("tanoukli_driver_mode")
         sessionStorage.removeItem("splashShown")
+        sessionStorage.removeItem("tanakoli_is_driver")
       } catch {}
     } catch (error) {
       console.error("Logout error:", error)
