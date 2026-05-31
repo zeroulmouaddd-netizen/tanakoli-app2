@@ -169,12 +169,21 @@ export function OnboardingScreen() {
       setStep("otp")
     } catch (err: any) {
       console.error("[Auth] signInWithPhoneNumber failed:", err?.code, err?.message, err)
-      if (err?.code === "auth/invalid-phone-number") setError("رقم الهاتف غير صحيح. تحقق من الصيغة.")
-      else if (err?.code === "auth/too-many-requests") setError("طلبات كثيرة جداً. انتظر قليلاً وحاول مرة أخرى.")
-      else if (err?.code === "auth/operation-not-allowed") setError("المصادقة بالهاتف غير مفعّلة. تواصل مع الدعم.")
-      else if (err?.code === "auth/captcha-check-failed") setError("فشل التحقق الأمني. أعد تحميل الصفحة وحاول مجدداً.")
-      else if (err?.code === "auth/missing-phone-number") setError("الرجاء إدخال رقم الهاتف.")
-      else setError(`خطأ أثناء إرسال الرمز (${err?.code ?? "unknown"}). حاول مرة أخرى.`)
+      if (err?.code === "auth/invalid-phone-number") {
+        setError("رقم الهاتف غير صحيح. تحقق من الصيغة.")
+      } else if (err?.code === "auth/too-many-requests") {
+        setError("طلبات كثيرة جداً. انتظر قليلاً وحاول مرة أخرى.")
+      } else if (err?.code === "auth/operation-not-allowed") {
+        setError("خطأ: المصادقة بالهاتف غير مفعّلة في Firebase Console. فعّل 'Phone' ضمن Authentication → Sign-in method.")
+      } else if (err?.code === "auth/unauthorized-domain") {
+        setError(`خطأ: النطاق غير مصرّح به في Firebase. أضف "${window.location.hostname}" إلى Authentication → Settings → Authorized domains.`)
+      } else if (err?.code === "auth/captcha-check-failed") {
+        setError(`خطأ reCAPTCHA: تأكد من إضافة النطاق "${window.location.hostname}" إلى Authorized domains في Firebase Console.`)
+      } else if (err?.code === "auth/missing-phone-number") {
+        setError("الرجاء إدخال رقم الهاتف.")
+      } else {
+        setError(`خطأ (${err?.code ?? "unknown"}): ${err?.message ?? "حاول مرة أخرى."}`)
+      }
       try { if (recaptchaRef.current) { recaptchaRef.current.clear(); recaptchaRef.current = null } } catch {}
     } finally {
       setIsLoading(false)
