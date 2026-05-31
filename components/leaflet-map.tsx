@@ -96,18 +96,19 @@ const allRoutes = [...urbanRoutePolylines]
 
 // Bus Hub Locations for the fleet (URBAN STATIONS ONLY)
 // Buses exist only at urban terminals - No intercity hubs
+// Total: 13 active buses for clean interface
 const BUS_HUBS = {
   trainStation: { 
     coords: [35.4123, 7.1456] as [number, number], 
     name: "محطة القطار خنشلة",
     nameEn: "Train Station (Khenchela)",
-    count: 15 
+    count: 8 
   },
   newBusTerminal: { 
     coords: [35.4080, 7.1320] as [number, number], 
     name: "المحطة الجديدة",
     nameEn: "New Bus Terminal",
-    count: 20 
+    count: 5 
   },
 }
 
