@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Bell, Menu, Bus, Moon, Sun, MapPin, Clock, Settings, HelpCircle, Info, ChevronLeft, ScanLine, Loader2, AlertCircle, X } from "lucide-react"
+import { Bell, Menu, Moon, Sun, MapPin, Clock, Settings, HelpCircle, Info, ChevronLeft, ScanLine, Loader2, AlertCircle, X } from "lucide-react"
 import Link from "next/link"
 import { motion, AnimatePresence } from "framer-motion"
 import { Button } from "@/components/ui/button"
@@ -42,9 +42,7 @@ export function AppHeader() {
         <SheetContent side="right" className="flex w-[300px] max-h-dvh flex-col border-l-0 bg-card/95 p-0 backdrop-blur-xl" style={{ zIndex: 9999 }}>
           <SheetHeader className="shrink-0 border-b border-border bg-primary p-6 text-primary-foreground">
             <div className="flex items-center gap-3">
-              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary-foreground/20">
-                <Bus className="h-6 w-6" />
-              </div>
+              <img src="/logo.png" alt="Tanakoli Khenchela" className="h-12 w-12 rounded-xl" />
               <div className="text-right">
                 <SheetTitle className="text-lg font-bold text-primary-foreground">تنقلي خنشلة</SheetTitle>
                 <p className="text-sm text-primary-foreground/80">النقل الحضري</p>
@@ -150,7 +148,7 @@ export function AppHeader() {
                   </div>
                   <div className="flex-1 text-right">
                     <p className="font-bold">
-                      {isCheckingRole ? "جارٍ التحقق..." : "التبديل إلى وضع السائق"}
+                      {isCheckingRole ? "جارٍ التحقق..." : "��لتبديل إلى وضع السائق"}
                     </p>
                     <p className="text-xs opacity-80">Driver Mode</p>
                   </div>
@@ -174,9 +172,7 @@ export function AppHeader() {
           <h1 className="text-lg font-bold text-foreground">تنقلي خنشلة</h1>
           <span className="text-xs text-muted-foreground">النقل الحضري</span>
         </div>
-        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary">
-          <Bus className="h-5 w-5 text-primary-foreground" />
-        </div>
+        <img src="/logo.png" alt="Tanakoli Khenchela" className="h-10 w-10 rounded-full" />
       </div>
 
       <Button variant="ghost" size="icon" className="relative rounded-full bg-card/80 backdrop-blur-sm">
