@@ -257,21 +257,24 @@ export function OnboardingScreen() {
         {step === "splash" && (
           <motion.div
             key="splash"
-            className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900"
+            className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900 overflow-hidden"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0, scale: 0.98 }}
             transition={{ duration: 0.4 }}
           >
-            <div className="absolute inset-0">
+            {/* Animated Background Elements */}
+            <div className="absolute inset-0 overflow-hidden">
               <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-emerald-900/20 via-transparent to-blue-900/20" />
-              <div className="absolute left-1/4 top-1/4 h-96 w-96 rounded-full bg-emerald-500/10 blur-3xl" />
-              <div className="absolute right-1/4 bottom-1/4 h-96 w-96 rounded-full bg-blue-500/10 blur-3xl" />
+              <div className="absolute left-1/4 top-1/4 h-96 w-96 rounded-full bg-emerald-500/10 blur-3xl opacity-60" />
+              <div className="absolute right-1/4 bottom-1/4 h-96 w-96 rounded-full bg-blue-500/10 blur-3xl opacity-60" />
             </div>
 
-            <div className="relative z-10 flex flex-col items-center gap-6 px-6 text-center">
+            {/* Content Container */}
+            <div className="relative z-10 flex flex-col items-center justify-center gap-8 px-6 text-center h-full">
+              {/* Logo */}
               <motion.div
-                className="relative"
+                className="relative mt-auto"
                 initial={{ scale: 0.8, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 transition={{ duration: 0.6, ease: "easeOut" }}
@@ -279,27 +282,31 @@ export function OnboardingScreen() {
                 <div className="absolute -inset-8 rounded-full opacity-60"
                   style={{ background: "radial-gradient(circle, rgba(16,185,129,0.4) 0%, rgba(59,130,246,0.3) 40%, transparent 70%)" }}
                 />
-                <div className="relative flex h-44 w-44 items-center justify-center rounded-[2rem] border border-white/20 bg-white/10 backdrop-blur-xl"
-                  style={{ boxShadow: "0 8px 32px rgba(16,185,129,0.2), 0 0 60px rgba(59,130,246,0.15), inset 0 1px 0 rgba(255,255,255,0.1)" }}
+                <div className="relative flex h-40 w-40 items-center justify-center rounded-2xl border border-white/15 bg-white/5 backdrop-blur-xl"
+                  style={{ boxShadow: "0 8px 32px rgba(16,185,129,0.15), 0 0 60px rgba(59,130,246,0.1), inset 0 1px 0 rgba(255,255,255,0.08)" }}
                 >
-                  <img src="/logo.png" alt="Tanakoli Khenchela" className="h-40 w-40" />
+                  <img src="/logo.png" alt="Tanakoli Khenchela" className="h-36 w-36" />
                 </div>
               </motion.div>
 
+              {/* Title & Tagline */}
               <motion.div
-                className="space-y-2"
+                className="space-y-3"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.3, duration: 0.5 }}
               >
-                <h1 className="bg-gradient-to-r from-emerald-300 via-white to-blue-300 bg-clip-text text-5xl font-bold tracking-tight text-transparent drop-shadow-lg">
+                <h1 className="text-6xl font-black tracking-tight text-white drop-shadow-lg">
                   تنقلي خنشلة
                 </h1>
-                <p className="text-xl font-medium tracking-wide text-white/80">Tanakoli Khenchela</p>
+                <p className="text-lg font-medium tracking-wide text-emerald-300/90">
+                  Tanakoli Khenchela
+                </p>
               </motion.div>
 
+              {/* Subheading */}
               <motion.p
-                className="text-lg font-medium text-white/90"
+                className="text-base font-medium text-white/85 max-w-xs leading-relaxed"
                 initial={{ opacity: 0, y: 15 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.5, duration: 0.5 }}
@@ -307,31 +314,33 @@ export function OnboardingScreen() {
                 مدينتك، نقلك. لنبدأ الرحلة!
               </motion.p>
 
+              {/* CTA Button */}
               <motion.button
                 onClick={() => setStep("step1")}
-                className="relative mt-4 flex h-14 w-52 items-center justify-center overflow-hidden rounded-full border border-white/20 bg-gradient-to-r from-emerald-500 via-teal-500 to-blue-500 text-lg font-bold text-white shadow-2xl transition-transform duration-200 hover:scale-105 active:scale-95"
+                className="relative mt-4 mb-auto px-8 py-4 rounded-full bg-gradient-to-r from-emerald-500 to-teal-500 text-lg font-bold text-white shadow-xl transition-all duration-200 hover:shadow-2xl hover:scale-105 active:scale-95 border border-emerald-400/30"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: showSplashButton ? 1 : 0, y: showSplashButton ? 0 : 20 }}
                 transition={{ duration: 0.5 }}
               >
-                <div className="absolute -inset-2 rounded-full bg-gradient-to-r from-emerald-400/30 via-teal-400/30 to-blue-400/30 blur-xl" />
-                <span className="relative z-10 flex items-center gap-3 text-xl">
+                <div className="absolute -inset-1 rounded-full bg-gradient-to-r from-emerald-400/20 to-teal-400/20 blur-lg -z-10" />
+                <span className="flex items-center gap-3 justify-center">
                   ابدأ الآن
-                  <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="h-5 w-5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 7l5 5m0 0l-5 5m5-5H6" />
                   </svg>
                 </span>
               </motion.button>
             </div>
 
+            {/* Footer */}
             <motion.div
-              className="absolute bottom-8 z-10 text-center"
+              className="absolute bottom-6 z-10 text-center"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.7 }}
             >
-              <p className="text-sm text-white/50">ETUS Khenchela</p>
-              <p className="mt-1 text-xs text-white/30">مؤسسة النقل الحضري</p>
+              <p className="text-xs font-medium text-white/40 tracking-wide">ETUS Khenchela</p>
+              <p className="mt-1 text-xs text-white/25">مؤسسة النقل الحضري</p>
             </motion.div>
           </motion.div>
         )}
