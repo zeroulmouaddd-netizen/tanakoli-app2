@@ -263,85 +263,80 @@ export function OnboardingScreen() {
             exit={{ opacity: 0, scale: 0.98 }}
             transition={{ duration: 0.4 }}
           >
-            {/* Animated Background Elements */}
+            {/* Animated Background Gradients */}
             <div className="absolute inset-0 overflow-hidden">
-              <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-emerald-900/20 via-transparent to-blue-900/20" />
-              <div className="absolute left-1/4 top-1/4 h-96 w-96 rounded-full bg-emerald-500/10 blur-3xl opacity-60" />
-              <div className="absolute right-1/4 bottom-1/4 h-96 w-96 rounded-full bg-blue-500/10 blur-3xl opacity-60" />
+              <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-emerald-900/15 via-transparent to-blue-900/15" />
+              <div className="absolute left-1/3 top-1/3 h-80 w-80 rounded-full bg-emerald-500/8 blur-3xl" />
+              <div className="absolute right-1/3 bottom-1/3 h-80 w-80 rounded-full bg-blue-500/8 blur-3xl" />
             </div>
 
-            {/* Content Container */}
-            <div className="relative z-10 flex flex-col items-center justify-center gap-8 px-6 text-center h-full">
-              {/* Logo */}
+            {/* Main Content */}
+            <div className="relative z-10 flex h-full flex-col items-center justify-between px-6 py-12">
+              {/* Spacer Top */}
+              <div className="flex-1" />
+
+              {/* Logo Section */}
               <motion.div
-                className="relative mt-auto"
-                initial={{ scale: 0.8, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                transition={{ duration: 0.6, ease: "easeOut" }}
+                className="flex flex-col items-center gap-10"
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.5, ease: "easeOut" }}
               >
-                <div className="absolute -inset-8 rounded-full opacity-60"
-                  style={{ background: "radial-gradient(circle, rgba(16,185,129,0.4) 0%, rgba(59,130,246,0.3) 40%, transparent 70%)" }}
-                />
-                <div className="relative flex h-40 w-40 items-center justify-center rounded-2xl border border-white/15 bg-white/5 backdrop-blur-xl"
-                  style={{ boxShadow: "0 8px 32px rgba(16,185,129,0.15), 0 0 60px rgba(59,130,246,0.1), inset 0 1px 0 rgba(255,255,255,0.08)" }}
+                {/* Logo Container */}
+                <div className="relative flex h-36 w-36 items-center justify-center rounded-2xl border border-white/12 bg-white/[0.03] backdrop-blur-md"
+                  style={{ boxShadow: "0 8px 24px rgba(16,185,129,0.12), inset 0 1px 0 rgba(255,255,255,0.05)" }}
                 >
-                  <img src="/logo.png" alt="Tanakoli Khenchela" className="h-36 w-36" />
+                  <img src="/logo.png" alt="Tanakoli Khenchela" className="h-32 w-32" />
                 </div>
+
+                {/* Text Content */}
+                <motion.div
+                  className="flex flex-col items-center gap-4"
+                  initial={{ opacity: 0, y: 16 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.2, duration: 0.5 }}
+                >
+                  {/* App Name */}
+                  <h1 className="text-5xl font-bold tracking-tight text-white">
+                    تنقلي خنشلة
+                  </h1>
+
+                  {/* English Subtitle */}
+                  <p className="text-sm font-medium tracking-wide text-emerald-400/80">
+                    Tanakoli Khenchela
+                  </p>
+
+                  {/* Tagline */}
+                  <p className="mt-2 text-base font-medium text-white/70 max-w-xs leading-relaxed">
+                    مدينتك، نقلك. لنبدأ الرحلة!
+                  </p>
+                </motion.div>
               </motion.div>
 
-              {/* Title & Tagline */}
+              {/* CTA Section */}
               <motion.div
-                className="space-y-3"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.3, duration: 0.5 }}
-              >
-                <h1 className="text-6xl font-black tracking-tight text-white drop-shadow-lg">
-                  تنقلي خنشلة
-                </h1>
-                <p className="text-lg font-medium tracking-wide text-emerald-300/90">
-                  Tanakoli Khenchela
-                </p>
-              </motion.div>
-
-              {/* Subheading */}
-              <motion.p
-                className="text-base font-medium text-white/85 max-w-xs leading-relaxed"
-                initial={{ opacity: 0, y: 15 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.5, duration: 0.5 }}
-              >
-                مدينتك، نقلك. لنبدأ الرحلة!
-              </motion.p>
-
-              {/* CTA Button */}
-              <motion.button
-                onClick={() => setStep("step1")}
-                className="relative mt-4 mb-auto px-8 py-4 rounded-full bg-gradient-to-r from-emerald-500 to-teal-500 text-lg font-bold text-white shadow-xl transition-all duration-200 hover:shadow-2xl hover:scale-105 active:scale-95 border border-emerald-400/30"
+                className="flex flex-col items-center gap-6"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: showSplashButton ? 1 : 0, y: showSplashButton ? 0 : 20 }}
                 transition={{ duration: 0.5 }}
               >
-                <div className="absolute -inset-1 rounded-full bg-gradient-to-r from-emerald-400/20 to-teal-400/20 blur-lg -z-10" />
-                <span className="flex items-center gap-3 justify-center">
+                <button
+                  onClick={() => setStep("step1")}
+                  className="relative px-8 py-3 rounded-full bg-emerald-500 hover:bg-emerald-600 text-sm font-semibold text-white shadow-lg transition-all duration-200 hover:shadow-xl active:scale-95 border border-emerald-400/30"
+                >
                   ابدأ الآن
-                  <svg className="h-5 w-5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                  </svg>
-                </span>
-              </motion.button>
-            </div>
+                </button>
 
-            {/* Footer */}
-            <motion.div
-              className="absolute bottom-6 z-10 text-center"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.7 }}
-            >
-              <p className="text-xs font-medium text-white/40 tracking-wide">ETUS Khenchela</p>
-              <p className="mt-1 text-xs text-white/25">مؤسسة النقل الحضري</p>
-            </motion.div>
+                {/* Footer Text */}
+                <div className="flex flex-col items-center gap-2">
+                  <p className="text-xs font-medium text-white/40">ETUS Khenchela</p>
+                  <p className="text-xs text-white/25">مؤسسة النقل الحضري</p>
+                </div>
+              </motion.div>
+
+              {/* Spacer Bottom */}
+              <div className="flex-1" />
+            </div>
           </motion.div>
         )}
 
