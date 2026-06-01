@@ -1,6 +1,16 @@
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 
 export function AccountBackground() {
+  const [scrollY, setScrollY] = useState(0)
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setScrollY(window.scrollY)
+    }
+    window.addEventListener('scroll', handleScroll)
+    return () => window.removeEventListener('scroll', handleScroll)
+  }, [])
+
   return (
     <div className="absolute inset-0 overflow-hidden">
       <svg
@@ -22,6 +32,13 @@ export function AccountBackground() {
             <stop offset="0%" stopColor="#06B6D4" stopOpacity="0.2" />
             <stop offset="100%" stopColor="#06B6D4" stopOpacity="0" />
           </radialGradient>
+
+          {/* GPS Route Path Gradient */}
+          <linearGradient id="routeGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stopColor="#10B981" stopOpacity="0.5" />
+            <stop offset="50%" stopColor="#06B6D4" stopOpacity="0.4" />
+            <stop offset="100%" stopColor="#10B981" stopOpacity="0.3" />
+          </linearGradient>
 
           {/* Animations */}
           <style>
@@ -54,6 +71,21 @@ export function AccountBackground() {
                 0%, 100% { stroke-width: 1; opacity: 0.25; }
                 50% { stroke-width: 1.5; opacity: 0.4; }
               }
+              @keyframes gps-flow-1 {
+                0% { stroke-dashoffset: 50; opacity: 0.4; }
+                50% { opacity: 0.6; }
+                100% { stroke-dashoffset: -50; opacity: 0.2; }
+              }
+              @keyframes gps-flow-2 {
+                0% { stroke-dashoffset: 40; opacity: 0.35; }
+                50% { opacity: 0.5; }
+                100% { stroke-dashoffset: -40; opacity: 0.15; }
+              }
+              @keyframes gps-flow-3 {
+                0% { stroke-dashoffset: 60; opacity: 0.3; }
+                50% { opacity: 0.45; }
+                100% { stroke-dashoffset: -60; opacity: 0.1; }
+              }
               .glow-circle-1 { animation: pulse-glow 4s ease-in-out infinite; }
               .glow-circle-2 { animation: pulse-glow-2 5s ease-in-out infinite 1s; }
               .glow-circle-3 { animation: pulse-glow-3 6s ease-in-out infinite 2s; }
@@ -62,12 +94,83 @@ export function AccountBackground() {
               .float-element-3 { animation: float-up 9s ease-in-out infinite 2s; }
               .wallet-icon { animation: wallet-pulse 3s ease-in-out infinite; }
               .card-icon { animation: card-pulse 3.5s ease-in-out infinite 0.5s; }
+              .gps-route-1 { animation: gps-flow-1 5s ease-in-out infinite; stroke-dasharray: 50; }
+              .gps-route-2 { animation: gps-flow-2 6s ease-in-out infinite 0.5s; stroke-dasharray: 40; }
+              .gps-route-3 { animation: gps-flow-3 7s ease-in-out infinite 1s; stroke-dasharray: 60; }
             `}
           </style>
         </defs>
 
         {/* Background Gradient */}
         <rect x="0" y="0" width="400" height="800" fill="#0f172a" />
+
+        {/* GPS Route Paths - Animated Map Lines */}
+        <g className="gps-routes">
+          {/* Main winding route 1 */}
+          <path
+            d="M 50 100 Q 120 150 80 220 T 150 380 Q 180 420 140 480"
+            stroke="url(#routeGradient)"
+            strokeWidth="2"
+            fill="none"
+            className="gps-route-1"
+            strokeLinecap="round"
+          />
+          
+          {/* Route 2 - Secondary path */}
+          <path
+            d="M 350 80 Q 280 140 300 200 T 240 350 Q 220 420 280 500"
+            stroke="url(#routeGradient)"
+            strokeWidth="1.5"
+            fill="none"
+            className="gps-route-2"
+            strokeLinecap="round"
+          />
+          
+          {/* Route 3 - Tertiary path */}
+          <path
+            d="M 200 150 Q 260 210 220 280 T 300 480"
+            stroke="url(#routeGradient)"
+            strokeWidth="1.5"
+            fill="none"
+            className="gps-route-3"
+            strokeLinecap="round"
+          />
+
+          {/* Additional subtle routes */}
+          <path
+            d="M 100 500 L 200 550 Q 250 570 280 600"
+            stroke="#10B981"
+            strokeWidth="1"
+            fill="none"
+            opacity="0.2"
+            strokeLinecap="round"
+          />
+          <path
+            d="M 320 150 Q 340 200 300 250 L 260 320"
+            stroke="#06B6D4"
+            strokeWidth="1"
+            fill="none"
+            opacity="0.15"
+            strokeLinecap="round"
+          />
+        </g>
+
+        {/* GPS Waypoint Markers */}
+        <g className="waypoints">
+          <circle cx="50" cy="100" r="3.5" fill="#10B981" opacity="0.6" />
+          <circle cx="80" cy="220" r="2.5" fill="#06B6D4" opacity="0.5" />
+          <circle cx="150" cy="380" r="2.5" fill="#10B981" opacity="0.4" />
+          <circle cx="140" cy="480" r="3" fill="#3B82F6" opacity="0.5" />
+          
+          <circle cx="350" cy="80" r="3.5" fill="#3B82F6" opacity="0.6" />
+          <circle cx="300" cy="200" r="2.5" fill="#10B981" opacity="0.5" />
+          <circle cx="240" cy="350" r="2.5" fill="#06B6D4" opacity="0.4" />
+          <circle cx="280" cy="500" r="3" fill="#10B981" opacity="0.5" />
+          
+          <circle cx="200" cy="150" r="2.5" fill="#06B6D4" opacity="0.4" />
+          <circle cx="220" cy="280" r="2.5" fill="#10B981" opacity="0.5" />
+          <circle cx="300" cy="480" r="3" fill="#3B82F6" opacity="0.5" />
+        </g>
 
         {/* Large Glowing Circles - Background Layer */}
         <circle
