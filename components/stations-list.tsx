@@ -170,7 +170,7 @@ export function StationsList() {
       {/* Gradient background - only visible on larger screens for visual separation */}
       <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-border/50 to-transparent" />
       
-      <div className="px-3 sm:px-4 md:px-6 py-3 sm:py-4">
+      <div className="px-3 sm:px-4 md:px-6 py-3 sm:py-4 pb-[100px]">
         <div className="mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <button className="flex items-center justify-center sm:justify-start gap-1 text-xs sm:text-sm text-primary order-2 sm:order-2">
             <Navigation className="h-4 w-4" />
