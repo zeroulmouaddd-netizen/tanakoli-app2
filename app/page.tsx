@@ -7,6 +7,7 @@ import { BottomNav } from "@/components/bottom-nav"
 import { AppWrapper } from "@/components/app-wrapper"
 import { PageTransition } from "@/components/page-transition"
 import { DriverDashboard } from "@/components/driver-dashboard"
+import { HomeBackground } from "@/components/home-background"
 import { useDriverMode } from "@/lib/driver-mode-context"
 import { useState, useEffect } from "react"
 
@@ -29,19 +30,25 @@ function HomeContent() {
 
   return (
     <PageTransition>
-      <main className={`${isMapFullscreen ? "h-screen overflow-hidden" : "min-h-screen pb-safe"} bg-background`}>
-        {!isMapFullscreen && <AppHeader />}
+      <main className={`relative ${isMapFullscreen ? "h-screen overflow-hidden" : "min-h-screen pb-safe"} bg-background`}>
+        {/* Animated Background */}
+        {!isMapFullscreen && <HomeBackground />}
+        
+        {/* Content */}
+        <div className="relative z-10">
+          {!isMapFullscreen && <AppHeader />}
 
-        <div className={isMapFullscreen ? "h-screen w-full" : "w-full pt-16 sm:pt-20"}>
-          <MapSection />
+          <div className={isMapFullscreen ? "h-screen w-full" : "w-full pt-16 sm:pt-20"}>
+            <MapSection />
+          </div>
+
+          {!isMapFullscreen && (
+            <>
+              <StationsList />
+              <BottomNav />
+            </>
+          )}
         </div>
-
-        {!isMapFullscreen && (
-          <>
-            <StationsList />
-            <BottomNav />
-          </>
-        )}
       </main>
     </PageTransition>
   )

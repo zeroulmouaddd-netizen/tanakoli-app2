@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation"
 import { motion, AnimatePresence } from "framer-motion"
 import { AppHeader } from "@/components/app-header"
 import { BottomNav } from "@/components/bottom-nav"
+import { TripsBackground } from "@/components/trips-background"
 import { Clock, Bus, ArrowLeft, Ticket, Calendar, History, MapPin, QrCode, Navigation, ArrowUpCircle, ArrowDownCircle, Wallet } from "lucide-react"
 import { ErrorBoundary } from "@/components/error-boundary"
 import { TripCardSkeleton } from "@/components/skeleton-loader"
@@ -184,7 +185,12 @@ export default function TripsPage() {
   return (
     <ErrorBoundary>
       <PageTransition>
-        <main className="min-h-screen bg-background pb-32 sm:pb-40">
+        <main className="relative min-h-screen bg-background pb-32 sm:pb-40">
+          {/* Animated Background */}
+          <TripsBackground />
+          
+          {/* Content */}
+          <div className="relative z-10">
           <AppHeader />
         
           <div className="px-3 sm:px-4 md:px-6 pt-16 sm:pt-20">
@@ -645,8 +651,9 @@ export default function TripsPage() {
               )}
             </AnimatePresence>
           </div>
+        </div>
 
-          <BottomNav />
+        <BottomNav />
         </main>
       </PageTransition>
     </ErrorBoundary>

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation"
 import { motion } from "framer-motion"
 import { AppHeader } from "@/components/app-header"
 import { BottomNav } from "@/components/bottom-nav"
+import { SettingsBackground } from "@/components/settings-background"
 import { Settings, Bell, Volume2, Globe, ChevronLeft, ChevronRight, Moon, Sun, Check } from "lucide-react"
 import { Switch } from "@/components/ui/switch"
 import { useTheme } from "@/lib/theme-context"
@@ -78,8 +79,13 @@ export default function SettingsPage() {
 
   return (
     <PageTransition>
-      <main className="min-h-screen bg-background pb-40">
-        <AppHeader />
+      <main className="relative min-h-screen bg-background pb-40">
+        {/* Animated Background */}
+        <SettingsBackground />
+        
+        {/* Content */}
+        <div className="relative z-10">
+          <AppHeader />
         
         <div className="px-3 sm:px-4 md:px-6 pt-16 sm:pt-20">
           {/* Back Button */}
@@ -260,6 +266,8 @@ export default function SettingsPage() {
               )}
             </motion.div>
           </div>
+        </div>
+
         </div>
 
         <BottomNav />

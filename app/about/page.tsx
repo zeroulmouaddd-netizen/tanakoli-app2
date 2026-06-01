@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation"
 import { motion } from "framer-motion"
 import { AppHeader } from "@/components/app-header"
 import { BottomNav } from "@/components/bottom-nav"
+import { GenericBackground } from "@/components/generic-background"
 import { Info, ChevronRight, Bus, MapPin, Users, Shield } from "lucide-react"
 import { PageTransition } from "@/components/page-transition"
 
@@ -109,10 +110,15 @@ export default function AboutPage() {
 
   return (
     <PageTransition>
-      <main className="min-h-screen bg-background pb-40">
-        <AppHeader />
+      <main className="relative min-h-screen bg-background pb-40">
+        {/* Animated Background */}
+        <GenericBackground />
         
-        <div className="px-4 pt-20">
+        {/* Content */}
+        <div className="relative z-10">
+          <AppHeader />
+        
+          <div className="px-4 pt-20">
           {/* Back Button */}
           <motion.button
             onClick={() => router.back()}
@@ -271,6 +277,7 @@ export default function AboutPage() {
               </div>
             </div>
           </motion.div>
+          </div>
         </div>
 
         <BottomNav />

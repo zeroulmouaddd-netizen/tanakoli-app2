@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react"
 import { AppHeader } from "@/components/app-header"
 import { BottomNav } from "@/components/bottom-nav"
+import { AccountBackground } from "@/components/account-background"
 import {
   User, Phone, Wallet, QrCode, X, Loader2, Mail, MapPin,
   Pencil, Save, CreditCard, LogOut,
@@ -150,8 +151,13 @@ export default function AccountPage() {
 
   return (
     <PageTransition>
-      <main className="min-h-screen bg-background pb-40">
-        <AppHeader />
+      <main className="relative min-h-screen bg-background pb-40">
+        {/* Animated Background */}
+        <AccountBackground />
+        
+        {/* Content Overlay */}
+        <div className="relative z-10">
+          <AppHeader />
 
         <div className="px-4 pt-20">
           <div className="mb-6 flex items-center gap-3">
@@ -167,36 +173,58 @@ export default function AccountPage() {
           </div>
 
           <div className="space-y-4">
-            {/* Balance Card */}
-            <div className="rounded-2xl bg-gradient-to-l from-primary to-primary/80 p-5 shadow-sm">
-              <div className="mb-4 flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Wallet className="h-5 w-5 text-primary-foreground" />
-                  <h3 className="font-bold text-primary-foreground">محفظتي</h3>
-                </div>
-                <span className="rounded-full bg-primary-foreground/20 px-3 py-1 text-xs font-medium text-primary-foreground">نشط</span>
+            {/* Balance Card with Enhanced Design */}
+            <div className="relative overflow-hidden rounded-2xl bg-gradient-to-l from-primary to-primary/80 p-5 shadow-lg">
+              {/* Shine Effect */}
+              <div className="absolute inset-0 shine-effect"></div>
+              
+              {/* Watermark - Bus/Road Icon */}
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-5">
+                <svg width="200" height="200" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="0.5" className="text-primary-foreground">
+                  {/* Bus Icon */}
+                  <path d="M8 6h8M6 6h12v10H6zM6 16h12v1H6z" strokeLinecap="round" strokeLinejoin="round" />
+                  <circle cx="8.5" cy="15" r="1.5" fill="currentColor" />
+                  <circle cx="15.5" cy="15" r="1.5" fill="currentColor" />
+                  {/* Road Lines */}
+                  <line x1="8" y1="18" x2="16" y2="18" strokeLinecap="round" />
+                  <line x1="8" y1="20" x2="16" y2="20" strokeLinecap="round" />
+                </svg>
               </div>
-              <div className="mb-4">
-                <p className="text-sm text-primary-foreground/80">الرصيد الحالي</p>
-                <div className="text-3xl font-bold text-primary-foreground" dir="ltr">
-                  {displayBalance.toLocaleString("ar-DZ")} <span className="text-lg">د.ج</span>
+
+              {/* Glow Gradient Layer */}
+              <div className="absolute inset-0 bg-gradient-to-br from-white/10 via-transparent to-transparent rounded-2xl pointer-events-none"></div>
+
+              {/* Content */}
+              <div className="relative z-10">
+                <div className="mb-4 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Wallet className="h-5 w-5 text-primary-foreground" />
+                    <h3 className="font-bold text-primary-foreground">محفظتي</h3>
+                  </div>
+                  <span className="rounded-full bg-primary-foreground/20 px-3 py-1 text-xs font-medium text-primary-foreground">نشط</span>
                 </div>
-              </div>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setShowQRCode(true)}
-                  className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-primary-foreground py-3 font-medium text-primary transition-colors hover:bg-primary-foreground/90"
-                >
-                  <QrCode className="h-5 w-5" />
-                  <span>رمز الدفع</span>
-                </button>
-                <button
-                  onClick={() => setShowTopUp(true)}
-                  className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-primary-foreground/20 py-3 font-medium text-primary-foreground transition-colors hover:bg-primary-foreground/30"
-                >
-                  <CreditCard className="h-5 w-5" />
-                  <span>شحن الرصيد</span>
-                </button>
+                <div className="mb-4">
+                  <p className="text-sm text-primary-foreground/80">الرصيد الحالي</p>
+                  <div className="text-3xl font-bold text-primary-foreground" dir="ltr">
+                    {displayBalance.toLocaleString("ar-DZ")} <span className="text-lg">د.ج</span>
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setShowQRCode(true)}
+                    className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-primary-foreground py-3 font-medium text-primary transition-colors hover:bg-primary-foreground/90"
+                  >
+                    <QrCode className="h-5 w-5" />
+                    <span>رمز الدفع</span>
+                  </button>
+                  <button
+                    onClick={() => setShowTopUp(true)}
+                    className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-primary-foreground/20 py-3 font-medium text-primary-foreground transition-colors hover:bg-primary-foreground/30"
+                  >
+                    <CreditCard className="h-5 w-5" />
+                    <span>شحن الرصيد</span>
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -396,6 +424,8 @@ export default function AccountPage() {
             </div>
           </div>
         )}
+
+        </div>
 
         <BottomNav />
       </main>
