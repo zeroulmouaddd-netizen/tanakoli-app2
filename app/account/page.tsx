@@ -17,6 +17,7 @@ import { useUserCache } from "@/hooks/use-user-cache"
 import { useAuth } from "@/lib/auth-context"
 import { BalanceCardSkeleton, ProfileInfoSkeleton } from "@/components/skeleton-loader"
 import { PageTransition } from "@/components/page-transition"
+import { QRRechargeModal } from "@/components/qr-recharge-modal"
 
 export default function AccountPage() {
   const { userData, isLoading } = useUserCache()
@@ -35,8 +36,10 @@ export default function AccountPage() {
   const [topUpError, setTopUpError] = useState("")
 
   const [showQRCode, setShowQRCode] = useState(false)
+  const [showQRRecharge, setShowQRRecharge] = useState(false)
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false)
   const [isLoggingOut, setIsLoggingOut] = useState(false)
+  const [displayBalance, setDisplayBalance] = useState(userData?.balance ?? 0)
 
   const { toast } = useToast()
   const { exitDriverMode } = useDriverMode()
@@ -49,6 +52,7 @@ export default function AccountPage() {
       setEditFullName(userData.fullName || "")
       setEditEmail(userData.email || "")
       setEditAddress(userData.address || "")
+      setDisplayBalance(userData.balance ?? 0)
     }
   }, [userData])
 
@@ -175,7 +179,7 @@ export default function AccountPage() {
               <div className="mb-4">
                 <p className="text-sm text-primary-foreground/80">الرصيد الحالي</p>
                 <div className="text-3xl font-bold text-primary-foreground" dir="ltr">
-                  {(userData?.balance ?? 0).toLocaleString("ar-DZ")} <span className="text-lg">د.ج</span>
+                  {displayBalance.toLocaleString("ar-DZ")} <span className="text-lg">د.ج</span>
                 </div>
               </div>
               <div className="flex gap-2">
@@ -326,6 +330,14 @@ export default function AccountPage() {
           </div>
         )}
 
+        {/* QR Recharge Modal */}
+        <QRRechargeModal 
+          isOpen={showQRRecharge}
+          onClose={() => setShowQRRecharge(false)}
+          currentBalance={displayBalance}
+          onBalanceUpdate={(newBalance) => setDisplayBalance(newBalance)}
+        />
+
         {/* Top-up Modal */}
         {showTopUp && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/50 p-4">
@@ -372,7 +384,13 @@ export default function AccountPage() {
                 </>
               ) : (
                 <div className="py-6 text-center">
-                  <p className="text-sm text-muted-foreground">يمكنك شحن رصيدك عبر السائق عند ركوب الحافلة</p>
+                  <button
+                    onClick={() => { setShowTopUp(false); setShowQRRecharge(true) }}
+                    className="w-full rounded-xl bg-primary py-3 font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+                  >
+                    شحن عبر السائق
+                  </button>
+                  <p className="mt-4 text-xs text-muted-foreground">اطلب من السائق مسح رمز الاستجابة السريعة (QR) لشحن رصيدك</p>
                 </div>
               )}
             </div>
