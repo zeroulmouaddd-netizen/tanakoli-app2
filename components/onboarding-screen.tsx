@@ -257,82 +257,141 @@ export function OnboardingScreen() {
         {step === "splash" && (
           <motion.div
             key="splash"
-            className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900"
+            className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900 overflow-hidden"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0, scale: 0.98 }}
             transition={{ duration: 0.4 }}
           >
-            <div className="absolute inset-0">
-              <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-emerald-900/20 via-transparent to-blue-900/20" />
-              <div className="absolute left-1/4 top-1/4 h-96 w-96 rounded-full bg-emerald-500/10 blur-3xl" />
-              <div className="absolute right-1/4 bottom-1/4 h-96 w-96 rounded-full bg-blue-500/10 blur-3xl" />
+            {/* Animated Map Background */}
+            <div className="absolute inset-0 overflow-hidden">
+              <svg
+                className="map-grid-bg absolute inset-0 w-full h-full"
+                viewBox="0 0 400 800"
+                preserveAspectRatio="xMidYMid slice"
+              >
+                <defs>
+                  <linearGradient id="gridGradient1" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stopColor="#10B981" stopOpacity="0.1" />
+                    <stop offset="50%" stopColor="#3B82F6" stopOpacity="0.05" />
+                    <stop offset="100%" stopColor="#10B981" stopOpacity="0.1" />
+                  </linearGradient>
+                  <style>
+                    {`
+                      @keyframes routeGlow {
+                        0%, 100% { stroke-opacity: 0.3; filter: drop-shadow(0 0 2px rgba(34, 197, 94, 0.2)); }
+                        50% { stroke-opacity: 0.6; filter: drop-shadow(0 0 8px rgba(34, 197, 94, 0.5)); }
+                      }
+                      .route-line { animation: routeGlow 4s ease-in-out infinite; stroke-dasharray: 20; stroke-dashoffset: 0; }
+                      .route-line-2 { animation: routeGlow 4s ease-in-out infinite 1s; }
+                      .route-line-3 { animation: routeGlow 4s ease-in-out infinite 2s; }
+                    `}
+                  </style>
+                </defs>
+
+                {/* Grid Pattern */}
+                <g className="map-grid">
+                  <line x1="0" y1="0" x2="0" y2="800" stroke="#10B981" strokeWidth="1.5" opacity="0.2" />
+                  <line x1="50" y1="0" x2="50" y2="800" stroke="#3B82F6" strokeWidth="1" opacity="0.15" />
+                  <line x1="100" y1="0" x2="100" y2="800" stroke="#10B981" strokeWidth="1" opacity="0.15" />
+                  <line x1="150" y1="0" x2="150" y2="800" stroke="#3B82F6" strokeWidth="1.5" opacity="0.2" />
+                  <line x1="200" y1="0" x2="200" y2="800" stroke="#10B981" strokeWidth="1" opacity="0.15" />
+                  <line x1="250" y1="0" x2="250" y2="800" stroke="#3B82F6" strokeWidth="1" opacity="0.15" />
+                  <line x1="300" y1="0" x2="300" y2="800" stroke="#10B981" strokeWidth="1.5" opacity="0.2" />
+                  <line x1="350" y1="0" x2="350" y2="800" stroke="#3B82F6" strokeWidth="1" opacity="0.15" />
+                  <line x1="400" y1="0" x2="400" y2="800" stroke="#10B981" strokeWidth="1" opacity="0.15" />
+
+                  <line x1="0" y1="50" x2="400" y2="50" stroke="#3B82F6" strokeWidth="1" opacity="0.15" />
+                  <line x1="0" y1="100" x2="400" y2="100" stroke="#10B981" strokeWidth="1.5" opacity="0.2" />
+                  <line x1="0" y1="150" x2="400" y2="150" stroke="#3B82F6" strokeWidth="1" opacity="0.15" />
+                  <line x1="0" y1="200" x2="400" y2="200" stroke="#10B981" strokeWidth="1" opacity="0.15" />
+                  <line x1="0" y1="250" x2="400" y2="250" stroke="#3B82F6" strokeWidth="1.5" opacity="0.2" />
+                  <line x1="0" y1="300" x2="400" y2="300" stroke="#10B981" strokeWidth="1" opacity="0.15" />
+                  <line x1="0" y1="350" x2="400" y2="350" stroke="#3B82F6" strokeWidth="1" opacity="0.15" />
+                  <line x1="0" y1="400" x2="400" y2="400" stroke="#10B981" strokeWidth="1.5" opacity="0.2" />
+                </g>
+
+                {/* Route Lines with Glow */}
+                <g className="map-grid-pulse">
+                  <path d="M 30 100 Q 80 150 130 200 T 230 350" className="route-line" stroke="#22C55E" strokeWidth="2" fill="none" />
+                  <path d="M 80 50 L 150 120 Q 200 180 250 250" className="route-line-2" stroke="#10B981" strokeWidth="1.5" fill="none" />
+                  <path d="M 200 80 Q 250 140 280 220 L 320 350" className="route-line-3" stroke="#22C55E" strokeWidth="2" fill="none" />
+                  <path d="M 50 250 L 150 300 Q 220 330 300 380" stroke="#3B82F6" strokeWidth="1" opacity="0.4" fill="none" />
+                  <path d="M 250 100 Q 300 160 340 240" stroke="#10B981" strokeWidth="1.5" opacity="0.3" fill="none" />
+                </g>
+
+                {/* Gradient Overlay */}
+                <rect x="0" y="0" width="400" height="800" fill="url(#gridGradient1)" />
+              </svg>
             </div>
 
-            <div className="relative z-10 flex flex-col items-center gap-6 px-6 text-center">
+            {/* Main Content */}
+            <div className="relative z-10 flex h-full flex-col items-center justify-between px-6 py-12">
+              {/* Spacer Top */}
+              <div className="flex-1" />
+
+              {/* Logo Section */}
               <motion.div
-                className="relative"
-                initial={{ scale: 0.8, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                transition={{ duration: 0.6, ease: "easeOut" }}
+                className="flex flex-col items-center gap-10"
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.5, ease: "easeOut" }}
               >
-                <div className="absolute -inset-8 rounded-full opacity-60"
-                  style={{ background: "radial-gradient(circle, rgba(16,185,129,0.4) 0%, rgba(59,130,246,0.3) 40%, transparent 70%)" }}
-                />
-                <div className="relative flex h-44 w-44 items-center justify-center rounded-[2rem] border border-white/20 bg-white/10 backdrop-blur-xl"
-                  style={{ boxShadow: "0 8px 32px rgba(16,185,129,0.2), 0 0 60px rgba(59,130,246,0.15), inset 0 1px 0 rgba(255,255,255,0.1)" }}
+                {/* Logo Container */}
+                <div className="relative flex h-36 w-36 items-center justify-center rounded-2xl border border-white/12 bg-white/[0.03] backdrop-blur-md"
+                  style={{ boxShadow: "0 8px 24px rgba(16,185,129,0.12), inset 0 1px 0 rgba(255,255,255,0.05)" }}
                 >
-                  <img src="/logo.png" alt="Tanakoli Khenchela" className="h-40 w-40" />
+                  <img src="/logo.png" alt="Tanakoli Khenchela" className="h-32 w-32" />
                 </div>
+
+                {/* Text Content */}
+                <motion.div
+                  className="flex flex-col items-center gap-4"
+                  initial={{ opacity: 0, y: 16 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.2, duration: 0.5 }}
+                >
+                  {/* App Name */}
+                  <h1 className="text-5xl font-bold tracking-tight text-white">
+                    تنقلي خنشلة
+                  </h1>
+
+                  {/* English Subtitle */}
+                  <p className="text-sm font-medium tracking-wide text-emerald-400/80">
+                    Tanakoli Khenchela
+                  </p>
+
+                  {/* Tagline */}
+                  <p className="mt-2 text-base font-medium text-white/70 max-w-xs leading-relaxed">
+                    مدينتك، نقلك. لنبدأ الرحلة!
+                  </p>
+                </motion.div>
               </motion.div>
 
+              {/* CTA Section */}
               <motion.div
-                className="space-y-2"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.3, duration: 0.5 }}
-              >
-                <h1 className="bg-gradient-to-r from-emerald-300 via-white to-blue-300 bg-clip-text text-5xl font-bold tracking-tight text-transparent drop-shadow-lg">
-                  تنقلي خنشلة
-                </h1>
-                <p className="text-xl font-medium tracking-wide text-white/80">Tanakoli Khenchela</p>
-              </motion.div>
-
-              <motion.p
-                className="text-lg font-medium text-white/90"
-                initial={{ opacity: 0, y: 15 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.5, duration: 0.5 }}
-              >
-                مدينتك، نقلك. لنبدأ الرحلة!
-              </motion.p>
-
-              <motion.button
-                onClick={() => setStep("step1")}
-                className="relative mt-4 flex h-14 w-52 items-center justify-center overflow-hidden rounded-full border border-white/20 bg-gradient-to-r from-emerald-500 via-teal-500 to-blue-500 text-lg font-bold text-white shadow-2xl transition-transform duration-200 hover:scale-105 active:scale-95"
+                className="flex flex-col items-center gap-6"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: showSplashButton ? 1 : 0, y: showSplashButton ? 0 : 20 }}
                 transition={{ duration: 0.5 }}
               >
-                <div className="absolute -inset-2 rounded-full bg-gradient-to-r from-emerald-400/30 via-teal-400/30 to-blue-400/30 blur-xl" />
-                <span className="relative z-10 flex items-center gap-3 text-xl">
+                <button
+                  onClick={() => setStep("step1")}
+                  className="relative px-8 py-3 rounded-full bg-emerald-500 hover:bg-emerald-600 text-sm font-semibold text-white shadow-lg transition-all duration-200 hover:shadow-xl active:scale-95 border border-emerald-400/30"
+                >
                   ابدأ الآن
-                  <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                  </svg>
-                </span>
-              </motion.button>
-            </div>
+                </button>
 
-            <motion.div
-              className="absolute bottom-8 z-10 text-center"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.7 }}
-            >
-              <p className="text-sm text-white/50">ETUS Khenchela</p>
-              <p className="mt-1 text-xs text-white/30">مؤسسة النقل الحضري</p>
-            </motion.div>
+                {/* Footer Text */}
+                <div className="flex flex-col items-center gap-2">
+                  <p className="text-xs font-medium text-white/40">ETUS Khenchela</p>
+                  <p className="text-xs text-white/25">مؤسسة النقل الحضري</p>
+                </div>
+              </motion.div>
+
+              {/* Spacer Bottom */}
+              <div className="flex-1" />
+            </div>
           </motion.div>
         )}
 
@@ -346,9 +405,65 @@ export function OnboardingScreen() {
             exit={{ opacity: 0, x: -40 }}
             transition={{ duration: 0.35, ease: "easeOut" }}
           >
-            <div className="absolute inset-0">
-              <div className="absolute left-1/4 top-1/4 h-96 w-96 rounded-full bg-emerald-500/10 blur-3xl" />
-              <div className="absolute right-1/4 bottom-1/4 h-96 w-96 rounded-full bg-blue-500/10 blur-3xl" />
+            <div className="absolute inset-0 overflow-hidden">
+              <svg
+                className="map-grid-bg absolute inset-0 w-full h-full"
+                viewBox="0 0 400 800"
+                preserveAspectRatio="xMidYMid slice"
+              >
+                <defs>
+                  <linearGradient id="gridGradient2" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stopColor="#10B981" stopOpacity="0.1" />
+                    <stop offset="50%" stopColor="#3B82F6" stopOpacity="0.05" />
+                    <stop offset="100%" stopColor="#10B981" stopOpacity="0.1" />
+                  </linearGradient>
+                  <style>
+                    {`
+                      @keyframes routeGlow2 {
+                        0%, 100% { stroke-opacity: 0.3; filter: drop-shadow(0 0 2px rgba(34, 197, 94, 0.2)); }
+                        50% { stroke-opacity: 0.6; filter: drop-shadow(0 0 8px rgba(34, 197, 94, 0.5)); }
+                      }
+                      .route-line-lg { animation: routeGlow2 4s ease-in-out infinite; stroke-dasharray: 20; stroke-dashoffset: 0; }
+                      .route-line-lg-2 { animation: routeGlow2 4s ease-in-out infinite 1s; }
+                      .route-line-lg-3 { animation: routeGlow2 4s ease-in-out infinite 2s; }
+                    `}
+                  </style>
+                </defs>
+
+                {/* Grid Pattern */}
+                <g className="map-grid">
+                  <line x1="0" y1="0" x2="0" y2="800" stroke="#10B981" strokeWidth="1.5" opacity="0.2" />
+                  <line x1="50" y1="0" x2="50" y2="800" stroke="#3B82F6" strokeWidth="1" opacity="0.15" />
+                  <line x1="100" y1="0" x2="100" y2="800" stroke="#10B981" strokeWidth="1" opacity="0.15" />
+                  <line x1="150" y1="0" x2="150" y2="800" stroke="#3B82F6" strokeWidth="1.5" opacity="0.2" />
+                  <line x1="200" y1="0" x2="200" y2="800" stroke="#10B981" strokeWidth="1" opacity="0.15" />
+                  <line x1="250" y1="0" x2="250" y2="800" stroke="#3B82F6" strokeWidth="1" opacity="0.15" />
+                  <line x1="300" y1="0" x2="300" y2="800" stroke="#10B981" strokeWidth="1.5" opacity="0.2" />
+                  <line x1="350" y1="0" x2="350" y2="800" stroke="#3B82F6" strokeWidth="1" opacity="0.15" />
+                  <line x1="400" y1="0" x2="400" y2="800" stroke="#10B981" strokeWidth="1" opacity="0.15" />
+
+                  <line x1="0" y1="50" x2="400" y2="50" stroke="#3B82F6" strokeWidth="1" opacity="0.15" />
+                  <line x1="0" y1="100" x2="400" y2="100" stroke="#10B981" strokeWidth="1.5" opacity="0.2" />
+                  <line x1="0" y1="150" x2="400" y2="150" stroke="#3B82F6" strokeWidth="1" opacity="0.15" />
+                  <line x1="0" y1="200" x2="400" y2="200" stroke="#10B981" strokeWidth="1" opacity="0.15" />
+                  <line x1="0" y1="250" x2="400" y2="250" stroke="#3B82F6" strokeWidth="1.5" opacity="0.2" />
+                  <line x1="0" y1="300" x2="400" y2="300" stroke="#10B981" strokeWidth="1" opacity="0.15" />
+                  <line x1="0" y1="350" x2="400" y2="350" stroke="#3B82F6" strokeWidth="1" opacity="0.15" />
+                  <line x1="0" y1="400" x2="400" y2="400" stroke="#10B981" strokeWidth="1.5" opacity="0.2" />
+                </g>
+
+                {/* Route Lines with Glow */}
+                <g className="map-grid-pulse">
+                  <path d="M 30 100 Q 80 150 130 200 T 230 350" className="route-line-lg" stroke="#22C55E" strokeWidth="2" fill="none" />
+                  <path d="M 80 50 L 150 120 Q 200 180 250 250" className="route-line-lg-2" stroke="#10B981" strokeWidth="1.5" fill="none" />
+                  <path d="M 200 80 Q 250 140 280 220 L 320 350" className="route-line-lg-3" stroke="#22C55E" strokeWidth="2" fill="none" />
+                  <path d="M 50 250 L 150 300 Q 220 330 300 380" stroke="#3B82F6" strokeWidth="1" opacity="0.4" fill="none" />
+                  <path d="M 250 100 Q 300 160 340 240" stroke="#10B981" strokeWidth="1.5" opacity="0.3" fill="none" />
+                </g>
+
+                {/* Gradient Overlay */}
+                <rect x="0" y="0" width="400" height="800" fill="url(#gridGradient2)" />
+              </svg>
             </div>
 
             <div className="relative z-10 w-full max-w-sm">
@@ -448,9 +563,65 @@ export function OnboardingScreen() {
             exit={{ opacity: 0, x: -40 }}
             transition={{ duration: 0.35, ease: "easeOut" }}
           >
-            <div className="absolute inset-0">
-              <div className="absolute left-1/4 top-1/4 h-96 w-96 rounded-full bg-emerald-500/10 blur-3xl" />
-              <div className="absolute right-1/4 bottom-1/4 h-96 w-96 rounded-full bg-blue-500/10 blur-3xl" />
+            <div className="absolute inset-0 overflow-hidden">
+              <svg
+                className="map-grid-bg absolute inset-0 w-full h-full"
+                viewBox="0 0 400 800"
+                preserveAspectRatio="xMidYMid slice"
+              >
+                <defs>
+                  <linearGradient id="gridGradient3" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stopColor="#10B981" stopOpacity="0.1" />
+                    <stop offset="50%" stopColor="#3B82F6" stopOpacity="0.05" />
+                    <stop offset="100%" stopColor="#10B981" stopOpacity="0.1" />
+                  </linearGradient>
+                  <style>
+                    {`
+                      @keyframes routeGlow3 {
+                        0%, 100% { stroke-opacity: 0.3; filter: drop-shadow(0 0 2px rgba(34, 197, 94, 0.2)); }
+                        50% { stroke-opacity: 0.6; filter: drop-shadow(0 0 8px rgba(34, 197, 94, 0.5)); }
+                      }
+                      .route-line-p { animation: routeGlow3 4s ease-in-out infinite; stroke-dasharray: 20; stroke-dashoffset: 0; }
+                      .route-line-p-2 { animation: routeGlow3 4s ease-in-out infinite 1s; }
+                      .route-line-p-3 { animation: routeGlow3 4s ease-in-out infinite 2s; }
+                    `}
+                  </style>
+                </defs>
+
+                {/* Grid Pattern */}
+                <g className="map-grid">
+                  <line x1="0" y1="0" x2="0" y2="800" stroke="#10B981" strokeWidth="1.5" opacity="0.2" />
+                  <line x1="50" y1="0" x2="50" y2="800" stroke="#3B82F6" strokeWidth="1" opacity="0.15" />
+                  <line x1="100" y1="0" x2="100" y2="800" stroke="#10B981" strokeWidth="1" opacity="0.15" />
+                  <line x1="150" y1="0" x2="150" y2="800" stroke="#3B82F6" strokeWidth="1.5" opacity="0.2" />
+                  <line x1="200" y1="0" x2="200" y2="800" stroke="#10B981" strokeWidth="1" opacity="0.15" />
+                  <line x1="250" y1="0" x2="250" y2="800" stroke="#3B82F6" strokeWidth="1" opacity="0.15" />
+                  <line x1="300" y1="0" x2="300" y2="800" stroke="#10B981" strokeWidth="1.5" opacity="0.2" />
+                  <line x1="350" y1="0" x2="350" y2="800" stroke="#3B82F6" strokeWidth="1" opacity="0.15" />
+                  <line x1="400" y1="0" x2="400" y2="800" stroke="#10B981" strokeWidth="1" opacity="0.15" />
+
+                  <line x1="0" y1="50" x2="400" y2="50" stroke="#3B82F6" strokeWidth="1" opacity="0.15" />
+                  <line x1="0" y1="100" x2="400" y2="100" stroke="#10B981" strokeWidth="1.5" opacity="0.2" />
+                  <line x1="0" y1="150" x2="400" y2="150" stroke="#3B82F6" strokeWidth="1" opacity="0.15" />
+                  <line x1="0" y1="200" x2="400" y2="200" stroke="#10B981" strokeWidth="1" opacity="0.15" />
+                  <line x1="0" y1="250" x2="400" y2="250" stroke="#3B82F6" strokeWidth="1.5" opacity="0.2" />
+                  <line x1="0" y1="300" x2="400" y2="300" stroke="#10B981" strokeWidth="1" opacity="0.15" />
+                  <line x1="0" y1="350" x2="400" y2="350" stroke="#3B82F6" strokeWidth="1" opacity="0.15" />
+                  <line x1="0" y1="400" x2="400" y2="400" stroke="#10B981" strokeWidth="1.5" opacity="0.2" />
+                </g>
+
+                {/* Route Lines with Glow */}
+                <g className="map-grid-pulse">
+                  <path d="M 30 100 Q 80 150 130 200 T 230 350" className="route-line-p" stroke="#22C55E" strokeWidth="2" fill="none" />
+                  <path d="M 80 50 L 150 120 Q 200 180 250 250" className="route-line-p-2" stroke="#10B981" strokeWidth="1.5" fill="none" />
+                  <path d="M 200 80 Q 250 140 280 220 L 320 350" className="route-line-p-3" stroke="#22C55E" strokeWidth="2" fill="none" />
+                  <path d="M 50 250 L 150 300 Q 220 330 300 380" stroke="#3B82F6" strokeWidth="1" opacity="0.4" fill="none" />
+                  <path d="M 250 100 Q 300 160 340 240" stroke="#10B981" strokeWidth="1.5" opacity="0.3" fill="none" />
+                </g>
+
+                {/* Gradient Overlay */}
+                <rect x="0" y="0" width="400" height="800" fill="url(#gridGradient3)" />
+              </svg>
             </div>
 
             <div className="relative z-10 w-full max-w-sm">
@@ -576,9 +747,65 @@ export function OnboardingScreen() {
             exit={{ opacity: 0, x: -40 }}
             transition={{ duration: 0.35, ease: "easeOut" }}
           >
-            <div className="absolute inset-0">
-              <div className="absolute left-1/4 top-1/4 h-96 w-96 rounded-full bg-emerald-500/10 blur-3xl" />
-              <div className="absolute right-1/4 bottom-1/4 h-96 w-96 rounded-full bg-blue-500/10 blur-3xl" />
+            <div className="absolute inset-0 overflow-hidden">
+              <svg
+                className="map-grid-bg absolute inset-0 w-full h-full"
+                viewBox="0 0 400 800"
+                preserveAspectRatio="xMidYMid slice"
+              >
+                <defs>
+                  <linearGradient id="gridGradient4" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stopColor="#10B981" stopOpacity="0.1" />
+                    <stop offset="50%" stopColor="#3B82F6" stopOpacity="0.05" />
+                    <stop offset="100%" stopColor="#10B981" stopOpacity="0.1" />
+                  </linearGradient>
+                  <style>
+                    {`
+                      @keyframes routeGlow4 {
+                        0%, 100% { stroke-opacity: 0.3; filter: drop-shadow(0 0 2px rgba(34, 197, 94, 0.2)); }
+                        50% { stroke-opacity: 0.6; filter: drop-shadow(0 0 8px rgba(34, 197, 94, 0.5)); }
+                      }
+                      .route-line-o { animation: routeGlow4 4s ease-in-out infinite; stroke-dasharray: 20; stroke-dashoffset: 0; }
+                      .route-line-o-2 { animation: routeGlow4 4s ease-in-out infinite 1s; }
+                      .route-line-o-3 { animation: routeGlow4 4s ease-in-out infinite 2s; }
+                    `}
+                  </style>
+                </defs>
+
+                {/* Grid Pattern */}
+                <g className="map-grid">
+                  <line x1="0" y1="0" x2="0" y2="800" stroke="#10B981" strokeWidth="1.5" opacity="0.2" />
+                  <line x1="50" y1="0" x2="50" y2="800" stroke="#3B82F6" strokeWidth="1" opacity="0.15" />
+                  <line x1="100" y1="0" x2="100" y2="800" stroke="#10B981" strokeWidth="1" opacity="0.15" />
+                  <line x1="150" y1="0" x2="150" y2="800" stroke="#3B82F6" strokeWidth="1.5" opacity="0.2" />
+                  <line x1="200" y1="0" x2="200" y2="800" stroke="#10B981" strokeWidth="1" opacity="0.15" />
+                  <line x1="250" y1="0" x2="250" y2="800" stroke="#3B82F6" strokeWidth="1" opacity="0.15" />
+                  <line x1="300" y1="0" x2="300" y2="800" stroke="#10B981" strokeWidth="1.5" opacity="0.2" />
+                  <line x1="350" y1="0" x2="350" y2="800" stroke="#3B82F6" strokeWidth="1" opacity="0.15" />
+                  <line x1="400" y1="0" x2="400" y2="800" stroke="#10B981" strokeWidth="1" opacity="0.15" />
+
+                  <line x1="0" y1="50" x2="400" y2="50" stroke="#3B82F6" strokeWidth="1" opacity="0.15" />
+                  <line x1="0" y1="100" x2="400" y2="100" stroke="#10B981" strokeWidth="1.5" opacity="0.2" />
+                  <line x1="0" y1="150" x2="400" y2="150" stroke="#3B82F6" strokeWidth="1" opacity="0.15" />
+                  <line x1="0" y1="200" x2="400" y2="200" stroke="#10B981" strokeWidth="1" opacity="0.15" />
+                  <line x1="0" y1="250" x2="400" y2="250" stroke="#3B82F6" strokeWidth="1.5" opacity="0.2" />
+                  <line x1="0" y1="300" x2="400" y2="300" stroke="#10B981" strokeWidth="1" opacity="0.15" />
+                  <line x1="0" y1="350" x2="400" y2="350" stroke="#3B82F6" strokeWidth="1" opacity="0.15" />
+                  <line x1="0" y1="400" x2="400" y2="400" stroke="#10B981" strokeWidth="1.5" opacity="0.2" />
+                </g>
+
+                {/* Route Lines with Glow */}
+                <g className="map-grid-pulse">
+                  <path d="M 30 100 Q 80 150 130 200 T 230 350" className="route-line-o" stroke="#22C55E" strokeWidth="2" fill="none" />
+                  <path d="M 80 50 L 150 120 Q 200 180 250 250" className="route-line-o-2" stroke="#10B981" strokeWidth="1.5" fill="none" />
+                  <path d="M 200 80 Q 250 140 280 220 L 320 350" className="route-line-o-3" stroke="#22C55E" strokeWidth="2" fill="none" />
+                  <path d="M 50 250 L 150 300 Q 220 330 300 380" stroke="#3B82F6" strokeWidth="1" opacity="0.4" fill="none" />
+                  <path d="M 250 100 Q 300 160 340 240" stroke="#10B981" strokeWidth="1.5" opacity="0.3" fill="none" />
+                </g>
+
+                {/* Gradient Overlay */}
+                <rect x="0" y="0" width="400" height="800" fill="url(#gridGradient4)" />
+              </svg>
             </div>
 
             <div className="relative z-10 w-full max-w-sm">
@@ -690,7 +917,7 @@ export function OnboardingScreen() {
                 transition={{ delay: 0.2 }}
               >
                 <h2 className="text-2xl font-bold text-white">مرحباً {name}!</h2>
-                <p className="mt-2 text-white/60">تم التسجيل بنجاح. جاري تحميل التطبيق...</p>
+                <p className="mt-2 text-white/60">تم التسجي�� بنجاح. جاري تحميل التطبيق...</p>
               </motion.div>
               <motion.div
                 className="mt-2"

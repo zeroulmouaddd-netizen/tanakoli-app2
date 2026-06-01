@@ -306,3 +306,57 @@
   transform: translateX(-10px);
   transition: opacity 200ms ease-in, transform 200ms ease-in;
 }
+
+/* Animated Map Grid Background */
+@keyframes map-grid-flow {
+  0% {
+    transform: translateY(0);
+  }
+  100% {
+    transform: translateY(100%);
+  }
+}
+
+@keyframes map-grid-pulse {
+  0%, 100% {
+    opacity: 0.15;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+
+@keyframes route-line-glow {
+  0%, 100% {
+    stroke-opacity: 0.2;
+    filter: drop-shadow(0 0 2px rgba(34, 197, 94, 0.3));
+  }
+  50% {
+    stroke-opacity: 0.5;
+    filter: drop-shadow(0 0 6px rgba(34, 197, 94, 0.6));
+  }
+}
+
+@keyframes route-dash-animation {
+  0% {
+    stroke-dashoffset: 0;
+  }
+  100% {
+    stroke-dashoffset: 20;
+  }
+}
+
+.map-grid-bg {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+.map-grid {
+  animation: map-grid-flow 20s linear infinite;
+  opacity: 0.25;
+}
+
+.map-grid-pulse {
+  animation: map-grid-pulse 6s ease-in-out infinite;
+}
