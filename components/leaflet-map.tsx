@@ -94,25 +94,8 @@ const urbanRoutePolylines: { id: string; coords: [number, number][]; color: stri
 // All routes (urban only)
 const allRoutes = [...urbanRoutePolylines]
 
-// Bus Hub Locations for the fleet (URBAN STATIONS ONLY)
-// Buses exist only at urban terminals - No intercity hubs
-// Total: 13 active buses for clean interface
-const BUS_HUBS = {
-  trainStation: { 
-    coords: [35.4123, 7.1456] as [number, number], 
-    name: "محطة القطار خنشلة",
-    nameEn: "Train Station (Khenchela)",
-    count: 8 
-  },
-  newBusTerminal: { 
-    coords: [35.4080, 7.1320] as [number, number], 
-    name: "المحطة الجديدة",
-    nameEn: "New Bus Terminal",
-    count: 5 
-  },
-}
-
 // Generate static fleet buses at FIXED urban station coordinates ONLY
+// Buses are distributed across the major urban stations on their respective routes
 // Uses circular parking layout with random jitter for natural appearance
 function generateFleetBuses(): Bus[] {
   const buses: Bus[] = []
@@ -128,12 +111,12 @@ function generateFleetBuses(): Bus[] {
   // Buses spread in a circle around the station like a parking lot
   const addParkingOffset = (coords: [number, number], index: number, total: number, stationSeed: number): [number, number] => {
     // Arrange in concentric rings for natural parking look
-    const busesPerRing = 5
+    const busesPerRing = 3
     const ring = Math.floor(index / busesPerRing)
     const posInRing = index % busesPerRing
     
     // Base radius increases per ring (approx 20-40m spacing)
-    const baseRadius = 0.0003 + (ring * 0.00025)
+    const baseRadius = 0.0002 + (ring * 0.00015)
     
     // Angle spread evenly in ring with offset per ring
     const angleOffset = ring * 0.3 // Stagger rings
@@ -141,8 +124,8 @@ function generateFleetBuses(): Bus[] {
     
     // Add random jitter (0.0001 = ~10m)
     const seed = stationSeed * 100 + index
-    const jitterLat = (seededRandom(seed) - 0.5) * 0.0002
-    const jitterLng = (seededRandom(seed + 50) - 0.5) * 0.0002
+    const jitterLat = (seededRandom(seed) - 0.5) * 0.00015
+    const jitterLng = (seededRandom(seed + 50) - 0.5) * 0.00015
     
     return [
       coords[0] + Math.cos(angle) * baseRadius + jitterLat,
@@ -150,33 +133,53 @@ function generateFleetBuses(): Bus[] {
     ]
   }
   
-  // Train Station (Khenchela) - urban buses
-  for (let i = 0; i < BUS_HUBS.trainStation.count; i++) {
-    const pos = addParkingOffset(BUS_HUBS.trainStation.coords, i, BUS_HUBS.trainStation.count, 1)
-    buses.push({
-      id: `fleet-${busIndex.toString().padStart(3, "0")}`,
-      latitude: pos[0],
-      longitude: pos[1],
-      name: `حافلة ${busIndex} - ${BUS_HUBS.trainStation.name}`,
-      current_route_id: ["01", "02", "03"][i % 3],
-      isLive: false,
-    })
-    busIndex++
-  }
+  // Distribute fleet buses across urban stations based on their routes
+  // Line 01: University, City Center, Bus Station, 500 Housing, Market, Hospital
+  const line01Stations = [
+    urbanStations.find(s => s.name === "الجامعة"),
+    urbanStations.find(s => s.name === "وسط المدينة"),
+    urbanStations.find(s => s.name === "محطة خنشلة البرية"),
+  ].filter(Boolean) as typeof urbanStations
   
-  // New Bus Terminal - urban buses
-  for (let i = 0; i < BUS_HUBS.newBusTerminal.count; i++) {
-    const pos = addParkingOffset(BUS_HUBS.newBusTerminal.coords, i, BUS_HUBS.newBusTerminal.count, 2)
-    buses.push({
-      id: `fleet-${busIndex.toString().padStart(3, "0")}`,
-      latitude: pos[0],
-      longitude: pos[1],
-      name: `حافلة ${busIndex} - ${BUS_HUBS.newBusTerminal.name}`,
-      current_route_id: ["01", "02", "03"][i % 3],
-      isLive: false,
-    })
-    busIndex++
-  }
+  // Line 02: Bus Station, Ain El Beyda, City Center, Hospital, Stadium
+  const line02Stations = [
+    urbanStations.find(s => s.name === "وسط المدينة"),
+    urbanStations.find(s => s.name === "محطة خنشلة البرية"),
+    urbanStations.find(s => s.name === "المستشفى"),
+  ].filter(Boolean) as typeof urbanStations
+  
+  // Line 03: New City, City Center, Market, Stadium, Bus Station
+  const line03Stations = [
+    urbanStations.find(s => s.name === "وسط المدينة"),
+    urbanStations.find(s => s.name === "محطة خنشلة البرية"),
+    urbanStations.find(s => s.name === "المدينة الجديدة"),
+  ].filter(Boolean) as typeof urbanStations
+  
+  // Create 5 buses per line distributed across their stations
+  const busesPerLine = 5
+  
+  [
+    { lineId: "01", stations: line01Stations },
+    { lineId: "02", stations: line02Stations },
+    { lineId: "03", stations: line03Stations },
+  ].forEach(({ lineId, stations }) => {
+    for (let i = 0; i < busesPerLine; i++) {
+      // Rotate through stations for this line
+      const station = stations[i % stations.length]
+      if (!station) continue
+      
+      const pos = addParkingOffset(station.position, i, busesPerLine, parseInt(lineId))
+      buses.push({
+        id: `fleet-${busIndex.toString().padStart(3, "0")}`,
+        latitude: pos[0],
+        longitude: pos[1],
+        name: `حافلة ${busIndex} - ${station.name}`,
+        current_route_id: lineId,
+        isLive: false,
+      })
+      busIndex++
+    }
+  })
   
   return buses
 }
