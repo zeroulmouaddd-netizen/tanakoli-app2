@@ -97,7 +97,7 @@ function RouteDetailView({ route, onClose }: { route: BusRoute; onClose: () => v
       >
         {/* Handle bar */}
         <div className="flex justify-center py-3">
-          <div className="h-1 w-12 rounded-full bg-muted-foreground/40 dark:bg-slate-500" />
+          <div className="h-1 w-12 rounded-full bg-muted-foreground/30" />
         </div>
         
         {/* Header */}
@@ -154,32 +154,32 @@ function RouteDetailView({ route, onClose }: { route: BusRoute; onClose: () => v
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: index * 0.05 }}
               >
-                {/* Timeline */}
-                <div className="flex flex-col items-center">
-                  <div 
-                    className={`h-4 w-4 rounded-full border-2 ${
-                      index === 0 || index === route.stops.length - 1 
-                        ? "border-primary bg-primary" 
-                        : "border-muted-foreground/60 bg-card dark:border-slate-500"
-                    }`}
-                    style={index === 0 || index === route.stops.length - 1 ? { borderColor: route.color, backgroundColor: route.color } : {}}
-                  />
-                  {index < route.stops.length - 1 && (
-                    <div className="h-8 w-0.5 bg-muted-foreground/30 dark:bg-slate-600" />
-                  )}
-                </div>
+                  {/* Timeline */}
+                  <div className="flex flex-col items-center">
+                    <div 
+                      className={`h-4 w-4 rounded-full border-2 ${
+                        index === 0 || index === route.stops.length - 1 
+                          ? "border-primary bg-primary" 
+                          : "border-muted-foreground/60 bg-card"
+                      }`}
+                      style={index === 0 || index === route.stops.length - 1 ? { borderColor: route.color, backgroundColor: route.color } : {}}
+                    />
+                    {index < route.stops.length - 1 && (
+                      <div className="h-8 w-0.5 bg-muted-foreground/30" />
+                    )}
+                  </div>
                 
                 {/* Stop Info */}
                 <motion.button
                   onClick={() => handleShowOnMap(stop.name)}
-                  className="flex flex-1 items-center justify-between rounded-xl p-2 hover:bg-muted/50 dark:hover:bg-slate-700/50 transition-colors"
+                  className="flex flex-1 items-center justify-between rounded-xl p-2 hover:bg-muted/50 transition-colors"
                   whileTap={{ scale: 0.98 }}
                 >
                   <div>
-                    <p className="font-semibold text-foreground dark:text-slate-100">{stop.name}</p>
-                    <p className="text-xs text-muted-foreground dark:text-slate-400">{stop.nameEn}</p>
+                    <p className="font-semibold text-foreground">{stop.name}</p>
+                    <p className="text-xs text-muted-foreground">{stop.nameEn}</p>
                   </div>
-                  <Navigation className="h-4 w-4 text-muted-foreground dark:text-slate-400" />
+                  <Navigation className="h-4 w-4 text-muted-foreground" />
                 </motion.button>
               </motion.div>
             ))}

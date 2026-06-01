@@ -132,7 +132,7 @@ export function MapSection() {
         
         {/* Location badge with animation */}
         <motion.div
-          className="absolute bottom-3 sm:bottom-4 left-3 sm:left-4 z-[1000] rounded-full bg-card/95 dark:bg-slate-800/95 border border-border/50 px-2 sm:px-3 py-1 text-xs font-medium text-foreground shadow-md backdrop-blur-sm"
+          className="absolute bottom-3 sm:bottom-4 left-3 sm:left-4 z-[1000] rounded-full bg-card/95 border border-border/50 px-2 sm:px-3 py-1 text-xs font-medium text-foreground shadow-md backdrop-blur-sm"
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ delay: 0.5, duration: 0.3 }}
