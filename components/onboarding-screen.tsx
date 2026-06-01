@@ -263,34 +263,66 @@ export function OnboardingScreen() {
             exit={{ opacity: 0, scale: 0.98 }}
             transition={{ duration: 0.4 }}
           >
-            {/* Animated Background Gradients */}
+            {/* Animated Map Background */}
             <div className="absolute inset-0 overflow-hidden">
-              <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-emerald-900/15 via-transparent to-blue-900/15" />
-              <motion.div 
-                className="absolute left-1/3 top-1/3 h-80 w-80 rounded-full bg-emerald-500/8 blur-3xl" 
-                animate={{
-                  x: [0, 20, -20, 0],
-                  y: [0, -30, 15, 0],
-                }}
-                transition={{
-                  duration: 20,
-                  repeat: Infinity,
-                  ease: "easeInOut",
-                }}
-              />
-              <motion.div 
-                className="absolute right-1/3 bottom-1/3 h-80 w-80 rounded-full bg-blue-500/8 blur-3xl" 
-                animate={{
-                  x: [0, -25, 15, 0],
-                  y: [0, 20, -25, 0],
-                }}
-                transition={{
-                  duration: 24,
-                  repeat: Infinity,
-                  ease: "easeInOut",
-                  delay: 1,
-                }}
-              />
+              <svg
+                className="map-grid-bg absolute inset-0 w-full h-full"
+                viewBox="0 0 400 800"
+                preserveAspectRatio="xMidYMid slice"
+              >
+                <defs>
+                  <linearGradient id="gridGradient1" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stopColor="#10B981" stopOpacity="0.1" />
+                    <stop offset="50%" stopColor="#3B82F6" stopOpacity="0.05" />
+                    <stop offset="100%" stopColor="#10B981" stopOpacity="0.1" />
+                  </linearGradient>
+                  <style>
+                    {`
+                      @keyframes routeGlow {
+                        0%, 100% { stroke-opacity: 0.3; filter: drop-shadow(0 0 2px rgba(34, 197, 94, 0.2)); }
+                        50% { stroke-opacity: 0.6; filter: drop-shadow(0 0 8px rgba(34, 197, 94, 0.5)); }
+                      }
+                      .route-line { animation: routeGlow 4s ease-in-out infinite; stroke-dasharray: 20; stroke-dashoffset: 0; }
+                      .route-line-2 { animation: routeGlow 4s ease-in-out infinite 1s; }
+                      .route-line-3 { animation: routeGlow 4s ease-in-out infinite 2s; }
+                    `}
+                  </style>
+                </defs>
+
+                {/* Grid Pattern */}
+                <g className="map-grid">
+                  <line x1="0" y1="0" x2="0" y2="800" stroke="#10B981" strokeWidth="1.5" opacity="0.2" />
+                  <line x1="50" y1="0" x2="50" y2="800" stroke="#3B82F6" strokeWidth="1" opacity="0.15" />
+                  <line x1="100" y1="0" x2="100" y2="800" stroke="#10B981" strokeWidth="1" opacity="0.15" />
+                  <line x1="150" y1="0" x2="150" y2="800" stroke="#3B82F6" strokeWidth="1.5" opacity="0.2" />
+                  <line x1="200" y1="0" x2="200" y2="800" stroke="#10B981" strokeWidth="1" opacity="0.15" />
+                  <line x1="250" y1="0" x2="250" y2="800" stroke="#3B82F6" strokeWidth="1" opacity="0.15" />
+                  <line x1="300" y1="0" x2="300" y2="800" stroke="#10B981" strokeWidth="1.5" opacity="0.2" />
+                  <line x1="350" y1="0" x2="350" y2="800" stroke="#3B82F6" strokeWidth="1" opacity="0.15" />
+                  <line x1="400" y1="0" x2="400" y2="800" stroke="#10B981" strokeWidth="1" opacity="0.15" />
+
+                  <line x1="0" y1="50" x2="400" y2="50" stroke="#3B82F6" strokeWidth="1" opacity="0.15" />
+                  <line x1="0" y1="100" x2="400" y2="100" stroke="#10B981" strokeWidth="1.5" opacity="0.2" />
+                  <line x1="0" y1="150" x2="400" y2="150" stroke="#3B82F6" strokeWidth="1" opacity="0.15" />
+                  <line x1="0" y1="200" x2="400" y2="200" stroke="#10B981" strokeWidth="1" opacity="0.15" />
+                  <line x1="0" y1="250" x2="400" y2="250" stroke="#3B82F6" strokeWidth="1.5" opacity="0.2" />
+                  <line x1="0" y1="300" x2="400" y2="300" stroke="#10B981" strokeWidth="1" opacity="0.15" />
+                  <line x1="0" y1="350" x2="400" y2="350" stroke="#3B82F6" strokeWidth="1" opacity="0.15" />
+                  <line x1="0" y1="400" x2="400" y2="400" stroke="#10B981" strokeWidth="1.5" opacity="0.2" />
+                </g>
+
+                {/* Route Lines with Glow */}
+                <g className="map-grid-pulse">
+                  <path d="M 30 100 Q 80 150 130 200 T 230 350" className="route-line" stroke="#22C55E" strokeWidth="2" fill="none" />
+                  <path d="M 80 50 L 150 120 Q 200 180 250 250" className="route-line-2" stroke="#10B981" strokeWidth="1.5" fill="none" />
+                  <path d="M 200 80 Q 250 140 280 220 L 320 350" className="route-line-3" stroke="#22C55E" strokeWidth="2" fill="none" />
+                  <path d="M 50 250 L 150 300 Q 220 330 300 380" stroke="#3B82F6" strokeWidth="1" opacity="0.4" fill="none" />
+                  <path d="M 250 100 Q 300 160 340 240" stroke="#10B981" strokeWidth="1.5" opacity="0.3" fill="none" />
+                </g>
+
+                {/* Gradient Overlay */}
+                <rect x="0" y="0" width="400" height="800" fill="url(#gridGradient1)" />
+              </svg>
             </div>
 
             {/* Main Content */}
@@ -373,32 +405,65 @@ export function OnboardingScreen() {
             exit={{ opacity: 0, x: -40 }}
             transition={{ duration: 0.35, ease: "easeOut" }}
           >
-            <div className="absolute inset-0">
-              <motion.div 
-                className="absolute left-1/4 top-1/4 h-96 w-96 rounded-full bg-emerald-500/10 blur-3xl" 
-                animate={{
-                  x: [0, 30, -15, 0],
-                  y: [0, -25, 20, 0],
-                }}
-                transition={{
-                  duration: 22,
-                  repeat: Infinity,
-                  ease: "easeInOut",
-                }}
-              />
-              <motion.div 
-                className="absolute right-1/4 bottom-1/4 h-96 w-96 rounded-full bg-blue-500/10 blur-3xl" 
-                animate={{
-                  x: [0, -20, 25, 0],
-                  y: [0, 30, -20, 0],
-                }}
-                transition={{
-                  duration: 26,
-                  repeat: Infinity,
-                  ease: "easeInOut",
-                  delay: 0.5,
-                }}
-              />
+            <div className="absolute inset-0 overflow-hidden">
+              <svg
+                className="map-grid-bg absolute inset-0 w-full h-full"
+                viewBox="0 0 400 800"
+                preserveAspectRatio="xMidYMid slice"
+              >
+                <defs>
+                  <linearGradient id="gridGradient2" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stopColor="#10B981" stopOpacity="0.1" />
+                    <stop offset="50%" stopColor="#3B82F6" stopOpacity="0.05" />
+                    <stop offset="100%" stopColor="#10B981" stopOpacity="0.1" />
+                  </linearGradient>
+                  <style>
+                    {`
+                      @keyframes routeGlow2 {
+                        0%, 100% { stroke-opacity: 0.3; filter: drop-shadow(0 0 2px rgba(34, 197, 94, 0.2)); }
+                        50% { stroke-opacity: 0.6; filter: drop-shadow(0 0 8px rgba(34, 197, 94, 0.5)); }
+                      }
+                      .route-line-lg { animation: routeGlow2 4s ease-in-out infinite; stroke-dasharray: 20; stroke-dashoffset: 0; }
+                      .route-line-lg-2 { animation: routeGlow2 4s ease-in-out infinite 1s; }
+                      .route-line-lg-3 { animation: routeGlow2 4s ease-in-out infinite 2s; }
+                    `}
+                  </style>
+                </defs>
+
+                {/* Grid Pattern */}
+                <g className="map-grid">
+                  <line x1="0" y1="0" x2="0" y2="800" stroke="#10B981" strokeWidth="1.5" opacity="0.2" />
+                  <line x1="50" y1="0" x2="50" y2="800" stroke="#3B82F6" strokeWidth="1" opacity="0.15" />
+                  <line x1="100" y1="0" x2="100" y2="800" stroke="#10B981" strokeWidth="1" opacity="0.15" />
+                  <line x1="150" y1="0" x2="150" y2="800" stroke="#3B82F6" strokeWidth="1.5" opacity="0.2" />
+                  <line x1="200" y1="0" x2="200" y2="800" stroke="#10B981" strokeWidth="1" opacity="0.15" />
+                  <line x1="250" y1="0" x2="250" y2="800" stroke="#3B82F6" strokeWidth="1" opacity="0.15" />
+                  <line x1="300" y1="0" x2="300" y2="800" stroke="#10B981" strokeWidth="1.5" opacity="0.2" />
+                  <line x1="350" y1="0" x2="350" y2="800" stroke="#3B82F6" strokeWidth="1" opacity="0.15" />
+                  <line x1="400" y1="0" x2="400" y2="800" stroke="#10B981" strokeWidth="1" opacity="0.15" />
+
+                  <line x1="0" y1="50" x2="400" y2="50" stroke="#3B82F6" strokeWidth="1" opacity="0.15" />
+                  <line x1="0" y1="100" x2="400" y2="100" stroke="#10B981" strokeWidth="1.5" opacity="0.2" />
+                  <line x1="0" y1="150" x2="400" y2="150" stroke="#3B82F6" strokeWidth="1" opacity="0.15" />
+                  <line x1="0" y1="200" x2="400" y2="200" stroke="#10B981" strokeWidth="1" opacity="0.15" />
+                  <line x1="0" y1="250" x2="400" y2="250" stroke="#3B82F6" strokeWidth="1.5" opacity="0.2" />
+                  <line x1="0" y1="300" x2="400" y2="300" stroke="#10B981" strokeWidth="1" opacity="0.15" />
+                  <line x1="0" y1="350" x2="400" y2="350" stroke="#3B82F6" strokeWidth="1" opacity="0.15" />
+                  <line x1="0" y1="400" x2="400" y2="400" stroke="#10B981" strokeWidth="1.5" opacity="0.2" />
+                </g>
+
+                {/* Route Lines with Glow */}
+                <g className="map-grid-pulse">
+                  <path d="M 30 100 Q 80 150 130 200 T 230 350" className="route-line-lg" stroke="#22C55E" strokeWidth="2" fill="none" />
+                  <path d="M 80 50 L 150 120 Q 200 180 250 250" className="route-line-lg-2" stroke="#10B981" strokeWidth="1.5" fill="none" />
+                  <path d="M 200 80 Q 250 140 280 220 L 320 350" className="route-line-lg-3" stroke="#22C55E" strokeWidth="2" fill="none" />
+                  <path d="M 50 250 L 150 300 Q 220 330 300 380" stroke="#3B82F6" strokeWidth="1" opacity="0.4" fill="none" />
+                  <path d="M 250 100 Q 300 160 340 240" stroke="#10B981" strokeWidth="1.5" opacity="0.3" fill="none" />
+                </g>
+
+                {/* Gradient Overlay */}
+                <rect x="0" y="0" width="400" height="800" fill="url(#gridGradient2)" />
+              </svg>
             </div>
 
             <div className="relative z-10 w-full max-w-sm">
@@ -498,32 +563,65 @@ export function OnboardingScreen() {
             exit={{ opacity: 0, x: -40 }}
             transition={{ duration: 0.35, ease: "easeOut" }}
           >
-            <div className="absolute inset-0">
-              <motion.div 
-                className="absolute left-1/4 top-1/4 h-96 w-96 rounded-full bg-emerald-500/10 blur-3xl" 
-                animate={{
-                  x: [0, 25, -20, 0],
-                  y: [0, 35, -15, 0],
-                }}
-                transition={{
-                  duration: 24,
-                  repeat: Infinity,
-                  ease: "easeInOut",
-                }}
-              />
-              <motion.div 
-                className="absolute right-1/4 bottom-1/4 h-96 w-96 rounded-full bg-blue-500/10 blur-3xl" 
-                animate={{
-                  x: [0, -30, 10, 0],
-                  y: [0, -20, 30, 0],
-                }}
-                transition={{
-                  duration: 28,
-                  repeat: Infinity,
-                  ease: "easeInOut",
-                  delay: 0.7,
-                }}
-              />
+            <div className="absolute inset-0 overflow-hidden">
+              <svg
+                className="map-grid-bg absolute inset-0 w-full h-full"
+                viewBox="0 0 400 800"
+                preserveAspectRatio="xMidYMid slice"
+              >
+                <defs>
+                  <linearGradient id="gridGradient3" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stopColor="#10B981" stopOpacity="0.1" />
+                    <stop offset="50%" stopColor="#3B82F6" stopOpacity="0.05" />
+                    <stop offset="100%" stopColor="#10B981" stopOpacity="0.1" />
+                  </linearGradient>
+                  <style>
+                    {`
+                      @keyframes routeGlow3 {
+                        0%, 100% { stroke-opacity: 0.3; filter: drop-shadow(0 0 2px rgba(34, 197, 94, 0.2)); }
+                        50% { stroke-opacity: 0.6; filter: drop-shadow(0 0 8px rgba(34, 197, 94, 0.5)); }
+                      }
+                      .route-line-p { animation: routeGlow3 4s ease-in-out infinite; stroke-dasharray: 20; stroke-dashoffset: 0; }
+                      .route-line-p-2 { animation: routeGlow3 4s ease-in-out infinite 1s; }
+                      .route-line-p-3 { animation: routeGlow3 4s ease-in-out infinite 2s; }
+                    `}
+                  </style>
+                </defs>
+
+                {/* Grid Pattern */}
+                <g className="map-grid">
+                  <line x1="0" y1="0" x2="0" y2="800" stroke="#10B981" strokeWidth="1.5" opacity="0.2" />
+                  <line x1="50" y1="0" x2="50" y2="800" stroke="#3B82F6" strokeWidth="1" opacity="0.15" />
+                  <line x1="100" y1="0" x2="100" y2="800" stroke="#10B981" strokeWidth="1" opacity="0.15" />
+                  <line x1="150" y1="0" x2="150" y2="800" stroke="#3B82F6" strokeWidth="1.5" opacity="0.2" />
+                  <line x1="200" y1="0" x2="200" y2="800" stroke="#10B981" strokeWidth="1" opacity="0.15" />
+                  <line x1="250" y1="0" x2="250" y2="800" stroke="#3B82F6" strokeWidth="1" opacity="0.15" />
+                  <line x1="300" y1="0" x2="300" y2="800" stroke="#10B981" strokeWidth="1.5" opacity="0.2" />
+                  <line x1="350" y1="0" x2="350" y2="800" stroke="#3B82F6" strokeWidth="1" opacity="0.15" />
+                  <line x1="400" y1="0" x2="400" y2="800" stroke="#10B981" strokeWidth="1" opacity="0.15" />
+
+                  <line x1="0" y1="50" x2="400" y2="50" stroke="#3B82F6" strokeWidth="1" opacity="0.15" />
+                  <line x1="0" y1="100" x2="400" y2="100" stroke="#10B981" strokeWidth="1.5" opacity="0.2" />
+                  <line x1="0" y1="150" x2="400" y2="150" stroke="#3B82F6" strokeWidth="1" opacity="0.15" />
+                  <line x1="0" y1="200" x2="400" y2="200" stroke="#10B981" strokeWidth="1" opacity="0.15" />
+                  <line x1="0" y1="250" x2="400" y2="250" stroke="#3B82F6" strokeWidth="1.5" opacity="0.2" />
+                  <line x1="0" y1="300" x2="400" y2="300" stroke="#10B981" strokeWidth="1" opacity="0.15" />
+                  <line x1="0" y1="350" x2="400" y2="350" stroke="#3B82F6" strokeWidth="1" opacity="0.15" />
+                  <line x1="0" y1="400" x2="400" y2="400" stroke="#10B981" strokeWidth="1.5" opacity="0.2" />
+                </g>
+
+                {/* Route Lines with Glow */}
+                <g className="map-grid-pulse">
+                  <path d="M 30 100 Q 80 150 130 200 T 230 350" className="route-line-p" stroke="#22C55E" strokeWidth="2" fill="none" />
+                  <path d="M 80 50 L 150 120 Q 200 180 250 250" className="route-line-p-2" stroke="#10B981" strokeWidth="1.5" fill="none" />
+                  <path d="M 200 80 Q 250 140 280 220 L 320 350" className="route-line-p-3" stroke="#22C55E" strokeWidth="2" fill="none" />
+                  <path d="M 50 250 L 150 300 Q 220 330 300 380" stroke="#3B82F6" strokeWidth="1" opacity="0.4" fill="none" />
+                  <path d="M 250 100 Q 300 160 340 240" stroke="#10B981" strokeWidth="1.5" opacity="0.3" fill="none" />
+                </g>
+
+                {/* Gradient Overlay */}
+                <rect x="0" y="0" width="400" height="800" fill="url(#gridGradient3)" />
+              </svg>
             </div>
 
             <div className="relative z-10 w-full max-w-sm">
@@ -649,32 +747,65 @@ export function OnboardingScreen() {
             exit={{ opacity: 0, x: -40 }}
             transition={{ duration: 0.35, ease: "easeOut" }}
           >
-            <div className="absolute inset-0">
-              <motion.div 
-                className="absolute left-1/4 top-1/4 h-96 w-96 rounded-full bg-emerald-500/10 blur-3xl" 
-                animate={{
-                  x: [0, -25, 20, 0],
-                  y: [0, 30, -25, 0],
-                }}
-                transition={{
-                  duration: 20,
-                  repeat: Infinity,
-                  ease: "easeInOut",
-                }}
-              />
-              <motion.div 
-                className="absolute right-1/4 bottom-1/4 h-96 w-96 rounded-full bg-blue-500/10 blur-3xl" 
-                animate={{
-                  x: [0, 35, -10, 0],
-                  y: [0, -35, 15, 0],
-                }}
-                transition={{
-                  duration: 24,
-                  repeat: Infinity,
-                  ease: "easeInOut",
-                  delay: 1.2,
-                }}
-              />
+            <div className="absolute inset-0 overflow-hidden">
+              <svg
+                className="map-grid-bg absolute inset-0 w-full h-full"
+                viewBox="0 0 400 800"
+                preserveAspectRatio="xMidYMid slice"
+              >
+                <defs>
+                  <linearGradient id="gridGradient4" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stopColor="#10B981" stopOpacity="0.1" />
+                    <stop offset="50%" stopColor="#3B82F6" stopOpacity="0.05" />
+                    <stop offset="100%" stopColor="#10B981" stopOpacity="0.1" />
+                  </linearGradient>
+                  <style>
+                    {`
+                      @keyframes routeGlow4 {
+                        0%, 100% { stroke-opacity: 0.3; filter: drop-shadow(0 0 2px rgba(34, 197, 94, 0.2)); }
+                        50% { stroke-opacity: 0.6; filter: drop-shadow(0 0 8px rgba(34, 197, 94, 0.5)); }
+                      }
+                      .route-line-o { animation: routeGlow4 4s ease-in-out infinite; stroke-dasharray: 20; stroke-dashoffset: 0; }
+                      .route-line-o-2 { animation: routeGlow4 4s ease-in-out infinite 1s; }
+                      .route-line-o-3 { animation: routeGlow4 4s ease-in-out infinite 2s; }
+                    `}
+                  </style>
+                </defs>
+
+                {/* Grid Pattern */}
+                <g className="map-grid">
+                  <line x1="0" y1="0" x2="0" y2="800" stroke="#10B981" strokeWidth="1.5" opacity="0.2" />
+                  <line x1="50" y1="0" x2="50" y2="800" stroke="#3B82F6" strokeWidth="1" opacity="0.15" />
+                  <line x1="100" y1="0" x2="100" y2="800" stroke="#10B981" strokeWidth="1" opacity="0.15" />
+                  <line x1="150" y1="0" x2="150" y2="800" stroke="#3B82F6" strokeWidth="1.5" opacity="0.2" />
+                  <line x1="200" y1="0" x2="200" y2="800" stroke="#10B981" strokeWidth="1" opacity="0.15" />
+                  <line x1="250" y1="0" x2="250" y2="800" stroke="#3B82F6" strokeWidth="1" opacity="0.15" />
+                  <line x1="300" y1="0" x2="300" y2="800" stroke="#10B981" strokeWidth="1.5" opacity="0.2" />
+                  <line x1="350" y1="0" x2="350" y2="800" stroke="#3B82F6" strokeWidth="1" opacity="0.15" />
+                  <line x1="400" y1="0" x2="400" y2="800" stroke="#10B981" strokeWidth="1" opacity="0.15" />
+
+                  <line x1="0" y1="50" x2="400" y2="50" stroke="#3B82F6" strokeWidth="1" opacity="0.15" />
+                  <line x1="0" y1="100" x2="400" y2="100" stroke="#10B981" strokeWidth="1.5" opacity="0.2" />
+                  <line x1="0" y1="150" x2="400" y2="150" stroke="#3B82F6" strokeWidth="1" opacity="0.15" />
+                  <line x1="0" y1="200" x2="400" y2="200" stroke="#10B981" strokeWidth="1" opacity="0.15" />
+                  <line x1="0" y1="250" x2="400" y2="250" stroke="#3B82F6" strokeWidth="1.5" opacity="0.2" />
+                  <line x1="0" y1="300" x2="400" y2="300" stroke="#10B981" strokeWidth="1" opacity="0.15" />
+                  <line x1="0" y1="350" x2="400" y2="350" stroke="#3B82F6" strokeWidth="1" opacity="0.15" />
+                  <line x1="0" y1="400" x2="400" y2="400" stroke="#10B981" strokeWidth="1.5" opacity="0.2" />
+                </g>
+
+                {/* Route Lines with Glow */}
+                <g className="map-grid-pulse">
+                  <path d="M 30 100 Q 80 150 130 200 T 230 350" className="route-line-o" stroke="#22C55E" strokeWidth="2" fill="none" />
+                  <path d="M 80 50 L 150 120 Q 200 180 250 250" className="route-line-o-2" stroke="#10B981" strokeWidth="1.5" fill="none" />
+                  <path d="M 200 80 Q 250 140 280 220 L 320 350" className="route-line-o-3" stroke="#22C55E" strokeWidth="2" fill="none" />
+                  <path d="M 50 250 L 150 300 Q 220 330 300 380" stroke="#3B82F6" strokeWidth="1" opacity="0.4" fill="none" />
+                  <path d="M 250 100 Q 300 160 340 240" stroke="#10B981" strokeWidth="1.5" opacity="0.3" fill="none" />
+                </g>
+
+                {/* Gradient Overlay */}
+                <rect x="0" y="0" width="400" height="800" fill="url(#gridGradient4)" />
+              </svg>
             </div>
 
             <div className="relative z-10 w-full max-w-sm">
