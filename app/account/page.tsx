@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react"
 import { AppHeader } from "@/components/app-header"
 import { BottomNav } from "@/components/bottom-nav"
+import { AccountBackground } from "@/components/account-background"
 import {
   User, Phone, Wallet, QrCode, X, Loader2, Mail, MapPin,
   Pencil, Save, CreditCard, LogOut,
@@ -150,8 +151,13 @@ export default function AccountPage() {
 
   return (
     <PageTransition>
-      <main className="min-h-screen bg-background pb-40">
-        <AppHeader />
+      <main className="relative min-h-screen bg-background pb-40">
+        {/* Animated Background */}
+        <AccountBackground />
+        
+        {/* Content Overlay */}
+        <div className="relative z-10">
+          <AppHeader />
 
         <div className="px-4 pt-20">
           <div className="mb-6 flex items-center gap-3">
@@ -396,6 +402,8 @@ export default function AccountPage() {
             </div>
           </div>
         )}
+
+        </div>
 
         <BottomNav />
       </main>
