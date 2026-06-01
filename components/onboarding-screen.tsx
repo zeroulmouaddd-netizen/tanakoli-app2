@@ -326,7 +326,7 @@ export function OnboardingScreen() {
             </div>
 
             {/* Main Content */}
-            <div className="relative z-10 flex h-full flex-col items-center justify-between px-6 py-12">
+            <div className="relative z-10 flex h-full w-full flex-col items-center justify-between px-6 py-8">
               {/* Spacer Top */}
               <div className="flex-1" />
 
@@ -399,7 +399,7 @@ export function OnboardingScreen() {
         {step === "step1" && (
           <motion.div
             key="step1"
-            className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900 px-6"
+            className="absolute inset-0 flex flex-col items-center justify-start bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900 px-6"
             initial={{ opacity: 0, x: 40 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -40 }}
@@ -466,15 +466,17 @@ export function OnboardingScreen() {
               </svg>
             </div>
 
-            <div className="relative z-10 w-full max-w-sm">
-              <button
-                onClick={() => { setError(""); setAuthMethod(null); setStep("splash") }}
-                className="mb-6 flex items-center gap-2 text-sm text-white/60 hover:text-white/90 transition-colors"
-              >
-                <ArrowRight className="h-4 w-4" />
-                <span>رجوع</span>
+            {/* Back button - positioned at top */}
+            <button
+              onClick={() => { setError(""); setAuthMethod(null); setStep("splash") }}
+              className="relative z-10 self-start mt-6 flex items-center gap-2 text-sm text-white/60 hover:text-white/90 transition-colors"
+            >
+              <ArrowRight className="h-4 w-4" />
+              <span>رجوع</span>
               </button>
 
+            {/* Centered form content */}
+            <div className="relative z-10 w-full max-w-sm flex-1 flex flex-col items-center justify-center">
               <div className="mb-8 text-center">
                 <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-white/10 backdrop-blur-sm border border-white/20">
                   <Phone className="h-8 w-8 text-emerald-400" />
@@ -483,7 +485,7 @@ export function OnboardingScreen() {
                 <p className="mt-1 text-sm text-white/60">اختر طريقة الدخول</p>
               </div>
 
-              <form onSubmit={handleStep1Continue} className="space-y-4">
+              <form onSubmit={handleStep1Continue} className="w-full space-y-4">
                 {/* Phone Option */}
                 {authMethod !== "email" && (
                   <div>
@@ -557,7 +559,7 @@ export function OnboardingScreen() {
         {step === "step2" && (
           <motion.div
             key="step2"
-            className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900 px-6"
+            className="absolute inset-0 flex flex-col items-center justify-start bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900 px-6"
             initial={{ opacity: 0, x: 40 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -40 }}
@@ -624,14 +626,17 @@ export function OnboardingScreen() {
               </svg>
             </div>
 
-            <div className="relative z-10 w-full max-w-sm">
-              <button
-                onClick={() => { setError(""); setStep("step1") }}
-                className="mb-6 flex items-center gap-2 text-sm text-white/60 hover:text-white/90 transition-colors"
-              >
-                <ArrowRight className="h-4 w-4" />
-                <span>رجوع</span>
-              </button>
+            {/* Back button - positioned at top */}
+            <button
+              onClick={() => { setError(""); setStep("step1") }}
+              className="relative z-10 self-start mt-6 flex items-center gap-2 text-sm text-white/60 hover:text-white/90 transition-colors"
+            >
+              <ArrowRight className="h-4 w-4" />
+              <span>رجوع</span>
+            </button>
+
+            {/* Centered form content */}
+            <div className="relative z-10 w-full max-w-sm flex-1 flex flex-col items-center justify-center">{null}
 
               <div className="mb-8 text-center">
                 <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-white/10 backdrop-blur-sm border border-white/20">
@@ -641,7 +646,7 @@ export function OnboardingScreen() {
                 <p className="mt-1 text-sm text-white/60">أكمل البيانات المتبقية</p>
               </div>
 
-              <form onSubmit={handleStep2Continue} className="space-y-4">
+              <form onSubmit={handleStep2Continue} className="w-full space-y-4">
                 {/* Full Name */}
                 <div>
                   <label className="mb-2 block text-sm font-medium text-white/80">الاسم الكامل</label>
