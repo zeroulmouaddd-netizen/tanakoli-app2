@@ -8,7 +8,7 @@ import { signInWithPhoneNumber, RecaptchaVerifier, type ConfirmationResult } fro
 import { doc, setDoc } from "firebase/firestore"
 import { User, Phone, Shield, ArrowRight, Loader2, Check, Mail } from "lucide-react"
 
-type Step = "splash" | "step1" | "step2" | "otp" | "success"
+type Step = "splash" | "step1" | "step2" | "otp"
 type AuthMethod = "phone" | "email"
 
 
@@ -42,13 +42,11 @@ export function OnboardingScreen() {
     return () => clearTimeout(t)
   }, [])
 
-  // Navigate to home after successful authentication with smooth fade transition
+  // Navigate to home immediately after successful authentication
   useEffect(() => {
     if (step === "success") {
-      const timer = setTimeout(() => {
-        router.push("/")
-      }, 1500) // Allow success animation to play for 1.5 seconds before transitioning
-      return () => clearTimeout(timer)
+      router.push("/")
+      return
     }
   }, [step, router])
 
@@ -247,7 +245,7 @@ export function OnboardingScreen() {
         }, { merge: true })
       }
       try { sessionStorage.setItem("splashShown", "true") } catch {}
-      setStep("success")
+      router.push("/")
     } catch (err: any) {
       console.error("[Auth] OTP confirm failed:", err?.code, err?.message, err)
       if (err?.code === "auth/invalid-verification-code") setError("رمز التحقق غير صحيح. تحقق من الأرقام وأعد المحاولة.")
@@ -908,50 +906,6 @@ export function OnboardingScreen() {
                   )}
                 </button>
               </div>
-            </div>
-          </motion.div>
-        )}
-
-        {/* ── SUCCESS ── */}
-        {step === "success" && (
-          <motion.div
-            key="success"
-            className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.4 }}
-          >
-            <div className="absolute inset-0">
-              <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-emerald-900/30 via-transparent to-transparent" />
-            </div>
-            <div className="relative z-10 flex flex-col items-center gap-5 px-6 text-center">
-              <motion.div
-                className="flex h-24 w-24 items-center justify-center rounded-full bg-gradient-to-br from-emerald-500 to-teal-500 shadow-2xl"
-                initial={{ scale: 0, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                transition={{ type: "spring", stiffness: 300, damping: 20 }}
-              >
-                <Check className="h-12 w-12 text-white" strokeWidth={3} />
-              </motion.div>
-              <motion.div
-                initial={{ opacity: 0, y: 15 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.95 }}
-                transition={{ delay: 0.2 }}
-              >
-                <h2 className="text-2xl font-bold text-white">مرحباً {name}!</h2>
-                <p className="mt-2 text-white/60">تم التسجيل بنجاح. جاري الانتقال...</p>
-              </motion.div>
-              <motion.div
-                className="mt-2"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ delay: 0.4 }}
-              >
-                <Loader2 className="h-6 w-6 animate-spin text-emerald-400" />
-              </motion.div>
             </div>
           </motion.div>
         )}
