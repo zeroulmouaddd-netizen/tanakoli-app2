@@ -264,7 +264,7 @@ export function DriverDashboard() {
       console.error("Camera error:", error)
       setScanResult({
         success: false,
-        message: "تعذر الوصول إلى الكاميرا"
+        message: "ت��ذر الوصول إلى الكاميرا"
       })
       stopScanner()
     }
@@ -448,56 +448,56 @@ export function DriverDashboard() {
     <div className="min-h-screen bg-slate-900">
       {/* Header */}
       <header className="fixed top-0 left-0 right-0 z-50 bg-slate-900/95 backdrop-blur-md border-b border-slate-800">
-        <div className="flex items-center justify-between px-4 py-3">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary">
-              <Bus className="h-5 w-5 text-primary-foreground" />
+        <div className="flex items-center justify-between px-3 sm:px-4 md:px-6 py-2 sm:py-3 gap-2 sm:gap-4">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <div className="flex h-9 sm:h-10 w-9 sm:w-10 items-center justify-center rounded-lg sm:rounded-xl bg-primary flex-shrink-0">
+              <Bus className="h-4 sm:h-5 w-4 sm:w-5 text-primary-foreground" />
             </div>
             <div>
-              <h1 className="text-lg font-bold text-white">وضع السائق</h1>
+              <h1 className="text-base sm:text-lg font-bold text-white">وضع السائق</h1>
               <p className="text-xs text-slate-400">Driver Mode</p>
             </div>
           </div>
           <button
             onClick={exitDriverMode}
-            className="flex items-center gap-2 rounded-xl bg-red-500/20 px-4 py-2 text-sm font-medium text-red-400 transition-colors hover:bg-red-500/30"
+            className="flex items-center gap-1 sm:gap-2 rounded-lg sm:rounded-xl bg-red-500/20 px-2 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-medium text-red-400 transition-colors hover:bg-red-500/30 flex-shrink-0"
           >
-            <LogOut className="h-4 w-4" />
+            <LogOut className="h-3 sm:h-4 w-3 sm:w-4" />
             <span>خروج</span>
           </button>
         </div>
       </header>
 
-      <main className="px-4 pt-20 pb-8">
+      <main className="px-3 sm:px-4 md:px-6 pt-16 sm:pt-20 pb-6 sm:pb-8">
         {/* Stats Card */}
         <motion.div
-          className="mb-6 rounded-2xl bg-gradient-to-br from-primary to-primary/80 p-5"
+          className="mb-4 sm:mb-6 rounded-lg sm:rounded-2xl bg-gradient-to-br from-primary to-primary/80 p-4 sm:p-5"
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
         >
-          <div className="mb-4 flex items-center justify-between">
+          <div className="mb-3 sm:mb-4 flex items-center justify-between gap-2">
             <div className="flex items-center gap-2">
-              <Wallet className="h-5 w-5 text-primary-foreground" />
-              <span className="font-medium text-primary-foreground/90">إحصائيات اليوم</span>
+              <Wallet className="h-4 sm:h-5 w-4 sm:w-5 text-primary-foreground" />
+              <span className="text-xs sm:text-sm font-medium text-primary-foreground/90">إحصائيات اليوم</span>
             </div>
             <button
               onClick={() => setShowResetConfirm(true)}
-              className="flex items-center gap-1 rounded-lg bg-primary-foreground/10 px-2 py-1 text-xs text-primary-foreground/80 transition-colors hover:bg-primary-foreground/20"
+              className="flex items-center gap-1 rounded-lg bg-primary-foreground/10 px-2 py-1 text-xs text-primary-foreground/80 transition-colors hover:bg-primary-foreground/20 flex-shrink-0"
             >
               <RotateCcw className="h-3 w-3" />
-              <span>إعادة تعيين</span>
+              <span className="hidden sm:inline">إعادة تعيين</span>
             </button>
           </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="rounded-xl bg-primary-foreground/10 p-4">
-              <p className="text-sm text-primary-foreground/80">المبلغ الكلي</p>
-              <p className="text-2xl font-bold text-primary-foreground" dir="ltr">
-                {dailyStats.total.toLocaleString("ar-DZ")} <span className="text-sm">د.ج</span>
+          <div className="grid grid-cols-2 gap-2 sm:gap-4">
+            <div className="rounded-lg sm:rounded-xl bg-primary-foreground/10 p-3 sm:p-4">
+              <p className="text-xs sm:text-sm text-primary-foreground/80">المبلغ الكلي</p>
+              <p className="text-lg sm:text-2xl font-bold text-primary-foreground" dir="ltr">
+                {dailyStats.total.toLocaleString("ar-DZ")} <span className="text-xs sm:text-sm">د.ج</span>
               </p>
             </div>
-            <div className="rounded-xl bg-primary-foreground/10 p-4">
-              <p className="text-sm text-primary-foreground/80">عدد الرحلات</p>
-              <p className="text-2xl font-bold text-primary-foreground">
+            <div className="rounded-lg sm:rounded-xl bg-primary-foreground/10 p-3 sm:p-4">
+              <p className="text-xs sm:text-sm text-primary-foreground/80">عدد الرحلات</p>
+              <p className="text-lg sm:text-2xl font-bold text-primary-foreground">
                 {dailyStats.trips}
               </p>
             </div>
@@ -509,29 +509,29 @@ export function DriverDashboard() {
 
         {/* Fare Selector */}
         <motion.div
-          className="mb-6 rounded-2xl bg-slate-800 p-5"
+          className="mb-4 sm:mb-6 rounded-lg sm:rounded-2xl bg-slate-800 p-4 sm:p-5"
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
         >
-          <h2 className="mb-4 flex items-center gap-2 text-lg font-bold text-white">
-            <Wallet className="h-5 w-5 text-primary" />
+          <h2 className="mb-3 sm:mb-4 flex items-center gap-2 text-base sm:text-lg font-bold text-white">
+            <Wallet className="h-4 sm:h-5 w-4 sm:w-5 text-primary" />
             سعر الرحلة
           </h2>
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-3 gap-2 sm:gap-3">
             {FARE_OPTIONS.map((fare) => (
               <button
                 key={fare.amount}
                 onClick={() => setSelectedFare(fare.amount)}
-                className={`rounded-xl p-4 text-center transition-all ${
+                className={`rounded-lg sm:rounded-xl p-2 sm:p-4 text-center transition-all ${
                   selectedFare === fare.amount
                     ? "bg-primary text-primary-foreground ring-2 ring-primary ring-offset-2 ring-offset-slate-800"
                     : "bg-slate-700 text-white hover:bg-slate-600"
                 }`}
               >
-                <p className="text-xl font-bold">{fare.amount}</p>
+                <p className="text-base sm:text-xl font-bold">{fare.amount}</p>
                 <p className="text-xs opacity-80">د.ج</p>
-                <p className="mt-1 text-[10px] opacity-60">{fare.description}</p>
+                <p className="mt-0.5 sm:mt-1 text-[10px] sm:text-[10px] opacity-60 truncate">{fare.description}</p>
               </button>
             ))}
           </div>
@@ -539,7 +539,7 @@ export function DriverDashboard() {
 
         {/* QR Scanner Button */}
         <motion.div
-          className="mb-4"
+          className="mb-3 sm:mb-4"
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
@@ -547,14 +547,14 @@ export function DriverDashboard() {
           <button
             onClick={() => startScanner("deduction")}
             disabled={isScanning || isProcessing}
-            className="flex w-full items-center justify-center gap-4 rounded-2xl bg-primary py-6 font-bold text-primary-foreground transition-all hover:bg-primary/90 active:scale-[0.98] disabled:opacity-50"
+            className="flex w-full flex-col sm:flex-row items-center justify-center gap-2 sm:gap-4 rounded-lg sm:rounded-2xl bg-primary py-4 sm:py-6 font-bold text-primary-foreground transition-all hover:bg-primary/90 active:scale-[0.98] disabled:opacity-50"
           >
-            <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-primary-foreground/20">
-              <QrCode className="h-8 w-8" />
+            <div className="flex h-12 sm:h-14 w-12 sm:w-14 items-center justify-center rounded-lg sm:rounded-xl bg-primary-foreground/20 flex-shrink-0">
+              <QrCode className="h-6 sm:h-8 w-6 sm:w-8" />
             </div>
             <div className="text-right">
-              <p className="text-xl">مسح رمز الدفع</p>
-              <p className="text-sm opacity-80">Scan QR Code</p>
+              <p className="text-base sm:text-xl">مسح رمز الدفع</p>
+              <p className="text-xs sm:text-sm opacity-80">Scan QR Code</p>
             </div>
           </button>
         </motion.div>
@@ -562,7 +562,7 @@ export function DriverDashboard() {
         {/* Recharge Button - Only visible to authorized drivers */}
         {isAuthorizedDriver && (
           <motion.div
-            className="mb-6"
+            className="mb-4 sm:mb-6"
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.25 }}
@@ -570,14 +570,14 @@ export function DriverDashboard() {
             <button
               onClick={handleRechargeClick}
               disabled={isScanning || isProcessing}
-              className="flex w-full items-center justify-center gap-4 rounded-2xl bg-blue-600 py-5 font-bold text-white transition-all hover:bg-blue-700 active:scale-[0.98] disabled:opacity-50"
+              className="flex w-full flex-col sm:flex-row items-center justify-center gap-2 sm:gap-4 rounded-lg sm:rounded-2xl bg-blue-600 py-4 sm:py-5 font-bold text-white transition-all hover:bg-blue-700 active:scale-[0.98] disabled:opacity-50"
             >
-              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-white/20">
-                <PlusCircle className="h-7 w-7" />
+              <div className="flex h-10 sm:h-12 w-10 sm:w-12 items-center justify-center rounded-lg sm:rounded-xl bg-white/20 flex-shrink-0">
+                <PlusCircle className="h-6 sm:h-7 w-6 sm:w-7" />
               </div>
               <div className="text-right">
-                <p className="text-lg">شحن رصيد للمسافر</p>
-                <p className="text-xs opacity-80">Mobile Recharge</p>
+                <p className="text-base sm:text-lg">شحن رصيد للمسافر</p>
+                <p className="text-xs sm:text-xs opacity-80">Mobile Recharge</p>
               </div>
             </button>
           </motion.div>
@@ -585,23 +585,23 @@ export function DriverDashboard() {
 
         {/* Recent Transactions Section */}
         <motion.div
-          className="mb-6 rounded-2xl bg-slate-800 p-5"
+          className="mb-4 sm:mb-6 rounded-lg sm:rounded-2xl bg-slate-800 p-4 sm:p-5"
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
         >
-          <div className="mb-4 flex items-center gap-2">
-            <History className="h-5 w-5 text-primary" />
-            <h2 className="text-lg font-bold text-white">سجل العمليات الأخير</h2>
+          <div className="mb-3 sm:mb-4 flex items-center gap-2">
+            <History className="h-4 sm:h-5 w-4 sm:w-5 text-primary" />
+            <h2 className="text-base sm:text-lg font-bold text-white">سجل العمليات الأخير</h2>
           </div>
           
           {recentTransactions.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-8 text-slate-400">
-              <History className="mb-2 h-10 w-10 opacity-50" />
-              <p className="text-sm">لا توجد عمليات بعد</p>
+            <div className="flex flex-col items-center justify-center py-6 sm:py-8 text-slate-400">
+              <History className="mb-2 h-8 sm:h-10 w-8 sm:w-10 opacity-50" />
+              <p className="text-xs sm:text-sm">لا توجد عمليات بعد</p>
             </div>
           ) : (
-            <div className="max-h-[300px] space-y-2 overflow-y-auto" style={{ WebkitOverflowScrolling: 'touch' }}>
+            <div className="max-h-[300px] space-y-1 sm:space-y-2 overflow-y-auto" style={{ WebkitOverflowScrolling: 'touch' }}>
               {recentTransactions.map((transaction, index) => {
                 const isRecharge = transaction.type === "balance_recharge"
                 const timestamp = transaction.driverTimestamp?.toDate?.()
@@ -612,7 +612,7 @@ export function DriverDashboard() {
                 return (
                   <motion.div
                     key={transaction.id}
-                    className="flex items-center gap-3 rounded-xl bg-slate-700/50 p-3"
+                    className="flex items-center gap-2 sm:gap-3 rounded-lg bg-slate-700/50 p-2 sm:p-3 text-xs sm:text-sm"
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: index * 0.05 }}

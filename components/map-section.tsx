@@ -45,7 +45,7 @@ export function MapSection() {
         className={`relative w-full overflow-hidden transition-all duration-300 ${
           isFullscreen 
             ? "fixed inset-0 z-[9998] h-screen rounded-none" 
-            : "h-48 rounded-b-3xl"
+            : "h-48 sm:h-64 md:h-80 lg:h-96 rounded-b-2xl sm:rounded-b-3xl"
         }`}
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -89,13 +89,13 @@ export function MapSection() {
           initial={{ opacity: 0, scale: 0.8 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ delay: 0.3 }}
-          className="absolute top-4 left-4 z-[1001] flex h-10 w-10 items-center justify-center rounded-lg bg-card/80 backdrop-blur-md border border-border/50 shadow-lg hover:bg-card transition-colors"
+          className="absolute top-3 sm:top-4 left-3 sm:left-4 z-[1001] flex h-9 sm:h-10 w-9 sm:w-10 items-center justify-center rounded-lg bg-card/80 backdrop-blur-md border border-border/50 shadow-lg hover:bg-card transition-colors"
           aria-label={isFullscreen ? "خروج من ملء الشاشة" : "ملء الشاشة"}
         >
           {isFullscreen ? (
-            <Minimize2 className="h-5 w-5 text-foreground" />
+            <Minimize2 className="h-4 sm:h-5 w-4 sm:w-5 text-foreground" />
           ) : (
-            <Maximize2 className="h-5 w-5 text-foreground" />
+            <Maximize2 className="h-4 sm:h-5 w-4 sm:w-5 text-foreground" />
           )}
         </motion.button>
         
@@ -106,7 +106,7 @@ export function MapSection() {
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
-              className="absolute right-4 top-4 z-[1000] flex items-center gap-2 rounded-full bg-primary px-3 py-1.5 shadow-lg"
+              className="absolute right-3 sm:right-4 top-3 sm:top-4 z-[1000] flex items-center gap-2 rounded-full bg-primary px-2 sm:px-3 py-1 sm:py-1.5 shadow-lg text-xs sm:text-sm"
             >
               <motion.div
                 animate={{ scale: [1, 1.2, 1] }}
@@ -115,13 +115,13 @@ export function MapSection() {
               >
                 <div className="h-2 w-2 rounded-full bg-primary-foreground" />
               </motion.div>
-              <Navigation className="h-3.5 w-3.5 text-primary-foreground" />
-              <span className="text-xs font-semibold text-primary-foreground">
+              <Navigation className="h-3 sm:h-3.5 w-3 sm:w-3.5 text-primary-foreground" />
+              <span className="text-xs sm:text-xs font-semibold text-primary-foreground truncate max-w-[120px] sm:max-w-none">
                 {trackingState.busLineName}
               </span>
               <button
                 onClick={stopTracking}
-                className="flex h-5 w-5 items-center justify-center rounded-full bg-primary-foreground/20 text-primary-foreground transition-colors hover:bg-primary-foreground/30"
+                className="flex h-5 w-5 items-center justify-center rounded-full bg-primary-foreground/20 text-primary-foreground transition-colors hover:bg-primary-foreground/30 flex-shrink-0"
                 aria-label="إيقاف التتبع"
               >
                 <X className="h-3 w-3" />
@@ -132,7 +132,7 @@ export function MapSection() {
         
         {/* Location badge with animation */}
         <motion.div
-          className="absolute bottom-4 left-4 z-[1000] rounded-full bg-card/95 dark:bg-slate-800/95 border border-border/50 px-3 py-1 text-xs font-medium text-foreground shadow-md backdrop-blur-sm"
+          className="absolute bottom-3 sm:bottom-4 left-3 sm:left-4 z-[1000] rounded-full bg-card/95 dark:bg-slate-800/95 border border-border/50 px-2 sm:px-3 py-1 text-xs font-medium text-foreground shadow-md backdrop-blur-sm"
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ delay: 0.5, duration: 0.3 }}

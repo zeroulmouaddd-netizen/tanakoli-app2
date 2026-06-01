@@ -77,7 +77,7 @@ export function BottomNav() {
           <div className="absolute inset-x-0 -top-px h-px bg-gradient-to-r from-transparent via-border/30 to-transparent" />
           
           {/* Nav content - 5 equal slots */}
-          <div className="flex h-16 items-stretch">
+          <div className="flex h-14 sm:h-16 items-stretch">
             {navItems.map((item, index) => {
               const isActive = item.type === "link" && pathname === item.href
               const isCenter = index === 2
@@ -89,20 +89,20 @@ export function BottomNav() {
                     {hasMounted && (
                       <motion.button
                         onClick={handleOpenModal}
-                        className="flex flex-col items-center gap-1"
+                        className="flex flex-col items-center gap-0.5 sm:gap-1"
                         whileTap={{ scale: 0.92 }}
                         transition={{ type: "spring", stiffness: 400, damping: 17 }}
                         aria-label="دفع سريع"
                       >
                         {/* Circular green container with neon glow */}
                         <motion.div
-                          className={`qr-button-glow flex h-10 w-10 items-center justify-center rounded-full bg-primary text-primary-foreground ${isPulsing ? 'button-pulse' : ''}`}
+                          className={`qr-button-glow flex h-9 sm:h-10 w-9 sm:w-10 items-center justify-center rounded-full bg-primary text-primary-foreground ${isPulsing ? 'button-pulse' : ''}`}
                           whileHover={{ scale: 1.08 }}
                           whileTap={{ scale: 0.95 }}
                         >
-                          <QrCode className="h-5 w-5" strokeWidth={2} />
+                          <QrCode className="h-4 sm:h-5 w-4 sm:w-5" strokeWidth={2} />
                         </motion.div>
-                        <span className="text-[10px] font-medium text-primary">{item.label}</span>
+                        <span className="text-[9px] sm:text-[10px] font-medium text-primary">{item.label}</span>
                       </motion.button>
                     )}
                   </div>
@@ -113,7 +113,7 @@ export function BottomNav() {
               return (
                 <Link key={item.label} href={item.href} className="flex flex-1 items-center justify-center">
                   <motion.div
-                    className={`flex flex-col items-center gap-1 rounded-xl px-3 py-2 transition-colors ${
+                    className={`flex flex-col items-center gap-0.5 sm:gap-1 rounded-lg sm:rounded-xl px-2 sm:px-3 py-1.5 sm:py-2 transition-colors ${
                       isActive
                         ? "text-primary"
                         : "text-muted-foreground hover:text-foreground"
@@ -123,7 +123,7 @@ export function BottomNav() {
                   >
                     {isActive && (
                       <motion.div
-                        className="absolute inset-0 rounded-xl bg-primary/10"
+                        className="absolute inset-0 rounded-lg sm:rounded-xl bg-primary/10"
                         layoutId="activeTab"
                         transition={{ type: "spring", stiffness: 400, damping: 30 }}
                       />
@@ -134,10 +134,10 @@ export function BottomNav() {
                       animate={isActive ? { scale: 1.1 } : { scale: 1 }}
                       transition={{ type: "spring", stiffness: 400, damping: 17 }}
                     >
-                      <item.icon className="h-5 w-5" />
+                      <item.icon className="h-4 sm:h-5 w-4 sm:w-5" />
                     </motion.div>
                     
-                    <span className="relative z-10 text-[10px] font-medium">{item.label}</span>
+                    <span className="relative z-10 text-[9px] sm:text-[10px] font-medium">{item.label}</span>
                   </motion.div>
                 </Link>
               )
@@ -193,7 +193,7 @@ function PaymentQRModal({ isOpen, onClose }: PaymentQRModalProps) {
     <AnimatePresence>
       {isOpen && (
         <motion.div
-          className="fixed inset-0 flex items-center justify-center"
+          className="fixed inset-0 flex items-end sm:items-center justify-center p-0 sm:p-4"
           style={{ zIndex: 9999 }}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -208,10 +208,10 @@ function PaymentQRModal({ isOpen, onClose }: PaymentQRModalProps) {
             exit={{ opacity: 0 }}
           />
 
-          {/* Close button */}
+          {/* Close button - top right on mobile, top left on larger screens */}
           <motion.button
             onClick={onClose}
-            className="absolute right-4 top-4 flex h-12 w-12 items-center justify-center rounded-full bg-card/90 text-foreground shadow-xl backdrop-blur-sm transition-colors hover:bg-card"
+            className="absolute right-3 top-3 sm:right-auto sm:left-4 sm:top-4 flex h-10 sm:h-12 w-10 sm:w-12 items-center justify-center rounded-full bg-card/90 text-foreground shadow-xl backdrop-blur-sm transition-colors hover:bg-card"
             style={{ zIndex: 10000 }}
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -219,12 +219,12 @@ function PaymentQRModal({ isOpen, onClose }: PaymentQRModalProps) {
             transition={{ delay: 0.1 }}
             aria-label="إغلاق"
           >
-            <X className="h-6 w-6" />
+            <X className="h-5 sm:h-6 w-5 sm:w-6" />
           </motion.button>
           
           {/* Modal Content */}
           <motion.div
-            className="relative mx-4 w-full max-w-sm"
+            className="relative w-full sm:w-full mx-0 sm:mx-4 max-w-sm rounded-t-3xl sm:rounded-3xl overflow-hidden"
             style={{ zIndex: 9999 }}
             initial={{ scale: 0.9, opacity: 0, y: 20 }}
             animate={{ scale: 1, opacity: 1, y: 0 }}
@@ -232,36 +232,36 @@ function PaymentQRModal({ isOpen, onClose }: PaymentQRModalProps) {
             transition={{ type: "spring", stiffness: 300, damping: 25 }}
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="overflow-hidden rounded-3xl bg-card shadow-2xl">
+            <div className="overflow-hidden rounded-t-3xl sm:rounded-3xl bg-card shadow-2xl">
               {/* Header */}
-              <div className="bg-gradient-to-br from-primary to-primary/80 p-6 text-primary-foreground">
+              <div className="bg-gradient-to-br from-primary to-primary/80 p-4 sm:p-6 text-primary-foreground">
                 <div className="mb-4 flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <Wallet className="h-5 w-5" />
-                    <span className="text-sm font-medium opacity-90">محفظتي</span>
+                    <Wallet className="h-4 sm:h-5 w-4 sm:w-5" />
+                    <span className="text-xs sm:text-sm font-medium opacity-90">محفظتي</span>
                   </div>
-                  <span className="rounded-full bg-primary-foreground/20 px-3 py-1 text-xs font-medium">
+                  <span className="rounded-full bg-primary-foreground/20 px-2 sm:px-3 py-0.5 sm:py-1 text-xs font-medium">
                     نشط
                   </span>
                 </div>
                 
                 <div className="mb-2">
-                  <p className="text-sm opacity-80">الرصيد الحالي</p>
-                  <div className="text-3xl font-bold" dir="ltr">
-                    {isLoading ? "..." : (userData?.balance ?? 0).toLocaleString("ar-DZ")} <span className="text-lg">د.ج</span>
+                  <p className="text-xs sm:text-sm opacity-80">الرصيد الحالي</p>
+                  <div className="text-2xl sm:text-3xl font-bold" dir="ltr">
+                    {isLoading ? "..." : (userData?.balance ?? 0).toLocaleString("ar-DZ")} <span className="text-sm sm:text-lg">د.ج</span>
                   </div>
                 </div>
 
-                <p className="text-sm font-medium">
+                <p className="text-xs sm:text-sm font-medium">
                   {isLoading ? "جاري التحميل..." : userData?.fullName || "مستخدم"}
                 </p>
               </div>
 
               {/* QR Code Section */}
-              <div className="p-6">
+              <div className="p-4 sm:p-6">
                 <div className="mb-4 text-center">
-                  <h3 className="text-lg font-bold text-foreground">رمز الدفع السريع</h3>
-                  <p className="text-sm text-muted-foreground">أظهر هذا الكود للسائق للدفع</p>
+                  <h3 className="text-base sm:text-lg font-bold text-foreground">رمز الدفع السريع</h3>
+                  <p className="text-xs sm:text-sm text-muted-foreground">أظهر هذا الكود للسائق للدفع</p>
                 </div>
 
                 <QRCodeDisplay 
@@ -271,13 +271,13 @@ function PaymentQRModal({ isOpen, onClose }: PaymentQRModalProps) {
                 />
 
                 {/* Scan Instruction */}
-                <div className="mt-4 flex items-center justify-center gap-3 rounded-2xl bg-muted/50 p-4">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
-                    <ScanLine className="h-6 w-6 text-primary" />
+                <div className="mt-4 flex items-center justify-center gap-2 sm:gap-3 rounded-xl sm:rounded-2xl bg-muted/50 p-3 sm:p-4">
+                  <div className="flex h-10 sm:h-12 w-10 sm:w-12 items-center justify-center rounded-lg sm:rounded-xl bg-primary/10 flex-shrink-0">
+                    <ScanLine className="h-5 sm:h-6 w-5 sm:w-6 text-primary" />
                   </div>
                   <div className="text-right">
-                    <p className="font-medium text-foreground">امسح وانطلق</p>
-                    <p className="text-sm text-muted-foreground">Scan & Go</p>
+                    <p className="text-sm sm:text-base font-medium text-foreground">امسح وانطلق</p>
+                    <p className="text-xs text-muted-foreground">Scan & Go</p>
                   </div>
                 </div>
               </div>

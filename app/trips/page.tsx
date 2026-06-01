@@ -184,23 +184,23 @@ export default function TripsPage() {
   return (
     <ErrorBoundary>
       <PageTransition>
-        <main className="min-h-screen bg-background pb-40">
+        <main className="min-h-screen bg-background pb-32 sm:pb-40">
           <AppHeader />
         
-          <div className="px-4 pt-20">
+          <div className="px-3 sm:px-4 md:px-6 pt-16 sm:pt-20">
             {/* Page Header */}
             <motion.div
-              className="mb-4 flex items-center gap-3"
+              className="mb-4 flex items-center gap-2 sm:gap-3"
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.3 }}
             >
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary">
-                <Clock className="h-5 w-5 text-primary-foreground" />
+              <div className="flex h-9 sm:h-10 w-9 sm:w-10 items-center justify-center rounded-lg sm:rounded-xl bg-primary">
+                <Clock className="h-4 sm:h-5 w-4 sm:w-5 text-primary-foreground" />
               </div>
               <div>
-                <h1 className="text-xl font-bold text-foreground">الرحلات</h1>
-                <p className="text-sm text-muted-foreground">مواعيد وسجل الرحلات</p>
+                <h1 className="text-lg sm:text-xl font-bold text-foreground">الرحلات</h1>
+                <p className="text-xs sm:text-sm text-muted-foreground">مواعيد وسجل الرحلات</p>
               </div>
             </motion.div>
 
@@ -213,42 +213,42 @@ export default function TripsPage() {
             >
               <div className="mb-2 flex items-center gap-2">
                 <div className="h-2 w-2 rounded-full bg-primary animate-pulse" />
-                <span className="text-sm font-medium text-foreground">الرحلة النشطة</span>
+                <span className="text-xs sm:text-sm font-medium text-foreground">الرحلة النشطة</span>
               </div>
               
               {hasMounted && hasActiveTrip ? (
                 <motion.div
-                  className="overflow-hidden rounded-2xl bg-primary shadow-lg"
+                  className="overflow-hidden rounded-lg sm:rounded-2xl bg-primary shadow-lg"
                   initial={{ opacity: 0, scale: 0.95 }}
                   animate={{ opacity: 1, scale: 1 }}
                 >
-                  <div className="flex items-center gap-3 p-3">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3 p-3 sm:p-4">
                     <div className="relative flex-shrink-0">
                       <div className="absolute -inset-1 animate-pulse rounded-full bg-primary-foreground/20" />
-                      <div className="relative flex h-12 w-12 items-center justify-center rounded-full bg-primary-foreground">
-                        <Bus className="h-6 w-6 text-primary" />
+                      <div className="relative flex h-10 sm:h-12 w-10 sm:w-12 items-center justify-center rounded-full bg-primary-foreground">
+                        <Bus className="h-5 sm:h-6 w-5 sm:w-6 text-primary" />
                       </div>
                     </div>
                     
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className="font-bold text-primary-foreground">{mockActiveTrip.lineName}</span>
+                      <div className="flex flex-wrap items-center gap-1 sm:gap-2">
+                        <span className="font-bold text-xs sm:text-base text-primary-foreground">{mockActiveTrip.lineName}</span>
                         <span className="rounded-md bg-primary-foreground/20 px-1.5 py-0.5 text-xs text-primary-foreground">
                           خط {mockActiveTrip.lineNumber}
                         </span>
                       </div>
-                      <div className="flex items-center gap-1 text-sm text-primary-foreground/80">
-                        <MapPin className="h-3 w-3" />
+                      <div className="flex flex-wrap items-center gap-0.5 sm:gap-1 text-xs sm:text-sm text-primary-foreground/80 mt-1">
+                        <MapPin className="h-3 w-3 flex-shrink-0" />
                         <span className="truncate">{mockActiveTrip.from}</span>
                         <ArrowLeft className="h-3 w-3 flex-shrink-0" />
                         <span className="truncate">{mockActiveTrip.to}</span>
                       </div>
                     </div>
                     
-                    <div className="flex items-center gap-2 flex-shrink-0">
-                      <div className="text-center">
-                        <div className="flex items-baseline gap-0.5 text-primary-foreground">
-                          <span className="text-xl font-bold">{mockActiveTrip.remainingMinutes}</span>
+                    <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0 w-full sm:w-auto">
+                      <div className="text-center flex-1 sm:flex-none">
+                        <div className="flex items-baseline justify-center gap-0.5 text-primary-foreground">
+                          <span className="text-lg sm:text-xl font-bold">{mockActiveTrip.remainingMinutes}</span>
                           <span className="text-xs">د</span>
                         </div>
                         <span className="text-xs text-primary-foreground/70">متبقية</span>
@@ -256,7 +256,7 @@ export default function TripsPage() {
                       <Button 
                         size="sm" 
                         variant="secondary" 
-                        className="h-8 gap-1 rounded-full bg-primary-foreground px-3 text-xs text-primary hover:bg-primary-foreground/90"
+                        className="h-7 sm:h-8 gap-1 rounded-full bg-primary-foreground px-2 sm:px-3 text-xs text-primary hover:bg-primary-foreground/90 flex-1 sm:flex-none"
                       >
                         <ArrowLeft className="h-3 w-3" />
                         تتبع
@@ -275,16 +275,16 @@ export default function TripsPage() {
                 </motion.div>
               ) : (
                 <motion.div
-                  className="flex items-center gap-3 rounded-2xl border-2 border-dashed border-muted-foreground/20 bg-muted/30 p-4"
+                  className="flex flex-col sm:flex-row items-center gap-2 sm:gap-3 rounded-lg sm:rounded-2xl border-2 border-dashed border-muted-foreground/20 bg-muted/30 p-3 sm:p-4"
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                 >
-                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-muted">
-                    <QrCode className="h-6 w-6 text-muted-foreground" />
+                  <div className="flex h-10 sm:h-12 w-10 sm:w-12 items-center justify-center rounded-full bg-muted flex-shrink-0">
+                    <QrCode className="h-5 sm:h-6 w-5 sm:w-6 text-muted-foreground" />
                   </div>
-                  <div className="flex-1">
-                    <p className="font-medium text-foreground">لا توجد رحلة نشطة</p>
-                    <p className="text-sm text-muted-foreground">
+                  <div className="flex-1 text-center sm:text-right">
+                    <p className="font-medium text-foreground text-sm sm:text-base">لا توجد رحلة نشطة</p>
+                    <p className="text-xs sm:text-sm text-muted-foreground">
                       امسح رمزك مع السائق لبدء الرحلة
                     </p>
                   </div>
@@ -294,14 +294,14 @@ export default function TripsPage() {
 
             {/* Tab Switcher */}
             <motion.div
-              className="mb-4 flex gap-2 rounded-xl bg-muted p-1"
+              className="mb-4 flex gap-2 rounded-lg sm:rounded-xl bg-muted p-1"
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1 }}
             >
               <motion.button
                 onClick={() => setActiveTab("schedule")}
-                className={`relative flex-1 rounded-lg py-2.5 text-sm font-medium transition-all ${
+                className={`relative flex-1 rounded-lg py-2 sm:py-2.5 text-xs sm:text-sm font-medium transition-all ${
                   activeTab === "schedule"
                     ? "text-foreground"
                     : "text-muted-foreground hover:text-foreground"
@@ -315,14 +315,14 @@ export default function TripsPage() {
                     transition={{ type: "spring", stiffness: 400, damping: 30 }}
                   />
                 )}
-                <div className="relative z-10 flex items-center justify-center gap-2">
-                  <Clock className="h-4 w-4" />
+                <div className="relative z-10 flex items-center justify-center gap-1 sm:gap-2">
+                  <Clock className="h-3 sm:h-4 w-3 sm:w-4" />
                   <span>المواعيد</span>
                 </div>
               </motion.button>
               <motion.button
                 onClick={() => setActiveTab("history")}
-                className={`relative flex-1 rounded-lg py-2.5 text-sm font-medium transition-all ${
+                className={`relative flex-1 rounded-lg py-2 sm:py-2.5 text-xs sm:text-sm font-medium transition-all ${
                   activeTab === "history"
                     ? "text-foreground"
                     : "text-muted-foreground hover:text-foreground"
@@ -336,11 +336,11 @@ export default function TripsPage() {
                     transition={{ type: "spring", stiffness: 400, damping: 30 }}
                   />
                 )}
-                <div className="relative z-10 flex items-center justify-center gap-2">
-                  <History className="h-4 w-4" />
+                <div className="relative z-10 flex items-center justify-center gap-1 sm:gap-2">
+                  <History className="h-3 sm:h-4 w-3 sm:w-4" />
                   <span>السجل</span>
                   {transactions.length > 0 && (
-                    <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1.5 text-xs text-primary-foreground">
+                    <span className="flex h-4 sm:h-5 min-w-4 sm:min-w-5 items-center justify-center rounded-full bg-primary px-1 text-xs text-primary-foreground">
                       {transactions.length}
                     </span>
                   )}

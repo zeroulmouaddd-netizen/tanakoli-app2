@@ -103,14 +103,14 @@ function MiniMapComponent({ station }: { station: Station }) {
   }, [station])
 
   return (
-    <div className="relative overflow-hidden rounded-2xl bg-muted shadow-inner">
+    <div className="relative overflow-hidden rounded-xl sm:rounded-2xl bg-muted shadow-inner">
       {/* Dark gradient overlay for seamless blending */}
-      <div className="pointer-events-none absolute inset-0 z-10 bg-gradient-to-br from-black/5 via-transparent to-black/5 rounded-2xl" />
+      <div className="pointer-events-none absolute inset-0 z-10 bg-gradient-to-br from-black/5 via-transparent to-black/5 rounded-xl sm:rounded-2xl" />
       
       {/* Map container */}
       <div
         ref={mapContainer}
-        className="h-48 w-full"
+        className="h-40 sm:h-48 md:h-56 w-full"
       />
     </div>
   )
@@ -119,11 +119,11 @@ function MiniMapComponent({ station }: { station: Station }) {
 // Station Card - Premium Static Widget
 function StationCard({ station }: { station: Station }) {
   return (
-    <Card className="flex flex-col gap-4 overflow-hidden p-4">
+    <Card className="flex flex-col gap-3 sm:gap-4 overflow-hidden p-3 sm:p-4">
       {/* Top: Station Info and Icon */}
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex items-start justify-between gap-3 sm:gap-4">
         <div className="flex flex-1 flex-col items-end gap-2">
-          <h3 className="text-lg font-semibold text-card-foreground">{station.name}</h3>
+          <h3 className="text-base sm:text-lg font-semibold text-card-foreground">{station.name}</h3>
           <div className="flex flex-wrap justify-end gap-1">
             {station.lines.map((line) => (
               <span
@@ -135,7 +135,7 @@ function StationCard({ station }: { station: Station }) {
             ))}
           </div>
         </div>
-        <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+        <div className="flex h-10 sm:h-12 w-10 sm:w-12 flex-shrink-0 items-center justify-center rounded-lg sm:rounded-xl bg-primary/10 text-primary">
           {station.icon}
         </div>
       </div>
@@ -144,12 +144,12 @@ function StationCard({ station }: { station: Station }) {
       <MiniMapComponent station={station} />
 
       {/* Bottom: Route Details */}
-      <div className="grid grid-cols-2 gap-3 rounded-xl bg-primary/5 px-4 py-3">
+      <div className="grid grid-cols-2 gap-2 sm:gap-3 rounded-lg sm:rounded-xl bg-primary/5 px-3 sm:px-4 py-2 sm:py-3">
         <div className="flex flex-col items-end gap-1">
           <span className="text-xs font-medium text-muted-foreground">المسافة سيراً</span>
           <div className="flex items-center gap-1">
-            <span className="text-lg font-bold text-foreground">{station.distance}</span>
-            <MapPin className="h-4 w-4 text-muted-foreground" />
+            <span className="text-lg sm:text-lg font-bold text-foreground">{station.distance}</span>
+            <MapPin className="h-3 sm:h-4 w-3 sm:w-4 text-muted-foreground" />
           </div>
         </div>
         <div className="flex flex-col items-end gap-1">
@@ -157,7 +157,7 @@ function StationCard({ station }: { station: Station }) {
             <Clock className="h-3 w-3" />
             <span>الوقت</span>
           </div>
-          <span className="text-lg font-bold text-foreground">{station.walkingTime}</span>
+          <span className="text-lg sm:text-lg font-bold text-foreground">{station.walkingTime}</span>
         </div>
       </div>
     </Card>
@@ -166,19 +166,24 @@ function StationCard({ station }: { station: Station }) {
 
 export function StationsList() {
   return (
-    <div className="px-4 py-4">
-      <div className="mb-4 flex items-center justify-between">
-        <button className="flex items-center gap-1 text-sm text-primary">
-          <Navigation className="h-4 w-4" />
-          <span>ترتيب حسب المسافة</span>
-        </button>
-        <h2 className="text-lg font-semibold text-foreground">المحطات القريبة</h2>
-      </div>
+    <div className="relative">
+      {/* Gradient background - only visible on larger screens for visual separation */}
+      <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-border/50 to-transparent" />
+      
+      <div className="px-3 sm:px-4 md:px-6 py-3 sm:py-4">
+        <div className="mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <button className="flex items-center justify-center sm:justify-start gap-1 text-xs sm:text-sm text-primary order-2 sm:order-2">
+            <Navigation className="h-4 w-4" />
+            <span>ترتيب حسب المسافة</span>
+          </button>
+          <h2 className="text-base sm:text-lg font-semibold text-foreground text-center sm:text-right order-1 sm:order-1">المحطات القريبة</h2>
+        </div>
 
-      <div className="flex flex-col gap-4">
-        {stations.map((station) => (
-          <StationCard key={station.id} station={station} />
-        ))}
+        <div className="flex flex-col gap-3 sm:gap-4">
+          {stations.map((station) => (
+            <StationCard key={station.id} station={station} />
+          ))}
+        </div>
       </div>
     </div>
   )
