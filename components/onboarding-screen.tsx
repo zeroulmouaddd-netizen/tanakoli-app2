@@ -10,60 +10,7 @@ import { User, Phone, Shield, ArrowRight, Loader2, Check, Mail } from "lucide-re
 type Step = "splash" | "step1" | "step2" | "otp" | "success"
 type AuthMethod = "phone" | "email"
 
-function TKLogo({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
-      <defs>
-        <linearGradient id="ob-grad" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#10B981" />
-          <stop offset="40%" stopColor="#059669" />
-          <stop offset="70%" stopColor="#0EA5E9" />
-          <stop offset="100%" stopColor="#3B82F6" />
-        </linearGradient>
-        <linearGradient id="ob-light" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#34D399" />
-          <stop offset="100%" stopColor="#60A5FA" />
-        </linearGradient>
-        <linearGradient id="ob-road" x1="0%" y1="0%" x2="0%" y2="100%">
-          <stop offset="0%" stopColor="#10B981" stopOpacity="0.9" />
-          <stop offset="100%" stopColor="#3B82F6" stopOpacity="0.9" />
-        </linearGradient>
-        <filter id="ob-shadow" x="-20%" y="-20%" width="140%" height="140%">
-          <feDropShadow dx="0" dy="4" stdDeviation="8" floodColor="#000" floodOpacity="0.3" />
-        </filter>
-        <filter id="ob-glow" x="-50%" y="-50%" width="200%" height="200%">
-          <feGaussianBlur stdDeviation="3" result="coloredBlur" />
-          <feMerge><feMergeNode in="coloredBlur" /><feMergeNode in="SourceGraphic" /></feMerge>
-        </filter>
-      </defs>
-      <circle cx="100" cy="100" r="90" fill="white" fillOpacity="0.1" />
-      <circle cx="100" cy="100" r="88" stroke="url(#ob-light)" strokeWidth="2" strokeOpacity="0.5" fill="none" />
-      <g filter="url(#ob-shadow)">
-        <rect x="35" y="45" width="130" height="22" rx="11" fill="url(#ob-grad)" />
-        <line x1="50" y1="56" x2="65" y2="56" stroke="white" strokeWidth="2" strokeLinecap="round" strokeDasharray="6 4" opacity="0.7" />
-        <line x1="80" y1="56" x2="95" y2="56" stroke="white" strokeWidth="2" strokeLinecap="round" strokeDasharray="6 4" opacity="0.7" />
-        <line x1="110" y1="56" x2="125" y2="56" stroke="white" strokeWidth="2" strokeLinecap="round" strokeDasharray="6 4" opacity="0.7" />
-        <path d="M88 67 L112 67 L118 145 L82 145 Z" fill="url(#ob-road)" />
-        <line x1="100" y1="75" x2="100" y2="90" stroke="white" strokeWidth="2" strokeLinecap="round" opacity="0.7" />
-        <line x1="100" y1="100" x2="100" y2="115" stroke="white" strokeWidth="2" strokeLinecap="round" opacity="0.7" />
-        <line x1="100" y1="125" x2="100" y2="138" stroke="white" strokeWidth="2" strokeLinecap="round" opacity="0.7" />
-      </g>
-      <g filter="url(#ob-glow)" transform="translate(72, 95)">
-        <rect x="0" y="5" width="56" height="28" rx="6" fill="white" />
-        <rect x="4" y="0" width="48" height="8" rx="4" fill="white" />
-        <rect x="6" y="10" width="10" height="10" rx="2" fill="url(#ob-grad)" opacity="0.8" />
-        <rect x="19" y="10" width="10" height="10" rx="2" fill="url(#ob-grad)" opacity="0.8" />
-        <rect x="32" y="10" width="10" height="10" rx="2" fill="url(#ob-grad)" opacity="0.8" />
-        <rect x="44" y="10" width="8" height="10" rx="2" fill="url(#ob-grad)" opacity="0.6" />
-        <circle cx="14" cy="35" r="6" fill="#1E293B" />
-        <circle cx="14" cy="35" r="3" fill="#64748B" />
-        <circle cx="42" cy="35" r="6" fill="#1E293B" />
-        <circle cx="42" cy="35" r="3" fill="#64748B" />
-        <circle cx="50" cy="25" r="2.5" fill="#FCD34D" />
-      </g>
-    </svg>
-  )
-}
+
 
 export function OnboardingScreen() {
   const [step, setStep] = useState<Step>("splash")
@@ -335,7 +282,7 @@ export function OnboardingScreen() {
                 <div className="relative flex h-44 w-44 items-center justify-center rounded-[2rem] border border-white/20 bg-white/10 backdrop-blur-xl"
                   style={{ boxShadow: "0 8px 32px rgba(16,185,129,0.2), 0 0 60px rgba(59,130,246,0.15), inset 0 1px 0 rgba(255,255,255,0.1)" }}
                 >
-                  <TKLogo className="h-40 w-40" />
+                  <img src="/logo.png" alt="Tanakoli Khenchela" className="h-40 w-40" />
                 </div>
               </motion.div>
 
