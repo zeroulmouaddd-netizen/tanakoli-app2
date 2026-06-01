@@ -266,8 +266,31 @@ export function OnboardingScreen() {
             {/* Animated Background Gradients */}
             <div className="absolute inset-0 overflow-hidden">
               <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-emerald-900/15 via-transparent to-blue-900/15" />
-              <div className="absolute left-1/3 top-1/3 h-80 w-80 rounded-full bg-emerald-500/8 blur-3xl" />
-              <div className="absolute right-1/3 bottom-1/3 h-80 w-80 rounded-full bg-blue-500/8 blur-3xl" />
+              <motion.div 
+                className="absolute left-1/3 top-1/3 h-80 w-80 rounded-full bg-emerald-500/8 blur-3xl" 
+                animate={{
+                  x: [0, 20, -20, 0],
+                  y: [0, -30, 15, 0],
+                }}
+                transition={{
+                  duration: 20,
+                  repeat: Infinity,
+                  ease: "easeInOut",
+                }}
+              />
+              <motion.div 
+                className="absolute right-1/3 bottom-1/3 h-80 w-80 rounded-full bg-blue-500/8 blur-3xl" 
+                animate={{
+                  x: [0, -25, 15, 0],
+                  y: [0, 20, -25, 0],
+                }}
+                transition={{
+                  duration: 24,
+                  repeat: Infinity,
+                  ease: "easeInOut",
+                  delay: 1,
+                }}
+              />
             </div>
 
             {/* Main Content */}
@@ -351,8 +374,31 @@ export function OnboardingScreen() {
             transition={{ duration: 0.35, ease: "easeOut" }}
           >
             <div className="absolute inset-0">
-              <div className="absolute left-1/4 top-1/4 h-96 w-96 rounded-full bg-emerald-500/10 blur-3xl" />
-              <div className="absolute right-1/4 bottom-1/4 h-96 w-96 rounded-full bg-blue-500/10 blur-3xl" />
+              <motion.div 
+                className="absolute left-1/4 top-1/4 h-96 w-96 rounded-full bg-emerald-500/10 blur-3xl" 
+                animate={{
+                  x: [0, 30, -15, 0],
+                  y: [0, -25, 20, 0],
+                }}
+                transition={{
+                  duration: 22,
+                  repeat: Infinity,
+                  ease: "easeInOut",
+                }}
+              />
+              <motion.div 
+                className="absolute right-1/4 bottom-1/4 h-96 w-96 rounded-full bg-blue-500/10 blur-3xl" 
+                animate={{
+                  x: [0, -20, 25, 0],
+                  y: [0, 30, -20, 0],
+                }}
+                transition={{
+                  duration: 26,
+                  repeat: Infinity,
+                  ease: "easeInOut",
+                  delay: 0.5,
+                }}
+              />
             </div>
 
             <div className="relative z-10 w-full max-w-sm">
@@ -453,8 +499,31 @@ export function OnboardingScreen() {
             transition={{ duration: 0.35, ease: "easeOut" }}
           >
             <div className="absolute inset-0">
-              <div className="absolute left-1/4 top-1/4 h-96 w-96 rounded-full bg-emerald-500/10 blur-3xl" />
-              <div className="absolute right-1/4 bottom-1/4 h-96 w-96 rounded-full bg-blue-500/10 blur-3xl" />
+              <motion.div 
+                className="absolute left-1/4 top-1/4 h-96 w-96 rounded-full bg-emerald-500/10 blur-3xl" 
+                animate={{
+                  x: [0, 25, -20, 0],
+                  y: [0, 35, -15, 0],
+                }}
+                transition={{
+                  duration: 24,
+                  repeat: Infinity,
+                  ease: "easeInOut",
+                }}
+              />
+              <motion.div 
+                className="absolute right-1/4 bottom-1/4 h-96 w-96 rounded-full bg-blue-500/10 blur-3xl" 
+                animate={{
+                  x: [0, -30, 10, 0],
+                  y: [0, -20, 30, 0],
+                }}
+                transition={{
+                  duration: 28,
+                  repeat: Infinity,
+                  ease: "easeInOut",
+                  delay: 0.7,
+                }}
+              />
             </div>
 
             <div className="relative z-10 w-full max-w-sm">
@@ -581,8 +650,31 @@ export function OnboardingScreen() {
             transition={{ duration: 0.35, ease: "easeOut" }}
           >
             <div className="absolute inset-0">
-              <div className="absolute left-1/4 top-1/4 h-96 w-96 rounded-full bg-emerald-500/10 blur-3xl" />
-              <div className="absolute right-1/4 bottom-1/4 h-96 w-96 rounded-full bg-blue-500/10 blur-3xl" />
+              <motion.div 
+                className="absolute left-1/4 top-1/4 h-96 w-96 rounded-full bg-emerald-500/10 blur-3xl" 
+                animate={{
+                  x: [0, -25, 20, 0],
+                  y: [0, 30, -25, 0],
+                }}
+                transition={{
+                  duration: 20,
+                  repeat: Infinity,
+                  ease: "easeInOut",
+                }}
+              />
+              <motion.div 
+                className="absolute right-1/4 bottom-1/4 h-96 w-96 rounded-full bg-blue-500/10 blur-3xl" 
+                animate={{
+                  x: [0, 35, -10, 0],
+                  y: [0, -35, 15, 0],
+                }}
+                transition={{
+                  duration: 24,
+                  repeat: Infinity,
+                  ease: "easeInOut",
+                  delay: 1.2,
+                }}
+              />
             </div>
 
             <div className="relative z-10 w-full max-w-sm">
@@ -694,7 +786,7 @@ export function OnboardingScreen() {
                 transition={{ delay: 0.2 }}
               >
                 <h2 className="text-2xl font-bold text-white">مرحباً {name}!</h2>
-                <p className="mt-2 text-white/60">تم التسجيل بنجاح. جاري تحميل التطبيق...</p>
+                <p className="mt-2 text-white/60">تم التسجي�� بنجاح. جاري تحميل التطبيق...</p>
               </motion.div>
               <motion.div
                 className="mt-2"
