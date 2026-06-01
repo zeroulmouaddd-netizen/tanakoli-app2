@@ -89,26 +89,45 @@ export function AppHeader() {
 
             {/* Menu Items */}
             <nav className="flex flex-col p-2">
-              {menuItems.map((item, index) => (
-                <Link
-                  key={item.label}
-                  href={item.href}
-                  onClick={() => setIsOpen(false)}
-                >
-                  <motion.div
-                    className="flex items-center gap-2 sm:gap-3 rounded-lg sm:rounded-xl p-2 sm:p-3 text-foreground transition-colors hover:bg-muted"
-                    initial={{ opacity: 0, x: 20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: index * 0.05 }}
+              {menuItems.map((item, index) => {
+                // Define unique colors for each menu item
+                const iconColors = [
+                  { bg: "bg-gradient-to-br from-emerald-500/30 to-emerald-600/20", text: "text-emerald-400", glow: "group-hover:shadow-lg group-hover:shadow-emerald-500/50" },
+                  { bg: "bg-gradient-to-br from-teal-500/30 to-teal-600/20", text: "text-teal-400", glow: "group-hover:shadow-lg group-hover:shadow-teal-500/50" },
+                  { bg: "bg-gradient-to-br from-cyan-500/30 to-cyan-600/20", text: "text-cyan-400", glow: "group-hover:shadow-lg group-hover:shadow-cyan-500/50" },
+                  { bg: "bg-gradient-to-br from-blue-500/30 to-blue-600/20", text: "text-blue-400", glow: "group-hover:shadow-lg group-hover:shadow-blue-500/50" },
+                  { bg: "bg-gradient-to-br from-sky-500/30 to-sky-600/20", text: "text-sky-400", glow: "group-hover:shadow-lg group-hover:shadow-sky-500/50" },
+                ]
+                const color = iconColors[index]
+                
+                return (
+                  <Link
+                    key={item.label}
+                    href={item.href}
+                    onClick={() => setIsOpen(false)}
                   >
-                    <div className="flex h-9 sm:h-10 w-9 sm:w-10 items-center justify-center rounded-lg bg-muted">
-                      <item.icon className="h-4 sm:h-5 w-4 sm:w-5 text-muted-foreground" />
-                    </div>
-                    <span className="flex-1 font-medium text-sm sm:text-base">{item.label}</span>
-                    <ChevronLeft className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                  </motion.div>
-                </Link>
-              ))}
+                    <motion.div
+                      className={`group flex items-center gap-2 sm:gap-3 rounded-lg sm:rounded-xl p-2 sm:p-3 text-foreground transition-all hover:bg-muted/50 ${color.glow}`}
+                      initial={{ opacity: 0, x: 20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: index * 0.05 }}
+                    >
+                      <div className={`flex h-9 sm:h-10 w-9 sm:w-10 items-center justify-center rounded-lg ${color.bg} transition-all duration-300 ${color.glow}`}
+                        style={{
+                          backdropFilter: 'blur(8px)',
+                          borderWidth: '1px',
+                          borderColor: 'rgba(255, 255, 255, 0.1)',
+                          boxShadow: `0 0 20px ${index === 0 ? 'rgba(16, 185, 129, 0.3)' : index === 1 ? 'rgba(20, 184, 166, 0.3)' : index === 2 ? 'rgba(34, 211, 238, 0.3)' : index === 3 ? 'rgba(59, 130, 246, 0.3)' : 'rgba(14, 165, 233, 0.3)'}`
+                        }}
+                      >
+                        <item.icon className={`h-4 sm:h-5 w-4 sm:w-5 ${color.text} transition-colors`} />
+                      </div>
+                      <span className="flex-1 font-medium text-sm sm:text-base">{item.label}</span>
+                      <ChevronLeft className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                    </motion.div>
+                  </Link>
+                )
+              })}
             </nav>
 
             {/* Driver Mode Switch — only visible to authorized driver phones */}
