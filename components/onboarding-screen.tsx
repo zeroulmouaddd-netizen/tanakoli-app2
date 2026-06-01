@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useRef, useCallback, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import { motion, AnimatePresence } from "framer-motion"
 import { auth, db } from "@/lib/firebase"
 import { signInWithPhoneNumber, RecaptchaVerifier, type ConfirmationResult } from "firebase/auth"
@@ -13,6 +14,7 @@ type AuthMethod = "phone" | "email"
 
 
 export function OnboardingScreen() {
+  const router = useRouter()
   const [step, setStep] = useState<Step>("splash")
   const [showSplashButton, setShowSplashButton] = useState(false)
   const [authMethod, setAuthMethod] = useState<AuthMethod | null>(null)
@@ -39,6 +41,16 @@ export function OnboardingScreen() {
     const t = setTimeout(() => setShowSplashButton(true), 1200)
     return () => clearTimeout(t)
   }, [])
+
+  // Navigate to home after successful authentication with smooth fade transition
+  useEffect(() => {
+    if (step === "success") {
+      const timer = setTimeout(() => {
+        router.push("/")
+      }, 1500) // Allow success animation to play for 1.5 seconds before transitioning
+      return () => clearTimeout(timer)
+    }
+  }, [step, router])
 
   useEffect(() => {
     if (step !== "otp") return
@@ -248,7 +260,12 @@ export function OnboardingScreen() {
   }
 
   return (
-    <div className="fixed inset-0 z-50 overflow-hidden">
+    <motion.div 
+      className="fixed inset-0 z-50 overflow-hidden"
+      initial={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.6, delay: step === "success" ? 1.2 : 0 }}
+    >
       <div id="ob-recaptcha" />
 
       <AnimatePresence mode="wait">
@@ -326,7 +343,7 @@ export function OnboardingScreen() {
             </div>
 
             {/* Main Content */}
-            <div className="relative z-10 flex h-full flex-col items-center justify-between px-6 py-12">
+            <div className="relative z-10 flex h-full w-full flex-col items-center justify-between px-6 py-8">
               {/* Spacer Top */}
               <div className="flex-1" />
 
@@ -399,7 +416,7 @@ export function OnboardingScreen() {
         {step === "step1" && (
           <motion.div
             key="step1"
-            className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900 px-6"
+            className="absolute inset-0 flex flex-col items-center justify-start bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900 px-6"
             initial={{ opacity: 0, x: 40 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -40 }}
@@ -466,15 +483,17 @@ export function OnboardingScreen() {
               </svg>
             </div>
 
-            <div className="relative z-10 w-full max-w-sm">
-              <button
-                onClick={() => { setError(""); setAuthMethod(null); setStep("splash") }}
-                className="mb-6 flex items-center gap-2 text-sm text-white/60 hover:text-white/90 transition-colors"
-              >
-                <ArrowRight className="h-4 w-4" />
-                <span>رجوع</span>
+            {/* Back button - positioned at top */}
+            <button
+              onClick={() => { setError(""); setAuthMethod(null); setStep("splash") }}
+              className="relative z-10 self-start mt-6 flex items-center gap-2 text-sm text-white/60 hover:text-white/90 transition-colors"
+            >
+              <ArrowRight className="h-4 w-4" />
+              <span>رجوع</span>
               </button>
 
+            {/* Centered form content */}
+            <div className="relative z-10 w-full max-w-sm flex-1 flex flex-col items-center justify-center">
               <div className="mb-8 text-center">
                 <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-white/10 backdrop-blur-sm border border-white/20">
                   <Phone className="h-8 w-8 text-emerald-400" />
@@ -483,7 +502,7 @@ export function OnboardingScreen() {
                 <p className="mt-1 text-sm text-white/60">اختر طريقة الدخول</p>
               </div>
 
-              <form onSubmit={handleStep1Continue} className="space-y-4">
+              <form onSubmit={handleStep1Continue} className="w-full space-y-4">
                 {/* Phone Option */}
                 {authMethod !== "email" && (
                   <div>
@@ -557,7 +576,7 @@ export function OnboardingScreen() {
         {step === "step2" && (
           <motion.div
             key="step2"
-            className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900 px-6"
+            className="absolute inset-0 flex flex-col items-center justify-start bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900 px-6"
             initial={{ opacity: 0, x: 40 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -40 }}
@@ -624,14 +643,17 @@ export function OnboardingScreen() {
               </svg>
             </div>
 
-            <div className="relative z-10 w-full max-w-sm">
-              <button
-                onClick={() => { setError(""); setStep("step1") }}
-                className="mb-6 flex items-center gap-2 text-sm text-white/60 hover:text-white/90 transition-colors"
-              >
-                <ArrowRight className="h-4 w-4" />
-                <span>رجوع</span>
-              </button>
+            {/* Back button - positioned at top */}
+            <button
+              onClick={() => { setError(""); setStep("step1") }}
+              className="relative z-10 self-start mt-6 flex items-center gap-2 text-sm text-white/60 hover:text-white/90 transition-colors"
+            >
+              <ArrowRight className="h-4 w-4" />
+              <span>رجوع</span>
+            </button>
+
+            {/* Centered form content */}
+            <div className="relative z-10 w-full max-w-sm flex-1 flex flex-col items-center justify-center">{null}
 
               <div className="mb-8 text-center">
                 <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-white/10 backdrop-blur-sm border border-white/20">
@@ -641,7 +663,7 @@ export function OnboardingScreen() {
                 <p className="mt-1 text-sm text-white/60">أكمل البيانات المتبقية</p>
               </div>
 
-              <form onSubmit={handleStep2Continue} className="space-y-4">
+              <form onSubmit={handleStep2Continue} className="w-full space-y-4">
                 {/* Full Name */}
                 <div>
                   <label className="mb-2 block text-sm font-medium text-white/80">الاسم الكامل</label>
@@ -897,6 +919,7 @@ export function OnboardingScreen() {
             className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
             transition={{ duration: 0.4 }}
           >
             <div className="absolute inset-0">
@@ -914,15 +937,17 @@ export function OnboardingScreen() {
               <motion.div
                 initial={{ opacity: 0, y: 15 }}
                 animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95 }}
                 transition={{ delay: 0.2 }}
               >
                 <h2 className="text-2xl font-bold text-white">مرحباً {name}!</h2>
-                <p className="mt-2 text-white/60">تم التسجي�� بنجاح. جاري تحميل التطبيق...</p>
+                <p className="mt-2 text-white/60">تم التسجيل بنجاح. جاري الانتقال...</p>
               </motion.div>
               <motion.div
                 className="mt-2"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
                 transition={{ delay: 0.4 }}
               >
                 <Loader2 className="h-6 w-6 animate-spin text-emerald-400" />
@@ -932,6 +957,6 @@ export function OnboardingScreen() {
         )}
 
       </AnimatePresence>
-    </div>
+    </motion.div>
   )
 }

@@ -29,10 +29,10 @@ function HomeContent() {
 
   return (
     <PageTransition>
-      <main className={`${isMapFullscreen ? "h-screen overflow-hidden" : "min-h-screen pb-24"} bg-background`}>
+      <main className={`${isMapFullscreen ? "h-screen overflow-hidden" : "min-h-screen pb-safe"} bg-background`}>
         {!isMapFullscreen && <AppHeader />}
 
-        <div className={isMapFullscreen ? "h-screen" : "pt-16"}>
+        <div className={isMapFullscreen ? "h-screen w-full" : "w-full pt-16 sm:pt-20"}>
           <MapSection />
         </div>
 

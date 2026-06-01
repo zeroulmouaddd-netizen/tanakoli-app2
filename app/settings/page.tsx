@@ -81,86 +81,86 @@ export default function SettingsPage() {
       <main className="min-h-screen bg-background pb-40">
         <AppHeader />
         
-        <div className="px-4 pt-20">
+        <div className="px-3 sm:px-4 md:px-6 pt-16 sm:pt-20">
           {/* Back Button */}
           <motion.button
             onClick={() => router.back()}
-            className="mb-4 flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
+            className="mb-4 flex items-center gap-2 text-xs sm:text-sm text-muted-foreground hover:text-foreground"
             initial={{ opacity: 0, x: -10 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.2 }}
           >
-            <ChevronRight className="h-5 w-5" />
+            <ChevronRight className="h-4 sm:h-5 w-4 sm:w-5" />
             <span>رجوع</span>
           </motion.button>
 
           {/* Page Header */}
           <motion.div
-            className="mb-6 flex items-center gap-3"
+            className="mb-6 flex items-center gap-2 sm:gap-3"
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3 }}
           >
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500 to-blue-500">
-              <Settings className="h-6 w-6 text-white" />
+            <div className="flex h-10 sm:h-12 w-10 sm:w-12 items-center justify-center rounded-lg sm:rounded-xl bg-gradient-to-br from-emerald-500 to-blue-500 flex-shrink-0">
+              <Settings className="h-5 sm:h-6 w-5 sm:w-6 text-white" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-foreground">الإعدادات</h1>
-              <p className="text-sm text-muted-foreground">تخصيص تجربتك</p>
+              <h1 className="text-xl sm:text-2xl font-bold text-foreground">الإعدادات</h1>
+              <p className="text-xs sm:text-sm text-muted-foreground">تخصيص تجربتك</p>
             </div>
           </motion.div>
 
           {/* Settings Sections */}
-          <div className="space-y-4">
+          <div className="space-y-3 sm:space-y-4">
             {/* Notifications Section */}
             <motion.div
-              className="rounded-2xl bg-card p-4 shadow-sm"
+              className="rounded-lg sm:rounded-2xl bg-card p-3 sm:p-4 shadow-sm"
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1 }}
             >
-              <h2 className="mb-4 flex items-center gap-2 text-lg font-bold text-foreground">
-                <Bell className="h-5 w-5 text-primary" />
+              <h2 className="mb-3 sm:mb-4 flex items-center gap-2 text-base sm:text-lg font-bold text-foreground">
+                <Bell className="h-4 sm:h-5 w-4 sm:w-5 text-primary" />
                 الإشعارات
               </h2>
               
-              <div className="space-y-4">
+              <div className="space-y-3">
                 {/* Trip Notifications */}
-                <div className="flex items-center justify-between rounded-xl bg-muted/50 p-4">
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
-                      <Bell className="h-5 w-5 text-primary" />
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-lg sm:rounded-xl bg-muted/50 p-3 sm:p-4">
+                  <div className="flex items-center gap-2 sm:gap-3 order-2 sm:order-1">
+                    <div className="flex h-8 sm:h-10 w-8 sm:w-10 items-center justify-center rounded-lg bg-primary/10 flex-shrink-0">
+                      <Bell className="h-4 sm:h-5 w-4 sm:w-5 text-primary" />
                     </div>
                     <div>
-                      <p className="font-medium text-foreground">إشعارات الرحلات</p>
-                      <p className="text-sm text-muted-foreground">تنبيهات وصول الحافلة</p>
+                      <p className="text-sm sm:text-base font-medium text-foreground">إشعارات الرحلات</p>
+                      <p className="text-xs sm:text-sm text-muted-foreground">تنبيهات وصول الحافلة</p>
                     </div>
                   </div>
                   {hasMounted && (
                     <Switch
                       checked={tripNotifications}
                       onCheckedChange={handleTripNotificationsChange}
-                      className="data-[state=checked]:bg-primary"
+                      className="data-[state=checked]:bg-primary order-1 sm:order-2"
                     />
                   )}
                 </div>
 
                 {/* Alert Sounds */}
-                <div className="flex items-center justify-between rounded-xl bg-muted/50 p-4">
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
-                      <Volume2 className="h-5 w-5 text-primary" />
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-lg sm:rounded-xl bg-muted/50 p-3 sm:p-4">
+                  <div className="flex items-center gap-2 sm:gap-3 order-2 sm:order-1">
+                    <div className="flex h-8 sm:h-10 w-8 sm:w-10 items-center justify-center rounded-lg bg-primary/10 flex-shrink-0">
+                      <Volume2 className="h-4 sm:h-5 w-4 sm:w-5 text-primary" />
                     </div>
                     <div>
-                      <p className="font-medium text-foreground">صوت التنبيهات</p>
-                      <p className="text-sm text-muted-foreground">تشغيل الأصوات</p>
+                      <p className="text-sm sm:text-base font-medium text-foreground">صوت التنبيهات</p>
+                      <p className="text-xs sm:text-sm text-muted-foreground">تشغيل الأصوات</p>
                     </div>
                   </div>
                   {hasMounted && (
                     <Switch
                       checked={alertSounds}
                       onCheckedChange={handleAlertSoundsChange}
-                      className="data-[state=checked]:bg-primary"
+                      className="data-[state=checked]:bg-primary order-1 sm:order-2"
                     />
                   )}
                 </div>
@@ -169,31 +169,31 @@ export default function SettingsPage() {
 
             {/* Appearance Section */}
             <motion.div
-              className="rounded-2xl bg-card p-4 shadow-sm"
+              className="rounded-lg sm:rounded-2xl bg-card p-3 sm:p-4 shadow-sm"
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.15 }}
             >
-              <h2 className="mb-4 flex items-center gap-2 text-lg font-bold text-foreground">
-                {isDark ? <Moon className="h-5 w-5 text-primary" /> : <Sun className="h-5 w-5 text-primary" />}
+              <h2 className="mb-3 sm:mb-4 flex items-center gap-2 text-base sm:text-lg font-bold text-foreground">
+                {isDark ? <Moon className="h-4 sm:h-5 w-4 sm:w-5 text-primary" /> : <Sun className="h-4 sm:h-5 w-4 sm:w-5 text-primary" />}
                 المظهر
               </h2>
               
-              <div className="flex items-center justify-between rounded-xl bg-muted/50 p-4">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
-                    {isDark ? <Moon className="h-5 w-5 text-primary" /> : <Sun className="h-5 w-5 text-primary" />}
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-lg sm:rounded-xl bg-muted/50 p-3 sm:p-4">
+                <div className="flex items-center gap-2 sm:gap-3 order-2 sm:order-1">
+                  <div className="flex h-8 sm:h-10 w-8 sm:w-10 items-center justify-center rounded-lg bg-primary/10 flex-shrink-0">
+                    {isDark ? <Moon className="h-4 sm:h-5 w-4 sm:w-5 text-primary" /> : <Sun className="h-4 sm:h-5 w-4 sm:w-5 text-primary" />}
                   </div>
                   <div>
-                    <p className="font-medium text-foreground">الوضع الليلي</p>
-                    <p className="text-sm text-muted-foreground">{isDark ? "مفعّل" : "معطّل"}</p>
+                    <p className="text-sm sm:text-base font-medium text-foreground">الوضع الليلي</p>
+                    <p className="text-xs sm:text-sm text-muted-foreground">{isDark ? "مفعّل" : "معطّل"}</p>
                   </div>
                 </div>
                 {hasMounted && (
                   <Switch
                     checked={isDark}
                     onCheckedChange={toggleTheme}
-                    className="data-[state=checked]:bg-primary"
+                    className="data-[state=checked]:bg-primary order-1 sm:order-2"
                   />
                 )}
               </div>
@@ -201,30 +201,30 @@ export default function SettingsPage() {
 
             {/* Language Section */}
             <motion.div
-              className="rounded-2xl bg-card p-4 shadow-sm"
+              className="rounded-lg sm:rounded-2xl bg-card p-3 sm:p-4 shadow-sm"
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}
             >
-              <h2 className="mb-4 flex items-center gap-2 text-lg font-bold text-foreground">
-                <Globe className="h-5 w-5 text-primary" />
+              <h2 className="mb-3 sm:mb-4 flex items-center gap-2 text-base sm:text-lg font-bold text-foreground">
+                <Globe className="h-4 sm:h-5 w-4 sm:w-5 text-primary" />
                 اللغة
               </h2>
               
               <button
                 onClick={() => setShowLanguageSelector(!showLanguageSelector)}
-                className="flex w-full items-center justify-between rounded-xl bg-muted/50 p-4 transition-colors hover:bg-muted"
+                className="flex w-full flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-3 rounded-lg sm:rounded-xl bg-muted/50 p-3 sm:p-4 transition-colors hover:bg-muted"
               >
-                <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
-                    <Globe className="h-5 w-5 text-primary" />
+                <div className="flex items-center gap-2 sm:gap-3 order-2 sm:order-1">
+                  <div className="flex h-8 sm:h-10 w-8 sm:w-10 items-center justify-center rounded-lg bg-primary/10 flex-shrink-0">
+                    <Globe className="h-4 sm:h-5 w-4 sm:w-5 text-primary" />
                   </div>
                   <div className="text-right">
-                    <p className="font-medium text-foreground">لغة التطبيق</p>
-                    <p className="text-sm text-muted-foreground">{currentLanguage?.nativeName}</p>
+                    <p className="text-sm sm:text-base font-medium text-foreground">لغة التطبيق</p>
+                    <p className="text-xs sm:text-sm text-muted-foreground">{currentLanguage?.nativeName}</p>
                   </div>
                 </div>
-                <ChevronLeft className={`h-5 w-5 text-muted-foreground transition-transform ${showLanguageSelector ? "rotate-90" : ""}`} />
+                <ChevronLeft className={`h-4 sm:h-5 w-4 sm:w-5 text-muted-foreground transition-transform order-1 sm:order-2 flex-shrink-0 ${showLanguageSelector ? "rotate-90" : ""}`} />
               </button>
 
               {/* Language Options */}
@@ -239,19 +239,19 @@ export default function SettingsPage() {
                     <button
                       key={lang.code}
                       onClick={() => handleLanguageSelect(lang.code)}
-                      className={`flex w-full items-center justify-between rounded-xl p-4 transition-colors ${
+                      className={`flex w-full flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-3 rounded-lg sm:rounded-xl p-3 sm:p-4 transition-colors ${
                         selectedLanguage === lang.code
                           ? "bg-primary/10 border-2 border-primary"
                           : "bg-muted/30 hover:bg-muted/50"
                       }`}
                     >
-                      <div className="flex items-center gap-3">
-                        <span className="text-lg font-medium text-foreground">{lang.nativeName}</span>
-                        <span className="text-sm text-muted-foreground">({lang.name})</span>
+                      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-1 sm:gap-3 order-2 sm:order-1">
+                        <span className="text-base sm:text-lg font-medium text-foreground">{lang.nativeName}</span>
+                        <span className="text-xs sm:text-sm text-muted-foreground">({lang.name})</span>
                       </div>
                       {selectedLanguage === lang.code && (
-                        <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary">
-                          <Check className="h-4 w-4 text-primary-foreground" />
+                        <div className="flex h-5 sm:h-6 w-5 sm:w-6 items-center justify-center rounded-full bg-primary order-1 sm:order-2 flex-shrink-0">
+                          <Check className="h-3 sm:h-4 w-3 sm:w-4 text-primary-foreground" />
                         </div>
                       )}
                     </button>
