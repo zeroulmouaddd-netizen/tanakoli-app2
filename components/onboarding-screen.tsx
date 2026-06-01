@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useRef, useCallback, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import { motion, AnimatePresence } from "framer-motion"
 import { auth, db } from "@/lib/firebase"
 import { signInWithPhoneNumber, RecaptchaVerifier, type ConfirmationResult } from "firebase/auth"
@@ -13,6 +14,7 @@ type AuthMethod = "phone" | "email"
 
 
 export function OnboardingScreen() {
+  const router = useRouter()
   const [step, setStep] = useState<Step>("splash")
   const [showSplashButton, setShowSplashButton] = useState(false)
   const [authMethod, setAuthMethod] = useState<AuthMethod | null>(null)
@@ -39,6 +41,16 @@ export function OnboardingScreen() {
     const t = setTimeout(() => setShowSplashButton(true), 1200)
     return () => clearTimeout(t)
   }, [])
+
+  // Navigate to home after successful authentication with smooth fade transition
+  useEffect(() => {
+    if (step === "success") {
+      const timer = setTimeout(() => {
+        router.push("/")
+      }, 1500) // Allow success animation to play for 1.5 seconds before transitioning
+      return () => clearTimeout(timer)
+    }
+  }, [step, router])
 
   useEffect(() => {
     if (step !== "otp") return
@@ -248,7 +260,12 @@ export function OnboardingScreen() {
   }
 
   return (
-    <div className="fixed inset-0 z-50 overflow-hidden">
+    <motion.div 
+      className="fixed inset-0 z-50 overflow-hidden"
+      initial={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.6, delay: step === "success" ? 1.2 : 0 }}
+    >
       <div id="ob-recaptcha" />
 
       <AnimatePresence mode="wait">
@@ -902,6 +919,7 @@ export function OnboardingScreen() {
             className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
             transition={{ duration: 0.4 }}
           >
             <div className="absolute inset-0">
@@ -919,15 +937,17 @@ export function OnboardingScreen() {
               <motion.div
                 initial={{ opacity: 0, y: 15 }}
                 animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95 }}
                 transition={{ delay: 0.2 }}
               >
                 <h2 className="text-2xl font-bold text-white">مرحباً {name}!</h2>
-                <p className="mt-2 text-white/60">تم التسجي�� بنجاح. جاري تحميل التطبيق...</p>
+                <p className="mt-2 text-white/60">تم التسجيل بنجاح. جاري الانتقال...</p>
               </motion.div>
               <motion.div
                 className="mt-2"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
                 transition={{ delay: 0.4 }}
               >
                 <Loader2 className="h-6 w-6 animate-spin text-emerald-400" />
@@ -937,6 +957,6 @@ export function OnboardingScreen() {
         )}
 
       </AnimatePresence>
-    </div>
+    </motion.div>
   )
 }
