@@ -141,7 +141,7 @@ function RouteDetailView({ route, onClose }: { route: BusRoute; onClose: () => v
         </div>
         
         {/* Stops List */}
-        <div className="max-h-[50vh] overflow-y-auto px-4 pt-4">
+        <div className="max-h-[50vh] overflow-y-auto px-4 pt-4 pb-6">
           <h3 className="mb-3 text-sm font-semibold text-muted-foreground">
             المحطات ({route.stops.length})
           </h3>
