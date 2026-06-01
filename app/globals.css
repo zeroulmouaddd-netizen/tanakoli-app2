@@ -399,3 +399,31 @@
   pointer-events: none;
   z-index: 5;
 }
+
+/* Glowing card style for major cards */
+@keyframes card-glow-pulse {
+  0%, 100% {
+    box-shadow: 0 0 20px rgba(16, 185, 129, 0.1), 0 0 40px rgba(59, 130, 246, 0.05);
+  }
+  50% {
+    box-shadow: 0 0 30px rgba(16, 185, 129, 0.15), 0 0 60px rgba(59, 130, 246, 0.1);
+  }
+}
+
+.glowing-card {
+  animation: card-glow-pulse 3s ease-in-out infinite;
+}
+
+/* Button glow effect */
+@keyframes button-glow {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 0 8px rgba(16, 185, 129, 0);
+  }
+}
+
+.button-glow {
+  animation: button-glow 2.5s ease-in-out infinite;
+}

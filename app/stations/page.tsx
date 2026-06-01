@@ -4,6 +4,7 @@ import { useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { AppHeader } from "@/components/app-header"
 import { BottomNav } from "@/components/bottom-nav"
+import { StopsBackground } from "@/components/stops-background"
 import { MapPin, Bus, Search, Clock, X, ArrowLeft, Wallet, Navigation } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { ErrorBoundary } from "@/components/error-boundary"
@@ -264,10 +265,15 @@ export default function StationsPage() {
   return (
     <ErrorBoundary>
       <PageTransition>
-        <main className="min-h-screen bg-background pb-28 md:pb-32">
-          <AppHeader />
-        
-          <div className="px-4 pt-20">
+        <main className="relative min-h-screen bg-background pb-28 md:pb-32">
+          {/* Animated Background */}
+          <StopsBackground />
+          
+          {/* Content */}
+          <div className="relative z-10">
+            <AppHeader />
+          
+            <div className="px-4 pt-20">
             {/* Header */}
             <motion.div
               className="mb-4 flex items-center gap-3"
@@ -400,6 +406,7 @@ export default function StationsPage() {
                 </AnimatePresence>
               </>
             )}
+          </div>
           </div>
 
           <BottomNav />

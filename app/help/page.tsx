@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation"
 import { motion, AnimatePresence } from "framer-motion"
 import { AppHeader } from "@/components/app-header"
 import { BottomNav } from "@/components/bottom-nav"
+import { GenericBackground } from "@/components/generic-background"
 import { HelpCircle, Phone, MessageCircle, ChevronRight, ChevronDown, CreditCard, Navigation, Mail, ExternalLink } from "lucide-react"
 import { PageTransition } from "@/components/page-transition"
 
@@ -52,10 +53,15 @@ export default function HelpPage() {
 
   return (
     <PageTransition>
-      <main className="min-h-screen bg-background pb-40">
-        <AppHeader />
+      <main className="relative min-h-screen bg-background pb-40">
+        {/* Animated Background */}
+        <GenericBackground />
         
-        <div className="px-4 pt-20">
+        {/* Content */}
+        <div className="relative z-10">
+          <AppHeader />
+        
+          <div className="px-4 pt-20">
           {/* Back Button */}
           <motion.button
             onClick={() => router.back()}
@@ -211,6 +217,7 @@ export default function HelpPage() {
               من السبت إلى الخميس
             </p>
           </motion.div>
+          </div>
         </div>
 
         <BottomNav />
