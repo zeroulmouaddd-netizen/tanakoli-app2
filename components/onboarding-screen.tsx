@@ -5,9 +5,10 @@ import { motion, AnimatePresence } from "framer-motion"
 import { auth, db } from "@/lib/firebase"
 import { signInWithPhoneNumber, RecaptchaVerifier, type ConfirmationResult } from "firebase/auth"
 import { doc, setDoc } from "firebase/firestore"
-import { User, Phone, Shield, ArrowRight, Loader2, Check } from "lucide-react"
+import { User, Phone, Shield, ArrowRight, Loader2, Check, Mail } from "lucide-react"
 
-type Step = "splash" | "register" | "otp" | "success"
+type Step = "splash" | "step1" | "step2" | "otp" | "success"
+type AuthMethod = "phone" | "email"
 
 function TKLogo({ className }: { className?: string }) {
   return (
@@ -67,9 +68,17 @@ function TKLogo({ className }: { className?: string }) {
 export function OnboardingScreen() {
   const [step, setStep] = useState<Step>("splash")
   const [showSplashButton, setShowSplashButton] = useState(false)
+  const [authMethod, setAuthMethod] = useState<AuthMethod | null>(null)
 
-  const [name, setName] = useState("")
+  // Step 1 data
   const [phone, setPhone] = useState("")
+  const [email, setEmail] = useState("")
+
+  // Step 2 data
+  const [name, setName] = useState("")
+  const [address, setAddress] = useState("")
+
+  // OTP & Auth data
   const [otp, setOtp] = useState(["", "", "", "", "", ""])
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
@@ -162,17 +171,40 @@ export function OnboardingScreen() {
     console.log("[Auth] render() resolved — widgetId:", widgetId)
   }
 
-  const handleSendOTP = async (e: React.FormEvent) => {
+  const handleStep1Continue = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!name.trim() || !phone.trim()) return
+    
+    if (authMethod === "phone" && !phone.trim()) return
+    if (authMethod === "email" && !email.trim()) return
 
-    const validationError = validatePhone(phone)
+    const phoneToValidate = authMethod === "phone" ? phone : ""
+    const validationError = phoneToValidate ? validatePhone(phoneToValidate) : null
     if (validationError) { setError(validationError); return }
+
+    setError("")
+    setStep("step2")
+  }
+
+  const handleStep2Continue = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!name.trim()) return
+
+    // Validate phone if it's the secondary field
+    if (authMethod === "email" && phone.trim()) {
+      const validationError = validatePhone(phone)
+      if (validationError) { setError(validationError); return }
+    }
+
+    // Validate phone if it's the primary field
+    if (authMethod === "phone") {
+      const validationError = validatePhone(phone)
+      if (validationError) { setError(validationError); return }
+    }
 
     setError("")
     setIsLoading(true)
 
-    // Step 1: init reCAPTCHA — separate try/catch so we know if THIS is what fails
+    // Init reCAPTCHA
     try {
       await initRecaptcha()
     } catch (err: any) {
@@ -181,9 +213,10 @@ export function OnboardingScreen() {
       return
     }
 
-    // Step 2: send OTP
+    // Send OTP using the selected phone number
     try {
-      const formatted = formatPhone(phone)
+      const phoneToUse = authMethod === "phone" ? phone : phone
+      const formatted = formatPhone(phoneToUse)
       console.log("[Auth] signInWithPhoneNumber →", formatted)
       const result = await signInWithPhoneNumber(auth, formatted, recaptchaRef.current!)
       confirmationRef.current = result
@@ -205,7 +238,8 @@ export function OnboardingScreen() {
     setResendTimer(60)
     try {
       await initRecaptcha()
-      const formatted = formatPhone(phone)
+      const phoneToUse = authMethod === "phone" ? phone : phone
+      const formatted = formatPhone(phoneToUse)
       console.log("[Auth] Resend → signInWithPhoneNumber →", formatted)
       const result = await signInWithPhoneNumber(auth, formatted, recaptchaRef.current!)
       confirmationRef.current = result
@@ -216,7 +250,7 @@ export function OnboardingScreen() {
     } finally {
       setIsLoading(false)
     }
-  }, [canResend, phone])
+  }, [canResend, phone, authMethod])
 
   const handleOTPChange = (index: number, value: string) => {
     if (!/^\d*$/.test(value) || value.length > 1) return
@@ -239,11 +273,16 @@ export function OnboardingScreen() {
         const docId = user.phoneNumber.startsWith("+213")
           ? "0" + user.phoneNumber.slice(4)
           : user.phoneNumber
+        
+        // Determine which phone to save based on auth method
+        const primaryPhone = authMethod === "phone" ? phone : (phone || "")
+        const primaryEmail = authMethod === "email" ? email : ""
+
         await setDoc(doc(db, "users", docId), {
           Phone: docId,
           fullName: name.trim(),
-          email: "",
-          address: "",
+          email: primaryEmail,
+          address: address.trim(),
           balance: 0,
           role: "passenger",
         }, { merge: true })
@@ -322,7 +361,7 @@ export function OnboardingScreen() {
               </motion.p>
 
               <motion.button
-                onClick={() => setStep("register")}
+                onClick={() => setStep("step1")}
                 className="relative mt-4 flex h-14 w-52 items-center justify-center overflow-hidden rounded-full border border-white/20 bg-gradient-to-r from-emerald-500 via-teal-500 to-blue-500 text-lg font-bold text-white shadow-2xl transition-transform duration-200 hover:scale-105 active:scale-95"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: showSplashButton ? 1 : 0, y: showSplashButton ? 0 : 20 }}
@@ -350,10 +389,10 @@ export function OnboardingScreen() {
           </motion.div>
         )}
 
-        {/* ── REGISTER ── */}
-        {step === "register" && (
+        {/* ── STEP 1: Welcome & Initial Auth ── */}
+        {step === "step1" && (
           <motion.div
-            key="register"
+            key="step1"
             className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900 px-6"
             initial={{ opacity: 0, x: 40 }}
             animate={{ opacity: 1, x: 0 }}
@@ -367,7 +406,109 @@ export function OnboardingScreen() {
 
             <div className="relative z-10 w-full max-w-sm">
               <button
-                onClick={() => { setError(""); setStep("splash") }}
+                onClick={() => { setError(""); setAuthMethod(null); setStep("splash") }}
+                className="mb-6 flex items-center gap-2 text-sm text-white/60 hover:text-white/90 transition-colors"
+              >
+                <ArrowRight className="h-4 w-4" />
+                <span>رجوع</span>
+              </button>
+
+              <div className="mb-8 text-center">
+                <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-white/10 backdrop-blur-sm border border-white/20">
+                  <Phone className="h-8 w-8 text-emerald-400" />
+                </div>
+                <h2 className="text-2xl font-bold text-white">مرحباً بك</h2>
+                <p className="mt-1 text-sm text-white/60">اختر طريقة الدخول</p>
+              </div>
+
+              <form onSubmit={handleStep1Continue} className="space-y-4">
+                {/* Phone Option */}
+                {authMethod !== "email" && (
+                  <div>
+                    <label className="mb-2 block text-sm font-medium text-white/80">رقم الهاتف</label>
+                    <div className="relative">
+                      <Phone className="absolute right-3 top-1/2 h-5 w-5 -translate-y-1/2 text-white/40" />
+                      <input
+                        type="tel"
+                        value={phone}
+                        onChange={(e) => { setPhone(e.target.value); setError(""); setAuthMethod("phone") }}
+                        placeholder="07XX XXX XXX"
+                        dir="ltr"
+                        className="w-full rounded-xl border border-white/20 bg-white/10 py-3 pr-10 pl-4 text-white placeholder:text-white/30 backdrop-blur-sm focus:border-emerald-500/60 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {/* Email Option */}
+                {authMethod === "email" && (
+                  <div>
+                    <label className="mb-2 block text-sm font-medium text-white/80">البريد الإلكتروني</label>
+                    <div className="relative">
+                      <Mail className="absolute right-3 top-1/2 h-5 w-5 -translate-y-1/2 text-white/40" />
+                      <input
+                        type="email"
+                        value={email}
+                        onChange={(e) => { setEmail(e.target.value); setError("") }}
+                        placeholder="example@mail.com"
+                        className="w-full rounded-xl border border-white/20 bg-white/10 py-3 pr-10 pl-4 text-white placeholder:text-white/30 backdrop-blur-sm focus:border-emerald-500/60 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {error && (
+                  <p className="rounded-lg bg-red-500/10 border border-red-500/20 px-3 py-2 text-center text-sm text-red-400">
+                    {error}
+                  </p>
+                )}
+
+                <button
+                  type="submit"
+                  disabled={authMethod === null}
+                  className="w-full rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 py-3.5 font-bold text-white shadow-lg transition-all hover:from-emerald-400 hover:to-teal-400 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  استمرار
+                </button>
+
+                {/* Toggle Email/Phone Option */}
+                {authMethod && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAuthMethod(authMethod === "phone" ? "email" : "phone")
+                      setError("")
+                      setPhone("")
+                      setEmail("")
+                    }}
+                    className="w-full rounded-xl border border-white/20 bg-white/5 py-2.5 text-sm font-medium text-white/70 transition-colors hover:bg-white/10 hover:text-white"
+                  >
+                    {authMethod === "phone" ? "أو المتابعة باستخدام البريد الإلكتروني" : "أو المتابعة برقم الهاتف"}
+                  </button>
+                )}
+              </form>
+            </div>
+          </motion.div>
+        )}
+
+        {/* ── STEP 2: Profile Completion ── */}
+        {step === "step2" && (
+          <motion.div
+            key="step2"
+            className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900 px-6"
+            initial={{ opacity: 0, x: 40 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -40 }}
+            transition={{ duration: 0.35, ease: "easeOut" }}
+          >
+            <div className="absolute inset-0">
+              <div className="absolute left-1/4 top-1/4 h-96 w-96 rounded-full bg-emerald-500/10 blur-3xl" />
+              <div className="absolute right-1/4 bottom-1/4 h-96 w-96 rounded-full bg-blue-500/10 blur-3xl" />
+            </div>
+
+            <div className="relative z-10 w-full max-w-sm">
+              <button
+                onClick={() => { setError(""); setStep("step1") }}
                 className="mb-6 flex items-center gap-2 text-sm text-white/60 hover:text-white/90 transition-colors"
               >
                 <ArrowRight className="h-4 w-4" />
@@ -378,11 +519,12 @@ export function OnboardingScreen() {
                 <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-white/10 backdrop-blur-sm border border-white/20">
                   <User className="h-8 w-8 text-emerald-400" />
                 </div>
-                <h2 className="text-2xl font-bold text-white">إنشاء حساب</h2>
-                <p className="mt-1 text-sm text-white/60">أدخل بياناتك للبدء</p>
+                <h2 className="text-2xl font-bold text-white">إكمال ملفك الشخصي</h2>
+                <p className="mt-1 text-sm text-white/60">أكمل البيانات المتبقية</p>
               </div>
 
-              <form onSubmit={handleSendOTP} className="space-y-4">
+              <form onSubmit={handleStep2Continue} className="space-y-4">
+                {/* Full Name */}
                 <div>
                   <label className="mb-2 block text-sm font-medium text-white/80">الاسم الكامل</label>
                   <div className="relative">
@@ -398,18 +540,52 @@ export function OnboardingScreen() {
                   </div>
                 </div>
 
+                {/* Phone (if email was primary) */}
+                {authMethod === "email" && (
+                  <div>
+                    <label className="mb-2 block text-sm font-medium text-white/80">رقم الهاتف <span className="text-red-400">*</span></label>
+                    <div className="relative">
+                      <Phone className="absolute right-3 top-1/2 h-5 w-5 -translate-y-1/2 text-white/40" />
+                      <input
+                        type="tel"
+                        value={phone}
+                        onChange={(e) => { setPhone(e.target.value); setError("") }}
+                        placeholder="07XX XXX XXX"
+                        required
+                        dir="ltr"
+                        className="w-full rounded-xl border border-white/20 bg-white/10 py-3 pr-10 pl-4 text-white placeholder:text-white/30 backdrop-blur-sm focus:border-emerald-500/60 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {/* Email (if phone was primary) */}
+                {authMethod === "phone" && (
+                  <div>
+                    <label className="mb-2 block text-sm font-medium text-white/80">البريد الإلكتروني</label>
+                    <div className="relative">
+                      <Mail className="absolute right-3 top-1/2 h-5 w-5 -translate-y-1/2 text-white/40" />
+                      <input
+                        type="email"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        placeholder="example@mail.com"
+                        className="w-full rounded-xl border border-white/20 bg-white/10 py-3 pr-10 pl-4 text-white placeholder:text-white/30 backdrop-blur-sm focus:border-emerald-500/60 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {/* Address */}
                 <div>
-                  <label className="mb-2 block text-sm font-medium text-white/80">رقم الهاتف</label>
+                  <label className="mb-2 block text-sm font-medium text-white/80">العنوان</label>
                   <div className="relative">
-                    <Phone className="absolute right-3 top-1/2 h-5 w-5 -translate-y-1/2 text-white/40" />
                     <input
-                      type="tel"
-                      value={phone}
-                      onChange={(e) => { setPhone(e.target.value); setError("") }}
-                      placeholder="07XX XXX XXX"
-                      required
-                      dir="ltr"
-                      className="w-full rounded-xl border border-white/20 bg-white/10 py-3 pr-10 pl-4 text-white placeholder:text-white/30 backdrop-blur-sm focus:border-emerald-500/60 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                      type="text"
+                      value={address}
+                      onChange={(e) => setAddress(e.target.value)}
+                      placeholder="أدخل عنوانك"
+                      className="w-full rounded-xl border border-white/20 bg-white/10 py-3 px-4 text-white placeholder:text-white/30 backdrop-blur-sm focus:border-emerald-500/60 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
                     />
                   </div>
                 </div>
@@ -422,16 +598,16 @@ export function OnboardingScreen() {
 
                 <button
                   type="submit"
-                  disabled={isLoading}
+                  disabled={isLoading || !name.trim()}
                   className="w-full rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 py-3.5 font-bold text-white shadow-lg transition-all hover:from-emerald-400 hover:to-teal-400 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {isLoading ? (
                     <div className="flex items-center justify-center gap-2">
                       <Loader2 className="h-5 w-5 animate-spin" />
-                      <span>جاري إرسال الرمز...</span>
+                      <span>جاري المتابعة...</span>
                     </div>
                   ) : (
-                    "إرسال رمز التحقق"
+                    "المتابعة"
                   )}
                 </button>
               </form>
@@ -460,7 +636,7 @@ export function OnboardingScreen() {
 
             <div className="relative z-10 w-full max-w-sm">
               <button
-                onClick={() => { setError(""); setOtp(["","","","","",""]); setStep("register") }}
+                onClick={() => { setError(""); setOtp(["","","","","",""]); setStep("step2") }}
                 className="mb-6 flex items-center gap-2 text-sm text-white/60 hover:text-white/90 transition-colors"
               >
                 <ArrowRight className="h-4 w-4" />
