@@ -1,39 +1,49 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useEffect } from "react"
 import { motion } from "framer-motion"
 import { useRouter } from "next/navigation"
+import { Bus } from "lucide-react"
+
+// Steam particle component
+function SteamParticle({ delay, index }: { delay: number; index: number }) {
+  return (
+    <motion.div
+      key={index}
+      className="absolute w-2 h-2 rounded-full bg-emerald-400/60"
+      initial={{
+        x: 0,
+        y: 0,
+        opacity: 1,
+        scale: 1,
+      }}
+      animate={{
+        x: (Math.random() - 0.5) * 60,
+        y: -80,
+        opacity: 0,
+        scale: 0,
+      }}
+      transition={{
+        duration: 1.5,
+        delay,
+        ease: "easeOut",
+        repeat: Infinity,
+        repeatDelay: 0.5,
+      }}
+    />
+  )
+}
 
 export function LoadingScreen() {
   const router = useRouter()
-  const [progress, setProgress] = useState(0)
 
-  // Auto-redirect after 2-3 seconds
+  // Auto-redirect after 2.5 seconds
   useEffect(() => {
     const timer = setTimeout(() => {
       router.push("/")
     }, 2500)
     return () => clearTimeout(timer)
   }, [router])
-
-  // Progress bar animation
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setProgress((prev) => {
-        if (prev >= 95) return prev
-        return prev + Math.random() * 40
-      })
-    }, 300)
-    return () => clearInterval(interval)
-  }, [])
-
-  // Complete progress bar when redirect happens
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setProgress(100)
-    }, 2300)
-    return () => clearTimeout(timer)
-  }, [])
 
   return (
     <div
@@ -55,64 +65,58 @@ export function LoadingScreen() {
 
       {/* Content Container */}
       <div 
-        className="relative z-10 flex flex-col items-center gap-8"
+        className="relative z-10 flex flex-col items-center gap-12"
         style={{ transform: "translateZ(0)" }}
       >
         
-        {/* Logo with pulsing glow animation */}
+        {/* Animated Bus with Steam Particles */}
         <motion.div
-          className="relative"
-          initial={{ scale: 0.9, opacity: 0 }}
+          className="relative h-32 w-32"
+          initial={{ scale: 0.8, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           transition={{ duration: 0.5, ease: "easeOut" }}
         >
-          {/* Animated glow ring */}
+          {/* Spinning bus icon */}
           <motion.div
-            className="absolute -inset-8 rounded-full"
+            className="absolute inset-0 flex items-center justify-center"
+            animate={{ rotate: 360 }}
+            transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
+          >
+            <Bus className="h-16 w-16 text-emerald-400" strokeWidth={1.5} />
+          </motion.div>
+
+          {/* Steam particles container */}
+          <div className="absolute -top-4 left-1/2 -translate-x-1/2 w-16 h-24">
+            <SteamParticle delay={0} index={0} />
+            <SteamParticle delay={0.2} index={1} />
+            <SteamParticle delay={0.4} index={2} />
+            <SteamParticle delay={0.6} index={3} />
+            <SteamParticle delay={0.8} index={4} />
+          </div>
+
+          {/* Animated glow around bus */}
+          <motion.div
+            className="absolute -inset-6 rounded-full"
             animate={{
               boxShadow: [
-                "0 0 20px rgba(16,185,129,0.3), 0 0 40px rgba(59,130,246,0.2)",
-                "0 0 30px rgba(16,185,129,0.5), 0 0 60px rgba(59,130,246,0.3)",
-                "0 0 20px rgba(16,185,129,0.3), 0 0 40px rgba(59,130,246,0.2)",
+                "0 0 15px rgba(16,185,129,0.2), 0 0 30px rgba(59,130,246,0.1)",
+                "0 0 25px rgba(16,185,129,0.4), 0 0 50px rgba(59,130,246,0.2)",
+                "0 0 15px rgba(16,185,129,0.2), 0 0 30px rgba(59,130,246,0.1)",
               ],
             }}
-            transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+            transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
             style={{ pointerEvents: "none" }}
           />
-          
-          {/* Logo container */}
-          <div
-            className="relative flex h-40 w-40 items-center justify-center rounded-2xl border border-white/20 bg-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.3),inset_0_1px_0_rgba(255,255,255,0.1)] backdrop-blur-xl"
-            style={{
-              boxShadow: "0 8px 32px rgba(16,185,129,0.2), 0 0 60px rgba(59,130,246,0.15), inset 0 1px 0 rgba(255,255,255,0.1)"
-            }}
-          >
-            <img src="/logo.png" alt="Tanakoli Khenchela" className="h-36 w-36" />
-          </div>
         </motion.div>
 
-        {/* Progress Bar */}
-        <motion.div
-          className="w-64 h-1 bg-white/10 rounded-full overflow-hidden"
+        {/* Loading Text with fade in animation */}
+        <motion.p
+          className="text-lg font-medium text-emerald-400"
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3, duration: 0.5 }}
         >
-          <motion.div
-            className="h-full bg-gradient-to-r from-emerald-400 via-teal-400 to-blue-400 rounded-full"
-            style={{ width: `${progress}%` }}
-            transition={{ duration: 0.3, ease: "easeOut" }}
-          />
-        </motion.div>
-
-        {/* Loading Text */}
-        <motion.p
-          className="text-sm font-medium text-white/60"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.5, duration: 0.5 }}
-        >
-          جاري التحضير...
+          جاري التحميل...
         </motion.p>
       </div>
     </div>
