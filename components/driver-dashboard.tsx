@@ -106,7 +106,7 @@ function saveDailyStats(stats: DailyStats): void {
 
 export function DriverDashboard() {
   const { exitDriverMode } = useDriverMode()
-  const { currentUser } = useAuth()
+  const { currentUser, firestoreUserId } = useAuth()
   const [selectedFare, setSelectedFare] = useState(30)
   const [isScanning, setIsScanning] = useState(false)
   const [scanResult, setScanResult] = useState<ScanResult | null>(null)
@@ -340,7 +340,7 @@ export function DriverDashboard() {
       const passengerName = userData?.fullName || name || "راكب"
 
       if (scanMode === "recharge") {
-        // RECHARGE MODE: Add balance
+        // RECHARGE MODE: Add balance to passenger, deduct from driver
         const rechargeAmountNum = parseInt(rechargeAmount)
         if (!rechargeAmountNum || rechargeAmountNum <= 0) {
           setScanResult({
@@ -351,34 +351,77 @@ export function DriverDashboard() {
           return
         }
 
-        const newBalance = currentBalance + rechargeAmountNum
+        // Check if driver is authenticated
+        if (!firestoreUserId) {
+          setScanResult({
+            success: false,
+            message: "خطأ في التحقق من الهوية"
+          })
+          setIsProcessing(false)
+          return
+        }
 
-        // Add to balance
+        // Get driver's current balance
+        const driverDocRef = doc(db, "users", firestoreUserId)
+        let driverCurrentBalance = 0
+        
+        try {
+          const driverDocSnap = await getDocs(query(collection(db, "users"), where("Phone", "==", firestoreUserId)))
+          if (!driverDocSnap.empty) {
+            driverCurrentBalance = driverDocSnap.docs[0].data()?.balance ?? 0
+          }
+        } catch (error) {
+          console.error("[v0] Error getting driver balance:", error)
+          driverCurrentBalance = 0
+        }
+
+        // Check if driver has sufficient balance
+        if (driverCurrentBalance < rechargeAmountNum) {
+          setScanResult({
+            success: false,
+            message: `رصيد غير كافٍ (لديك ${driverCurrentBalance} د.ج)`
+          })
+          setIsProcessing(false)
+          return
+        }
+
+        const newPassengerBalance = currentBalance + rechargeAmountNum
+        const newDriverBalance = driverCurrentBalance - rechargeAmountNum
+
+        // Add to passenger balance
         await updateDoc(userDocRef, {
           balance: increment(rechargeAmountNum)
+        })
+
+        // Deduct from driver balance
+        await updateDoc(driverDocRef, {
+          balance: increment(-rechargeAmountNum)
         })
 
         // Record the transaction
         try {
           await addDoc(collection(db, "transactions"), {
             userId: userDocId,
+            driverId: firestoreUserId,
             type: "balance_recharge",
             amount: rechargeAmountNum,
             previousBalance: currentBalance,
-            newBalance: newBalance,
+            newBalance: newPassengerBalance,
+            driverPreviousBalance: driverCurrentBalance,
+            driverNewBalance: newDriverBalance,
             driverTimestamp: serverTimestamp(),
             passengerName: passengerName,
             status: "completed"
           })
-        } catch {
-          // Transaction logging failed, but recharge still went through
+        } catch (error) {
+          console.error("[v0] Error logging transaction:", error)
         }
 
         // Success!
         setScanResult({
           success: true,
           passengerName: passengerName,
-          newBalance: newBalance,
+          newBalance: newPassengerBalance,
           amount: rechargeAmountNum,
           message: "تم الشحن بنجاح",
           isRecharge: true
