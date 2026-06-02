@@ -19,7 +19,7 @@ const firebaseConfig = {
   messagingSenderId: "757217321198",
   appId: "1:757217321198:web:1cbdfd808a180b6ff9d3ff",
   measurementId: "G-S4BJ4GEEKF",
-  databaseURL: "https://tanakoli-khenchela-default-rtdb.firebaseio.com",
+  databaseURL: "https://tanakoli-khenchela-default-rtdb.europe-west1.firebasedatabase.app",
 }
 
 // Guard against re-initialization on hot reloads
