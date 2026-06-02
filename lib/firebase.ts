@@ -9,6 +9,7 @@ import {
   CACHE_SIZE_UNLIMITED,
 } from "firebase/firestore"
 import { getAuth } from "firebase/auth"
+import { getDatabase } from "firebase/database"
 
 const firebaseConfig = {
   apiKey: "AIzaSyCz62DFbbD89fpYUXdg38nRCohX-yTJ4z8",
@@ -65,5 +66,8 @@ try {
 
 // Initialize and export Firebase Auth
 export const auth = getAuth(app)
+
+// Initialize and export Firebase Realtime Database
+export const realtimeDb = getDatabase(app)
 
 export { db }

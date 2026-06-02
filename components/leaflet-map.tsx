@@ -13,6 +13,7 @@ import { Layers, ChevronDown, ChevronUp, MapPin, Maximize2, Minimize2 } from "lu
 import { useTheme } from "@/lib/theme-context"
 import { useRouteSubStations } from "@/hooks/use-routes"
 import { useBusSimulation, type SimulatedBus } from "@/lib/bus-simulation"
+import { useDriverLocationListener } from "@/hooks/use-driver-location-listener"
 
 // Tile layer URLs
 const TILE_LAYERS = {
