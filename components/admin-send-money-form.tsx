@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { sendMoneyToDriver, getAllDrivers } from "@/lib/admin-utils"
+import { sendMoneyToDriver } from "@/lib/admin-utils"
 import { rtdb } from "@/lib/firebase"
 import { ref, onValue } from "firebase/database"
 import { Send, AlertCircle, CheckCircle } from "lucide-react"
@@ -10,86 +10,41 @@ interface SendMoneyFormProps {
   preselectedDriver?: string
 }
 
-interface DriverInfo {
-  phone: string
-  name: string
-  balance: number
-  lat?: number
-  lng?: number
-}
-
 export function AdminSendMoneyForm({ preselectedDriver }: SendMoneyFormProps) {
   const [driverPhone, setDriverPhone] = useState(preselectedDriver || "")
   const [amount, setAmount] = useState("")
-  const [drivers, setDrivers] = useState<DriverInfo[]>([])
+  const [drivers, setDrivers] = useState<string[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
   const [success, setSuccess] = useState(false)
   const [driversLoading, setDriversLoading] = useState(true)
 
-  // Fetch drivers from Firestore for balance info, cross-reference with Realtime DB active drivers
+  // Fetch all drivers from Realtime Database
   useEffect(() => {
-    const loadDrivers = async () => {
-      try {
-        // Get all drivers from Firestore (has balance info)
-        const allFirestoreDrivers = await getAllDrivers()
+    const driversRef = ref(rtdb, "drivers")
+    const unsubscribe = onValue(
+      driversRef,
+      (snapshot) => {
+        if (!snapshot.exists()) {
+          setDrivers([])
+          setDriversLoading(false)
+          return
+        }
 
-        // Subscribe to active drivers from Realtime DB
-        const driversRef = ref(rtdb, "drivers")
-        const unsubscribe = onValue(
-          driversRef,
-          (snapshot) => {
-            if (!snapshot.exists()) {
-              setDrivers([])
-              setDriversLoading(false)
-              return
-            }
+        const realtimeDrivers = snapshot.val()
+        const driverPhones: string[] = Object.keys(realtimeDrivers)
 
-            const realtimeDrivers = snapshot.val()
-            const activeDriversMap = new Map()
-
-            // Build map of active drivers with their location data
-            for (const [phone, driverData] of Object.entries(realtimeDrivers)) {
-              const data = driverData as any
-              if (data.location) {
-                activeDriversMap.set(phone, {
-                  lat: data.location.lat,
-                  lng: data.location.lng,
-                })
-              }
-            }
-
-            // Merge Firestore driver info with active drivers from Realtime DB
-            const mergedDrivers: DriverInfo[] = allFirestoreDrivers
-              .filter((driver) => activeDriversMap.has(driver.phone))
-              .map((driver) => ({
-                ...driver,
-                ...activeDriversMap.get(driver.phone),
-              }))
-
-            setDrivers(mergedDrivers)
-            setDriversLoading(false)
-          },
-          (error) => {
-            console.error("[v0] Error loading active drivers from Realtime DB:", error)
-            // Fall back to Firestore drivers if Realtime DB fails
-            setDrivers(allFirestoreDrivers)
-            setDriversLoading(false)
-          }
-        )
-
-        return unsubscribe
-      } catch (err) {
-        console.error("[v0] Error loading drivers:", err)
+        setDrivers(driverPhones)
+        setDriversLoading(false)
+      },
+      (error) => {
+        console.error("[v0] Error loading drivers from Realtime DB:", error)
         setDriversLoading(false)
       }
-    }
+    )
 
-    const unsubscribe = loadDrivers()
     return () => {
-      if (unsubscribe instanceof Function) {
-        unsubscribe()
-      }
+      unsubscribe()
     }
   }, [])
 
@@ -154,8 +109,6 @@ export function AdminSendMoneyForm({ preselectedDriver }: SendMoneyFormProps) {
     }
   }
 
-  const selectedDriver = drivers.find((d) => d.phone === driverPhone)
-
   return (
     <div className="bg-slate-800 rounded-lg border border-slate-700 p-6 shadow-lg">
       <div className="flex items-center gap-2 mb-6">
@@ -180,9 +133,9 @@ export function AdminSendMoneyForm({ preselectedDriver }: SendMoneyFormProps) {
             className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <option value="">Choose a driver...</option>
-            {drivers.map((driver) => (
-              <option key={driver.phone} value={driver.phone}>
-                {driver.name} ({driver.phone}) - Balance: {driver.balance.toFixed(2)} د.ج
+            {drivers.map((phone) => (
+              <option key={phone} value={phone}>
+                {phone}
               </option>
             ))}
           </select>
@@ -190,18 +143,6 @@ export function AdminSendMoneyForm({ preselectedDriver }: SendMoneyFormProps) {
             <p className="text-xs text-slate-400 mt-1">Loading drivers...</p>
           )}
         </div>
-
-        {/* Current Balance Display */}
-        {selectedDriver && (
-          <div className="p-3 bg-slate-700 rounded-lg border border-slate-600">
-            <p className="text-sm text-slate-300">
-              Current Balance:{" "}
-              <span className="font-semibold text-emerald-400">
-                {selectedDriver.balance.toFixed(2)} د.ج
-              </span>
-            </p>
-          </div>
-        )}
 
         {/* Amount Input */}
         <div>
