@@ -1,8 +1,6 @@
 "use client"
 
 import { useEffect, useRef, useState } from "react"
-import L from "leaflet"
-import "leaflet/dist/leaflet.css"
 import { fetchActiveDrivers, type ActiveDriver } from "@/lib/admin-utils"
 import { MapPin } from "lucide-react"
 
@@ -13,48 +11,36 @@ interface AdminMapProps {
 }
 
 export function AdminDriverMap({ onDriverSelect }: AdminMapProps) {
-  const mapContainerRef = useRef<HTMLDivElement>(null)
-  const mapRef = useRef<L.Map | null>(null)
-  const markersRef = useRef<Map<string, L.Marker>>(new Map())
   const [drivers, setDrivers] = useState<ActiveDriver[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [isMapReady, setIsMapReady] = useState(false)
 
-  // Initialize map
+  // Skip map initialization and just use driver list
   useEffect(() => {
-    if (!mapContainerRef.current) return
-
-    // Create map
-    const map = L.map(mapContainerRef.current).setView(KHENCHELA_CITY_CENTER, 14)
-
-    // Add tile layer (dark theme)
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      attribution: '&copy; OpenStreetMap contributors',
-      maxZoom: 19,
-      className: "grayscale brightness-75",
-    }).addTo(map)
-
-    mapRef.current = map
+    // Mark map as ready immediately since we're not using leaflet
     setIsLoading(false)
-
-    return () => {
-      map.remove()
-    }
+    setIsMapReady(true)
+    setDebugMessage("Using driver list view")
   }, [])
 
   // Subscribe to driver locations
   useEffect(() => {
-    if (!mapRef.current) return
+    if (!isMapReady) {
+      setDebugMessage("Waiting for map to initialize...")
+      return
+    }
 
-    console.log("[v0] Subscribing to active drivers")
+    setDebugMessage("Calling fetchActiveDrivers...")
     const unsubscribe = fetchActiveDrivers((activeDrivers) => {
-      console.log("[v0] Updated drivers:", activeDrivers)
+      setDebugMessage(`Received ${activeDrivers.length} drivers from Firebase`)
       setDrivers(activeDrivers)
     })
 
     return () => {
+      setDebugMessage("Unsubscribing from drivers")
       unsubscribe()
     }
-  }, [])
+  }, [isMapReady])
 
   // Update markers on map
   useEffect(() => {
@@ -140,17 +126,35 @@ export function AdminDriverMap({ onDriverSelect }: AdminMapProps) {
         </h3>
       </div>
 
-      {isLoading ? (
-        <div className="h-96 bg-slate-700 rounded-lg flex items-center justify-center border border-slate-600">
-          <p className="text-slate-400">Loading map...</p>
-        </div>
-      ) : (
-        <div
-          ref={mapContainerRef}
-          className="h-96 rounded-lg border border-slate-600 overflow-hidden shadow-lg"
-          style={{ zIndex: 1 }}
-        />
-      )}
+      {/* Driver Location Grid */}
+      <div className="bg-slate-700 rounded-lg p-4 border border-slate-600">
+        <h4 className="font-semibold text-white mb-3">Driver Locations</h4>
+        {drivers.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+            {drivers.map((driver) => (
+              <div
+                key={driver.phone}
+                className="bg-slate-600 rounded p-3 hover:bg-slate-500 transition-colors cursor-pointer"
+                onClick={() => onDriverSelect?.(driver.phone)}
+              >
+                <p className="font-semibold text-blue-300 text-sm">{driver.phone}</p>
+                {driver.location ? (
+                  <p className="text-xs text-slate-300">
+                    📍 {driver.location.lat.toFixed(4)}, {driver.location.lng.toFixed(4)}
+                  </p>
+                ) : (
+                  <p className="text-xs text-slate-400">No location data</p>
+                )}
+                <p className="text-xs text-slate-400">Line: {driver.line}</p>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="bg-slate-600 rounded p-4 text-center">
+            <p className="text-slate-400 text-sm">{debugMessage}</p>
+          </div>
+        )}
+      </div>
 
       {drivers.length === 0 && !isLoading && (
         <div className="h-32 bg-slate-700 rounded-lg flex items-center justify-center border border-slate-600 border-dashed">
@@ -187,6 +191,8 @@ export function AdminDriverMap({ onDriverSelect }: AdminMapProps) {
           )}
         </div>
       </div>
+      
+
     </div>
   )
 }

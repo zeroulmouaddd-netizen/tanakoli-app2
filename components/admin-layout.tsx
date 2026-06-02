@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { AdminPasswordGate } from "./admin-password-gate"
 import { BarChart3, LogOut } from "lucide-react"
 
@@ -9,17 +9,28 @@ interface AdminLayoutProps {
 }
 
 export function AdminLayout({ children }: AdminLayoutProps) {
-  const [isAuthenticated, setIsAuthenticated] = useState(() => {
-    // Check if already authenticated in this session
-    if (typeof window !== "undefined") {
-      return sessionStorage.getItem("adminAuth") === "true"
-    }
-    return false
-  })
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const [isHydrated, setIsHydrated] = useState(false)
+
+  // Check authentication status after hydration
+  useEffect(() => {
+    const authStatus = sessionStorage.getItem("adminAuth") === "true"
+    setIsAuthenticated(authStatus)
+    setIsHydrated(true)
+  }, [])
 
   const handleLogout = () => {
     sessionStorage.removeItem("adminAuth")
     setIsAuthenticated(false)
+  }
+
+  // Don't render anything until after hydration to prevent mismatch
+  if (!isHydrated) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center">
+        <p className="text-slate-400">Loading...</p>
+      </div>
+    )
   }
 
   if (!isAuthenticated) {

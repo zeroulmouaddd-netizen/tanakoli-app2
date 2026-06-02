@@ -41,46 +41,77 @@ export interface Transaction {
 
 // Fetch all active drivers with their locations
 export async function fetchActiveDrivers(callback: (drivers: ActiveDriver[]) => void) {
-  const driversRef = ref(rtdb, "drivers")
+  try {
+    console.log("[v0] Starting fetchActiveDrivers")
+    const driversRef = ref(rtdb, "drivers")
+    console.log("[v0] Created reference to drivers:", driversRef)
 
-  const unsubscribe = onValue(driversRef, async (snapshot) => {
-    if (!snapshot.exists()) {
-      callback([])
-      return
-    }
+    const unsubscribe = onValue(
+      driversRef,
+      async (snapshot) => {
+        console.log("[v0] onValue callback fired")
+        console.log("[v0] Snapshot exists:", snapshot.exists())
 
-    const driversData = snapshot.val()
-    const drivers: ActiveDriver[] = []
-
-    // Get all users to map phone numbers to bus lines
-    try {
-      const usersSnapshot = await getDocs(collection(db, "users"))
-      const usersMap = new Map()
-
-      usersSnapshot.forEach((doc) => {
-        usersMap.set(doc.data().phone, doc.data().line || "Unknown")
-      })
-
-      // Process drivers data
-      for (const [phone, driverData] of Object.entries(driversData)) {
-        const data = driverData as any
-        if (data.location) {
-          drivers.push({
-            phone,
-            line: usersMap.get(phone) || "Unknown",
-            location: data.location,
-          })
+        if (!snapshot.exists()) {
+          console.log("[v0] No drivers data in Realtime Database")
+          callback([])
+          return
         }
+
+        const driversData = snapshot.val()
+        console.log("[v0] Raw drivers data:", driversData)
+        const drivers: ActiveDriver[] = []
+
+        // Get all users to map phone numbers to bus lines
+        try {
+          const usersSnapshot = await getDocs(collection(db, "users"))
+          const usersMap = new Map()
+
+          usersSnapshot.forEach((doc) => {
+            usersMap.set(doc.data().phone, doc.data().line || "Unknown")
+          })
+
+          // Process drivers data
+          for (const [phone, driverData] of Object.entries(driversData)) {
+            const data = driverData as any
+            console.log(`[v0] Processing driver ${phone}:`, data)
+            
+            // Check if location exists and has lat/lng
+            if (data && data.location && typeof data.location.lat === "number" && typeof data.location.lng === "number") {
+              drivers.push({
+                phone,
+                line: usersMap.get(phone) || "Unknown",
+                location: {
+                  lat: data.location.lat,
+                  lng: data.location.lng,
+                },
+              })
+              console.log(`[v0] Added driver ${phone} with location:`, data.location)
+            } else {
+              console.log(`[v0] Driver ${phone} has no valid location`)
+            }
+          }
+
+          console.log(`[v0] Total active drivers: ${drivers.length}`)
+          callback(drivers)
+        } catch (error) {
+          console.error("[v0] Error processing drivers:", error)
+          callback(drivers)
+        }
+      },
+      (error) => {
+        console.error("[v0] Firebase onValue error:", error)
+        console.error("[v0] Error code:", error.code)
+        console.error("[v0] Error message:", error.message)
       }
+    )
 
-      callback(drivers)
-    } catch (error) {
-      console.error("[v0] Error fetching drivers:", error)
-      callback(drivers)
-    }
-  })
-
-  return unsubscribe
+    return unsubscribe
+  } catch (error) {
+    console.error("[v0] Error in fetchActiveDrivers setup:", error)
+    // Return a dummy unsubscribe function
+    return () => {}
+  }
 }
 
 // Send money to driver
