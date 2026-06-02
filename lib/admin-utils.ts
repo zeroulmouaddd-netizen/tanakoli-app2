@@ -91,7 +91,7 @@ export async function sendMoneyToDriver(
 ): Promise<{ success: boolean; error?: string }> {
   try {
     // Find driver user document by phone
-    const usersQuery = query(collection(db, "users"), where("phone", "==", driverPhone))
+    const usersQuery = query(collection(db, "users"), where("Phone", "==", driverPhone))
     const usersSnapshot = await getDocs(usersQuery)
 
     if (usersSnapshot.empty) {
