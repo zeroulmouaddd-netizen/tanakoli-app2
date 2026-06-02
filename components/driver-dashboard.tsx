@@ -26,7 +26,7 @@ import { collection, query, where, getDocs, doc, updateDoc, increment, addDoc, s
 import { useDriverMode } from "@/lib/driver-mode-context"
 import { useAuth } from "@/lib/auth-context"
 import { useDriverLocationTracking } from "@/hooks/use-driver-location-tracking"
-import { BrowserMultiFormatReader, NotFoundException } from "@zxing/library"
+import { BrowserMultiFormatReader } from "@zxing/browser"
 
 const FARE_OPTIONS = [
   { amount: 20, label: "20 د.ج", description: "داخل المدينة" },
@@ -244,35 +244,60 @@ export function DriverDashboard() {
       const reader = new BrowserMultiFormatReader()
       readerRef.current = reader
 
-      // Start continuous scanning
+      // Start continuous scanning with frame capture
       const scanLoop = async () => {
-        if (!videoRef.current || !isScanning) return
+        if (!videoRef.current || !streamRef.current) {
+          return
+        }
 
         try {
-          const result = await reader.decodeFromVideoElement(videoRef.current)
-          if (result) {
-            // Found a QR code
-            await processQRCode(result.getText())
+          // Use canvas to capture frames from video and decode
+          const canvas = document.createElement("canvas")
+          const context = canvas.getContext("2d")
+          if (!context) return
+
+          canvas.width = videoRef.current.videoWidth
+          canvas.height = videoRef.current.videoHeight
+
+          // Draw current frame to canvas
+          context.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height)
+
+          // Create image data for decoding
+          const imageData = context.getImageData(0, 0, canvas.width, canvas.height)
+
+          try {
+            // Attempt to decode the frame
+            const result = await reader.decodeFromImageData(imageData)
+            if (result) {
+              console.log("[v0] QR code detected:", result.getText())
+              await processQRCode(result.getText())
+              return
+            }
+          } catch {
+            // No QR code found in this frame, continue scanning
+          }
+
+          // Continue scanning if still active
+          if (isScanning && streamRef.current) {
+            requestAnimationFrame(scanLoop)
           }
         } catch (error) {
-          if (!(error instanceof NotFoundException)) {
-            console.error("Scan error:", error)
-          }
-          // Continue scanning if still active
+          console.error("[v0] Frame capture error:", error)
+          // Continue scanning despite errors
           if (isScanning && streamRef.current) {
             requestAnimationFrame(scanLoop)
           }
         }
       }
 
-      // Start the scan loop
-      setTimeout(scanLoop, 500)
+      // Start the scan loop immediately
+      requestAnimationFrame(scanLoop)
 
     } catch (error) {
-      console.error("Camera error:", error)
+      console.error("[v0] Camera error:", error)
       setScanResult({
         success: false,
-        message: "ت����ذر الوصول إلى الكاميرا"
+        message: "تعذر الوصول إلى الكاميرا"
       })
       stopScanner()
     }
@@ -423,7 +448,7 @@ export function DriverDashboard() {
           passengerName: passengerName,
           newBalance: newPassengerBalance,
           amount: rechargeAmountNum,
-          message: "تم الشحن بنجاح",
+          message: "تم الشحن ��نجاح",
           isRecharge: true
         })
 
