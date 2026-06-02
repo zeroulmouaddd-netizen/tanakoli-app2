@@ -15,9 +15,9 @@ type AuthMethod = "phone" | "email"
 
 export function OnboardingScreen() {
   const router = useRouter()
-  const [step, setStep] = useState<Step>("splash")
+  const [step, setStep] = useState<Step>("step1")
   const [showSplashButton, setShowSplashButton] = useState(false)
-  const [authMethod, setAuthMethod] = useState<AuthMethod | null>(null)
+  const [authMethod, setAuthMethod] = useState<AuthMethod | null>("phone")
 
   // Step 1 data
   const [phone, setPhone] = useState("")
@@ -38,8 +38,7 @@ export function OnboardingScreen() {
   const recaptchaRef = useRef<RecaptchaVerifier | null>(null)
 
   useEffect(() => {
-    const t = setTimeout(() => setShowSplashButton(true), 1200)
-    return () => clearTimeout(t)
+    // Removed splash screen delay - go directly to phone login
   }, [])
 
   // Navigate to home immediately after successful authentication
@@ -267,148 +266,6 @@ export function OnboardingScreen() {
       <div id="ob-recaptcha" />
 
       <AnimatePresence mode="wait">
-
-        {/* ── SPLASH ── */}
-        {step === "splash" && (
-          <motion.div
-            key="splash"
-            className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900 overflow-hidden"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0, scale: 0.98 }}
-            transition={{ duration: 0.4 }}
-          >
-            {/* Animated Map Background */}
-            <div className="absolute inset-0 overflow-hidden">
-              <svg
-                className="map-grid-bg absolute inset-0 w-full h-full"
-                viewBox="0 0 400 800"
-                preserveAspectRatio="xMidYMid slice"
-              >
-                <defs>
-                  <linearGradient id="gridGradient1" x1="0%" y1="0%" x2="100%" y2="100%">
-                    <stop offset="0%" stopColor="#10B981" stopOpacity="0.1" />
-                    <stop offset="50%" stopColor="#3B82F6" stopOpacity="0.05" />
-                    <stop offset="100%" stopColor="#10B981" stopOpacity="0.1" />
-                  </linearGradient>
-                  <style>
-                    {`
-                      @keyframes routeGlow {
-                        0%, 100% { stroke-opacity: 0.3; filter: drop-shadow(0 0 2px rgba(34, 197, 94, 0.2)); }
-                        50% { stroke-opacity: 0.6; filter: drop-shadow(0 0 8px rgba(34, 197, 94, 0.5)); }
-                      }
-                      .route-line { animation: routeGlow 4s ease-in-out infinite; stroke-dasharray: 20; stroke-dashoffset: 0; }
-                      .route-line-2 { animation: routeGlow 4s ease-in-out infinite 1s; }
-                      .route-line-3 { animation: routeGlow 4s ease-in-out infinite 2s; }
-                    `}
-                  </style>
-                </defs>
-
-                {/* Grid Pattern */}
-                <g className="map-grid">
-                  <line x1="0" y1="0" x2="0" y2="800" stroke="#10B981" strokeWidth="1.5" opacity="0.2" />
-                  <line x1="50" y1="0" x2="50" y2="800" stroke="#3B82F6" strokeWidth="1" opacity="0.15" />
-                  <line x1="100" y1="0" x2="100" y2="800" stroke="#10B981" strokeWidth="1" opacity="0.15" />
-                  <line x1="150" y1="0" x2="150" y2="800" stroke="#3B82F6" strokeWidth="1.5" opacity="0.2" />
-                  <line x1="200" y1="0" x2="200" y2="800" stroke="#10B981" strokeWidth="1" opacity="0.15" />
-                  <line x1="250" y1="0" x2="250" y2="800" stroke="#3B82F6" strokeWidth="1" opacity="0.15" />
-                  <line x1="300" y1="0" x2="300" y2="800" stroke="#10B981" strokeWidth="1.5" opacity="0.2" />
-                  <line x1="350" y1="0" x2="350" y2="800" stroke="#3B82F6" strokeWidth="1" opacity="0.15" />
-                  <line x1="400" y1="0" x2="400" y2="800" stroke="#10B981" strokeWidth="1" opacity="0.15" />
-
-                  <line x1="0" y1="50" x2="400" y2="50" stroke="#3B82F6" strokeWidth="1" opacity="0.15" />
-                  <line x1="0" y1="100" x2="400" y2="100" stroke="#10B981" strokeWidth="1.5" opacity="0.2" />
-                  <line x1="0" y1="150" x2="400" y2="150" stroke="#3B82F6" strokeWidth="1" opacity="0.15" />
-                  <line x1="0" y1="200" x2="400" y2="200" stroke="#10B981" strokeWidth="1" opacity="0.15" />
-                  <line x1="0" y1="250" x2="400" y2="250" stroke="#3B82F6" strokeWidth="1.5" opacity="0.2" />
-                  <line x1="0" y1="300" x2="400" y2="300" stroke="#10B981" strokeWidth="1" opacity="0.15" />
-                  <line x1="0" y1="350" x2="400" y2="350" stroke="#3B82F6" strokeWidth="1" opacity="0.15" />
-                  <line x1="0" y1="400" x2="400" y2="400" stroke="#10B981" strokeWidth="1.5" opacity="0.2" />
-                </g>
-
-                {/* Route Lines with Glow */}
-                <g className="map-grid-pulse">
-                  <path d="M 30 100 Q 80 150 130 200 T 230 350" className="route-line" stroke="#22C55E" strokeWidth="2" fill="none" />
-                  <path d="M 80 50 L 150 120 Q 200 180 250 250" className="route-line-2" stroke="#10B981" strokeWidth="1.5" fill="none" />
-                  <path d="M 200 80 Q 250 140 280 220 L 320 350" className="route-line-3" stroke="#22C55E" strokeWidth="2" fill="none" />
-                  <path d="M 50 250 L 150 300 Q 220 330 300 380" stroke="#3B82F6" strokeWidth="1" opacity="0.4" fill="none" />
-                  <path d="M 250 100 Q 300 160 340 240" stroke="#10B981" strokeWidth="1.5" opacity="0.3" fill="none" />
-                </g>
-
-                {/* Gradient Overlay */}
-                <rect x="0" y="0" width="400" height="800" fill="url(#gridGradient1)" />
-              </svg>
-            </div>
-
-            {/* Main Content */}
-            <div className="relative z-10 flex h-full w-full flex-col items-center justify-between px-6 py-8">
-              {/* Spacer Top */}
-              <div className="flex-1" />
-
-              {/* Logo Section */}
-              <motion.div
-                className="flex flex-col items-center gap-10"
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.5, ease: "easeOut" }}
-              >
-                {/* Logo Container */}
-                <div className="relative flex h-36 w-36 items-center justify-center rounded-2xl border border-white/12 bg-white/[0.03] backdrop-blur-md"
-                  style={{ boxShadow: "0 8px 24px rgba(16,185,129,0.12), inset 0 1px 0 rgba(255,255,255,0.05)" }}
-                >
-                  <img src="/logo.png" alt="Tanakoli Khenchela" className="h-32 w-32" />
-                </div>
-
-                {/* Text Content */}
-                <motion.div
-                  className="flex flex-col items-center gap-4"
-                  initial={{ opacity: 0, y: 16 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.2, duration: 0.5 }}
-                >
-                  {/* App Name */}
-                  <h1 className="text-5xl font-bold tracking-tight text-white">
-                    تنقلي خنشلة
-                  </h1>
-
-                  {/* English Subtitle */}
-                  <p className="text-sm font-medium tracking-wide text-emerald-400/80">
-                    Tanakoli Khenchela
-                  </p>
-
-                  {/* Tagline */}
-                  <p className="mt-2 text-base font-medium text-white/70 max-w-xs leading-relaxed">
-                    مدينتك، نقلك. لنبدأ الرحلة!
-                  </p>
-                </motion.div>
-              </motion.div>
-
-              {/* CTA Section */}
-              <motion.div
-                className="flex flex-col items-center gap-6"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: showSplashButton ? 1 : 0, y: showSplashButton ? 0 : 20 }}
-                transition={{ duration: 0.5 }}
-              >
-                <button
-                  onClick={() => setStep("step1")}
-                  className="relative px-8 py-3 rounded-full bg-emerald-500 hover:bg-emerald-600 text-sm font-semibold text-white shadow-lg transition-all duration-200 hover:shadow-xl active:scale-95 border border-emerald-400/30"
-                >
-                  ابدأ الآن
-                </button>
-
-                {/* Footer Text */}
-                <div className="flex flex-col items-center gap-2">
-                  <p className="text-xs font-medium text-white/40">ETUS Khenchela</p>
-                  <p className="text-xs text-white/25">مؤسسة النقل الحضري</p>
-                </div>
-              </motion.div>
-
-              {/* Spacer Bottom */}
-              <div className="flex-1" />
-            </div>
-          </motion.div>
-        )}
 
         {/* ── STEP 1: Welcome & Initial Auth ── */}
         {step === "step1" && (
