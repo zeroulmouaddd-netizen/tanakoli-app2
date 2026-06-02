@@ -15,10 +15,10 @@ import { useTheme } from "@/lib/theme-context"
 import { useRouteSubStations } from "@/hooks/use-routes"
 import { useBusSimulation, type SimulatedBus } from "@/lib/bus-simulation"
 
-// Tile layer URLs
+// Tile layer URLs - OpenStreetMap only
 const TILE_LAYERS = {
-  light: "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png",
-  dark: "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
+  light: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+  dark: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
 }
 
 interface Bus {
@@ -1195,23 +1195,20 @@ const marker = L.marker(subStation.coords, {
   }, [staticBuses, mapReady, isValidCoord, getBusIcon])
 
   // Update driver location marker (real-time GPS from Driver App)
+  // Shows at Khenchela center by default if no data yet
   useEffect(() => {
     const map = mapRef.current
     if (!map || !mapReady) return
 
-    if (!driverLocation) {
-      // Driver is offline - remove marker if exists
-      if (driverMarkerRef.current) {
-        driverMarkerRef.current.remove()
-        driverMarkerRef.current = null
-        console.log("[v0] Driver marker removed (offline)")
-      }
-      return
+    // Use real location if available, otherwise use default Khenchela center
+    const displayLocation = driverLocation || {
+      lat: 35.4358,
+      lng: 7.1436,
     }
 
     // Validate coordinates
-    if (!isValidCoord(driverLocation.lat, driverLocation.lng)) {
-      console.warn("[v0] Invalid driver coordinates:", driverLocation)
+    if (!isValidCoord(displayLocation.lat, displayLocation.lng)) {
+      console.warn("[v0] Invalid driver coordinates:", displayLocation)
       return
     }
 
@@ -1228,22 +1225,23 @@ const marker = L.marker(subStation.coords, {
       iconAnchor: [14, 14],
     })
 
+    const statusText = driverLocation ? "Live Driver - 0775453629" : "Default Location (Awaiting GPS)"
     const popupContent = `
       <div class="station-popup">
         <div class="station-popup-name">سائق مباشر</div>
-        <div style="font-size:11px;color:#ec4899;font-weight:600;margin-top:4px;">Live Driver - 0775453629</div>
-        <div style="font-size:10px;color:#666;margin-top:6px;">إحداثيات: ${driverLocation.lat.toFixed(4)}, ${driverLocation.lng.toFixed(4)}</div>
+        <div style="font-size:11px;color:#ec4899;font-weight:600;margin-top:4px;">${statusText}</div>
+        <div style="font-size:10px;color:#666;margin-top:6px;">إحداثيات: ${displayLocation.lat.toFixed(4)}, ${displayLocation.lng.toFixed(4)}</div>
       </div>
     `
 
     if (driverMarkerRef.current) {
       // Update existing marker position
-      driverMarkerRef.current.setLatLng([driverLocation.lat, driverLocation.lng])
+      driverMarkerRef.current.setLatLng([displayLocation.lat, displayLocation.lng])
       driverMarkerRef.current.setPopupContent(popupContent)
     } else {
       // Create new driver marker
       driverMarkerRef.current = L.marker(
-        [driverLocation.lat, driverLocation.lng],
+        [displayLocation.lat, displayLocation.lng],
         {
           icon: driverIcon,
           zIndexOffset: 600, // Above all other markers
@@ -1252,7 +1250,7 @@ const marker = L.marker(subStation.coords, {
         .addTo(map)
         .bindPopup(popupContent)
 
-      console.log("[v0] Driver marker created at:", driverLocation)
+      console.log("[v0] Driver marker created at:", displayLocation, driverLocation ? "(live)" : "(default)")
     }
   }, [driverLocation, mapReady, isValidCoord])
 

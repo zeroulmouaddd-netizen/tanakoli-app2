@@ -38,36 +38,17 @@ export function useDriverLocationTracking(driverPhone: string | null, isDriverMo
         return
       }
 
-      // Start watching position
-      watchIdRef.current = navigator.geolocation.watchPosition(
-        async (position) => {
-          const { latitude, longitude } = position.coords
-
-          const newLocation: DriverLocation = {
-            lat: latitude,
-            lng: longitude,
-          }
-
-          // Only update if location changed
-          if (
-            !lastLocationRef.current ||
-            Math.abs(lastLocationRef.current.lat - latitude) > 0.00001 ||
-            Math.abs(lastLocationRef.current.lng - longitude) > 0.00001
-          ) {
-            lastLocationRef.current = newLocation
-
-            try {
-              const driverPath = getDriverPath(driverPhone)
-              const locationRef = ref(rtdb, `drivers/${driverPath}/location`)
-              await set(locationRef, newLocation)
-              console.log("[v0] Location updated:", newLocation)
-            } catch (error) {
-              console.error("[v0] Failed to update location in Firebase:", error)
-            }
-          }
+      // First, request permission explicitly with getCurrentPosition
+      console.log("[v0] Requesting geolocation permission from user")
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          console.log("[v0] Initial position obtained, now starting continuous tracking")
+          // Initial position obtained, now start watching
+          startWatching()
         },
         (error) => {
-          console.error("[v0] Geolocation error:", error.message)
+          console.error("[v0] Permission denied or geolocation error:", error.message)
+          isTrackingRef.current = false
         },
         {
           enableHighAccuracy: true,
@@ -75,13 +56,55 @@ export function useDriverLocationTracking(driverPhone: string | null, isDriverMo
           maximumAge: 0,
         }
       )
-
-      console.log("[v0] Geolocation watch started, watch ID:", watchIdRef.current)
     } catch (error) {
       console.error("[v0] Error starting location tracking:", error)
       isTrackingRef.current = false
     }
   }, [driverPhone, isDriverMode, getDriverPath])
+
+  // Watch position for continuous tracking
+  const startWatching = useCallback(() => {
+    if (!navigator.geolocation || watchIdRef.current !== null) return
+
+    watchIdRef.current = navigator.geolocation.watchPosition(
+      async (position) => {
+        const { latitude, longitude } = position.coords
+
+        const newLocation: DriverLocation = {
+          lat: latitude,
+          lng: longitude,
+        }
+
+        // Only update if location changed significantly (>~10m)
+        if (
+          !lastLocationRef.current ||
+          Math.abs(lastLocationRef.current.lat - latitude) > 0.00001 ||
+          Math.abs(lastLocationRef.current.lng - longitude) > 0.00001
+        ) {
+          lastLocationRef.current = newLocation
+
+          try {
+            const driverPath = getDriverPath(driverPhone!)
+            const locationRef = ref(rtdb, `drivers/${driverPath}/location`)
+            await set(locationRef, newLocation)
+            console.log("[v0] Location updated:", newLocation)
+          } catch (error) {
+            console.error("[v0] Failed to update location in Firebase:", error)
+          }
+        }
+      },
+      (error) => {
+        console.error("[v0] Watch position error:", error.message)
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 0,
+      }
+    )
+
+    console.log("[v0] Geolocation watch started, watch ID:", watchIdRef.current)
+  }, [driverPhone, getDriverPath])
 
   // Stop location tracking
   const stopTracking = useCallback(async () => {
