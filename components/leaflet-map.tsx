@@ -14,10 +14,10 @@ import { useTheme } from "@/lib/theme-context"
 import { useRouteSubStations } from "@/hooks/use-routes"
 import { useBusSimulation, type SimulatedBus } from "@/lib/bus-simulation"
 
-// Tile layer URLs
+// Tile layer URLs - OpenStreetMap
 const TILE_LAYERS = {
-  light: "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png",
-  dark: "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
+  light: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+  dark: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
 }
 
 interface Bus {
@@ -33,8 +33,8 @@ type RouteViewMode = "all" | "single"
 type SelectedRoute = string | null
 
 // Khenchela Province center (zoomed out to show municipalities)
-const KHENCHELA_PROVINCE_CENTER: [number, number] = [35.40, 7.15]
-const KHENCHELA_CITY_CENTER: [number, number] = [35.4377, 7.1458]
+const KHENCHELA_PROVINCE_CENTER: [number, number] = [35.4358, 7.1436]
+const KHENCHELA_CITY_CENTER: [number, number] = [35.4358, 7.1436]
 
 // Route categories with colors - Urban only
 const ROUTE_CATEGORIES = {
@@ -756,6 +756,8 @@ const { subStations } = useRouteSubStations(selectedRoute)
 
     // Add initial tile layer (will be updated based on theme)
     tileLayerRef.current = L.tileLayer(TILE_LAYERS.light, {
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+      maxZoom: 19,
     }).addTo(map)
 
 L.control.zoom({ position: "bottomright" }).addTo(map)
