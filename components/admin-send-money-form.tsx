@@ -2,39 +2,99 @@
 
 import { useState, useEffect } from "react"
 import { sendMoneyToDriver, getAllDrivers } from "@/lib/admin-utils"
+import { rtdb } from "@/lib/firebase"
+import { ref, onValue } from "firebase/database"
 import { Send, AlertCircle, CheckCircle } from "lucide-react"
 
 interface SendMoneyFormProps {
   preselectedDriver?: string
 }
 
+interface DriverInfo {
+  phone: string
+  name: string
+  balance: number
+  lat?: number
+  lng?: number
+}
+
 export function AdminSendMoneyForm({ preselectedDriver }: SendMoneyFormProps) {
   const [driverPhone, setDriverPhone] = useState(preselectedDriver || "")
   const [amount, setAmount] = useState("")
-  const [drivers, setDrivers] = useState<Array<{ phone: string; name: string; balance: number }>>([])
+  const [drivers, setDrivers] = useState<DriverInfo[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
   const [success, setSuccess] = useState(false)
   const [driversLoading, setDriversLoading] = useState(true)
 
-  // Fetch drivers
+  // Fetch drivers from Firestore for balance info, cross-reference with Realtime DB active drivers
   useEffect(() => {
     const loadDrivers = async () => {
       try {
-        const allDrivers = await getAllDrivers()
-        setDrivers(allDrivers)
+        // Get all drivers from Firestore (has balance info)
+        const allFirestoreDrivers = await getAllDrivers()
+
+        // Subscribe to active drivers from Realtime DB
+        const driversRef = ref(rtdb, "drivers")
+        const unsubscribe = onValue(
+          driversRef,
+          (snapshot) => {
+            if (!snapshot.exists()) {
+              setDrivers([])
+              setDriversLoading(false)
+              return
+            }
+
+            const realtimeDrivers = snapshot.val()
+            const activeDriversMap = new Map()
+
+            // Build map of active drivers with their location data
+            for (const [phone, driverData] of Object.entries(realtimeDrivers)) {
+              const data = driverData as any
+              if (data.location) {
+                activeDriversMap.set(phone, {
+                  lat: data.location.lat,
+                  lng: data.location.lng,
+                })
+              }
+            }
+
+            // Merge Firestore driver info with active drivers from Realtime DB
+            const mergedDrivers: DriverInfo[] = allFirestoreDrivers
+              .filter((driver) => activeDriversMap.has(driver.phone))
+              .map((driver) => ({
+                ...driver,
+                ...activeDriversMap.get(driver.phone),
+              }))
+
+            setDrivers(mergedDrivers)
+            setDriversLoading(false)
+          },
+          (error) => {
+            console.error("[v0] Error loading active drivers from Realtime DB:", error)
+            // Fall back to Firestore drivers if Realtime DB fails
+            setDrivers(allFirestoreDrivers)
+            setDriversLoading(false)
+          }
+        )
+
+        return unsubscribe
       } catch (err) {
         console.error("[v0] Error loading drivers:", err)
-        setError("Failed to load drivers")
-      } finally {
         setDriversLoading(false)
       }
     }
 
-    loadDrivers()
+    const unsubscribe = loadDrivers()
+    return () => {
+      if (unsubscribe instanceof Function) {
+        unsubscribe()
+      }
+    }
   }, [])
 
-  // Update form when preselected driver changes
+
+  // Update form when preselected driver changes (from table selection)
   useEffect(() => {
     if (preselectedDriver) {
       setDriverPhone(preselectedDriver)
