@@ -18,11 +18,14 @@ import {
   Banknote,
   ArrowUpCircle,
   ArrowDownCircle,
-  History
+  History,
+  MapPin
 } from "lucide-react"
 import { db } from "@/lib/firebase"
 import { collection, query, where, getDocs, doc, updateDoc, increment, addDoc, serverTimestamp, orderBy, limit, onSnapshot, Timestamp } from "firebase/firestore"
 import { useDriverMode } from "@/lib/driver-mode-context"
+import { useAuth } from "@/lib/auth-context"
+import { useDriverLocationTracking } from "@/hooks/use-driver-location-tracking"
 import { BrowserMultiFormatReader, NotFoundException } from "@zxing/library"
 
 const FARE_OPTIONS = [
@@ -103,12 +106,14 @@ function saveDailyStats(stats: DailyStats): void {
 
 export function DriverDashboard() {
   const { exitDriverMode } = useDriverMode()
+  const { currentUser } = useAuth()
   const [selectedFare, setSelectedFare] = useState(30)
   const [isScanning, setIsScanning] = useState(false)
   const [scanResult, setScanResult] = useState<ScanResult | null>(null)
   const [isProcessing, setIsProcessing] = useState(false)
   const [dailyStats, setDailyStats] = useState<DailyStats>({ total: 0, trips: 0, date: getTodayDate() })
   const [showResetConfirm, setShowResetConfirm] = useState(false)
+  const [isLocationTracking, setIsLocationTracking] = useState(false)
   
   // Recharge mode state
   const [scanMode, setScanMode] = useState<ScanMode>("deduction")
@@ -122,6 +127,9 @@ export function DriverDashboard() {
   const videoRef = useRef<HTMLVideoElement>(null)
   const readerRef = useRef<BrowserMultiFormatReader | null>(null)
   const streamRef = useRef<MediaStream | null>(null)
+
+  // Initialize location tracking for driver
+  useDriverLocationTracking(currentUser?.phoneNumber || null, true)
 
   // Stop scanner helper (defined early for cleanup)
   const stopScanner = useCallback(() => {
@@ -264,7 +272,7 @@ export function DriverDashboard() {
       console.error("Camera error:", error)
       setScanResult({
         success: false,
-        message: "ت��ذر الوصول إلى الكاميرا"
+        message: "ت����ذر الوصول إلى الكاميرا"
       })
       stopScanner()
     }
@@ -458,13 +466,21 @@ export function DriverDashboard() {
               <p className="text-xs text-slate-400">Driver Mode</p>
             </div>
           </div>
-          <button
-            onClick={exitDriverMode}
-            className="flex items-center gap-1 sm:gap-2 rounded-lg sm:rounded-xl bg-red-500/20 px-2 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-medium text-red-400 transition-colors hover:bg-red-500/30 flex-shrink-0"
-          >
-            <LogOut className="h-3 sm:h-4 w-3 sm:w-4" />
-            <span>خروج</span>
-          </button>
+          <div className="flex items-center gap-2 sm:gap-3">
+            {/* Location tracking status */}
+            <div className="flex items-center gap-1.5 rounded-lg bg-green-500/20 px-2.5 sm:px-3 py-1.5 sm:py-2">
+              <div className="flex h-2 w-2 rounded-full bg-green-500 animate-pulse" />
+              <span className="text-xs text-green-400 font-medium">تتبع مباشر</span>
+              <span className="text-xs text-green-400/70">Live</span>
+            </div>
+            <button
+              onClick={exitDriverMode}
+              className="flex items-center gap-1 sm:gap-2 rounded-lg sm:rounded-xl bg-red-500/20 px-2 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-medium text-red-400 transition-colors hover:bg-red-500/30 flex-shrink-0"
+            >
+              <LogOut className="h-3 sm:h-4 w-3 sm:w-4" />
+              <span>خروج</span>
+            </button>
+          </div>
         </div>
       </header>
 

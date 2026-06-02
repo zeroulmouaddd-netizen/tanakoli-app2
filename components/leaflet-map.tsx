@@ -6,18 +6,19 @@ import "leaflet/dist/leaflet.css"
 import "leaflet.markercluster"
 import "leaflet.markercluster/dist/MarkerCluster.css"
 import "leaflet.markercluster/dist/MarkerCluster.Default.css"
-import { db } from "@/lib/firebase"
+import { db, rtdb } from "@/lib/firebase"
 import { collection, onSnapshot } from "firebase/firestore"
+import { ref, onValue } from "firebase/database"
 import { motion, AnimatePresence } from "framer-motion"
 import { Layers, ChevronDown, ChevronUp, MapPin, Maximize2, Minimize2 } from "lucide-react"
 import { useTheme } from "@/lib/theme-context"
 import { useRouteSubStations } from "@/hooks/use-routes"
 import { useBusSimulation, type SimulatedBus } from "@/lib/bus-simulation"
 
-// Tile layer URLs
+// Tile layer URLs - OpenStreetMap only
 const TILE_LAYERS = {
-  light: "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png",
-  dark: "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
+  light: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+  dark: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
 }
 
 interface Bus {
@@ -27,6 +28,11 @@ interface Bus {
   name?: string
   current_route_id?: string
   isLive?: boolean // true when receiving GPS from Driver App
+}
+
+interface DriverLocation {
+  lat: number
+  lng: number
 }
 
 type RouteViewMode = "all" | "single"
@@ -435,13 +441,45 @@ if (typeof document !== "undefined") {
         50% { box-shadow: 0 0 0 4px rgba(255,107,0,0.2), 0 2px 4px rgba(255,107,0,0.4); }
       }
       .sub-station-marker.active { animation: sub-station-pulse 2s infinite; }
+      /* Driver marker styles - pink/magenta bus */
+      .driver-marker-icon {
+        width: 28px; height: 28px;
+        border-radius: 50%;
+        border: 3px solid white;
+        background: linear-gradient(135deg, #ec4899 0%, #db2777 100%);
+        display: flex; align-items: center; justify-content: center;
+        box-shadow: 0 0 0 2px white, 0 0 12px rgba(236, 72, 153, 0.6);
+        position: relative;
+      }
+      .driver-marker-icon::after {
+        content: '';
+        position: absolute;
+        width: 40px; height: 40px;
+        background: radial-gradient(circle, rgba(236, 72, 153, 0.3) 0%, transparent 70%);
+        border-radius: 50%;
+        top: 50%; left: 50%;
+        transform: translate(-50%, -50%);
+        animation: driver-marker-pulse 2s ease-in-out infinite;
+        pointer-events: none;
+      }
+      .driver-marker-icon svg {
+        position: relative;
+        z-index: 1;
+      }
+      @keyframes driver-marker-pulse {
+        0%, 100% { width: 40px; height: 40px; }
+        50% { width: 55px; height: 55px; }
+      }
+      .driver-marker-icon:hover { 
+        transform: scale(1.15); 
+        box-shadow: 0 0 0 2px white, 0 0 18px rgba(236, 72, 153, 0.8);
+      }
     `
     document.head.appendChild(style)
   }
 }
 
-// Route Controller Component
-function RouteController({ 
+function RouteController({
   viewMode, 
   setViewMode, 
   selectedRoute, 
@@ -593,6 +631,7 @@ export default function LeafletMap({ trackingLineId, isFullscreen = false }: Lea
   const tileLayerRef = useRef<L.TileLayer | null>(null)
   const isInitializedRef = useRef(false)
   const [buses, setBuses] = useState<Bus[]>([])
+  const [driverLocation, setDriverLocation] = useState<DriverLocation | null>(null)
   // Separate refs for clustered vs non-clustered markers
   const busMarkersRef = useRef<Map<string, L.Marker>>(new Map()) // For simulated (moving) buses - NOT clustered
   const fleetClusterRef = useRef<L.MarkerClusterGroup | null>(null) // For static fleet buses - CLUSTERED
@@ -600,6 +639,7 @@ export default function LeafletMap({ trackingLineId, isFullscreen = false }: Lea
   const routePolylinesRef = useRef<Map<string, L.Polyline>>(new Map())
   const stationMarkersRef = useRef<Map<string, L.Marker>>(new Map())
   const subStationMarkersRef = useRef<Map<string, L.Marker>>(new Map())
+  const driverMarkerRef = useRef<L.Marker | null>(null) // For real-time driver location
   const { isDark } = useTheme()
   
   // Route viewing state
@@ -723,6 +763,43 @@ const { subStations } = useRouteSubStations(selectedRoute)
       )
     } catch (error) {
       console.error("[v0] Firebase initialization error (using offline fleet):", error)
+    }
+
+    return () => {
+      if (unsubscribe) unsubscribe()
+    }
+  }, [])
+
+  // Real-time listener for driver location (0775453629 = drivers/0775453629/location)
+  useEffect(() => {
+    let unsubscribe: (() => void) | undefined
+
+    try {
+      const driverLocationRef = ref(rtdb, "drivers/0775453629/location")
+      
+      unsubscribe = onValue(
+        driverLocationRef,
+        (snapshot) => {
+          if (snapshot.exists()) {
+            const data = snapshot.val()
+            if (data && typeof data.lat === "number" && typeof data.lng === "number") {
+              setDriverLocation({
+                lat: data.lat,
+                lng: data.lng,
+              })
+              console.log("[v0] Driver location updated:", data)
+            }
+          } else {
+            // Driver is offline
+            setDriverLocation(null)
+          }
+        },
+        (error) => {
+          console.error("[v0] Driver location listener error:", error.message)
+        }
+      )
+    } catch (error) {
+      console.error("[v0] Driver location initialization error:", error)
     }
 
     return () => {
@@ -1116,6 +1193,66 @@ const marker = L.marker(subStation.coords, {
       fleetMarkersRef.current.set(bus.id, marker)
     })
   }, [staticBuses, mapReady, isValidCoord, getBusIcon])
+
+  // Update driver location marker (real-time GPS from Driver App)
+  // Shows at Khenchela center by default if no data yet
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map || !mapReady) return
+
+    // Use real location if available, otherwise use default Khenchela center
+    const displayLocation = driverLocation || {
+      lat: 35.4358,
+      lng: 7.1436,
+    }
+
+    // Validate coordinates
+    if (!isValidCoord(displayLocation.lat, displayLocation.lng)) {
+      console.warn("[v0] Invalid driver coordinates:", displayLocation)
+      return
+    }
+
+    const driverIcon = L.divIcon({
+      className: "driver-marker-container",
+      html: `<div class="driver-marker-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M8 6v6"/><path d="M16 6v6"/><path d="M2 12h20"/>
+          <rect x="4" y="3" width="16" height="18" rx="2"/>
+          <circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/>
+        </svg>
+      </div>`,
+      iconSize: [28, 28],
+      iconAnchor: [14, 14],
+    })
+
+    const statusText = driverLocation ? "Live Driver - 0775453629" : "Default Location (Awaiting GPS)"
+    const popupContent = `
+      <div class="station-popup">
+        <div class="station-popup-name">سائق مباشر</div>
+        <div style="font-size:11px;color:#ec4899;font-weight:600;margin-top:4px;">${statusText}</div>
+        <div style="font-size:10px;color:#666;margin-top:6px;">إحداثيات: ${displayLocation.lat.toFixed(4)}, ${displayLocation.lng.toFixed(4)}</div>
+      </div>
+    `
+
+    if (driverMarkerRef.current) {
+      // Update existing marker position
+      driverMarkerRef.current.setLatLng([displayLocation.lat, displayLocation.lng])
+      driverMarkerRef.current.setPopupContent(popupContent)
+    } else {
+      // Create new driver marker
+      driverMarkerRef.current = L.marker(
+        [displayLocation.lat, displayLocation.lng],
+        {
+          icon: driverIcon,
+          zIndexOffset: 600, // Above all other markers
+        }
+      )
+        .addTo(map)
+        .bindPopup(popupContent)
+
+      console.log("[v0] Driver marker created at:", displayLocation, driverLocation ? "(live)" : "(default)")
+    }
+  }, [driverLocation, mapReady, isValidCoord])
 
   return (
     <div className="relative h-full w-full">

@@ -9,6 +9,7 @@ import {
   CACHE_SIZE_UNLIMITED,
 } from "firebase/firestore"
 import { getAuth } from "firebase/auth"
+import { getDatabase } from "firebase/database"
 
 const firebaseConfig = {
   apiKey: "AIzaSyCz62DFbbD89fpYUXdg38nRCohX-yTJ4z8",
@@ -18,6 +19,7 @@ const firebaseConfig = {
   messagingSenderId: "757217321198",
   appId: "1:757217321198:web:1cbdfd808a180b6ff9d3ff",
   measurementId: "G-S4BJ4GEEKF",
+  databaseURL: "https://tanakoli-khenchela-default-rtdb.firebaseio.com",
 }
 
 // Guard against re-initialization on hot reloads
@@ -65,5 +67,8 @@ try {
 
 // Initialize and export Firebase Auth
 export const auth = getAuth(app)
+
+// Initialize and export Firebase Realtime Database
+export const rtdb = getDatabase(app)
 
 export { db }
