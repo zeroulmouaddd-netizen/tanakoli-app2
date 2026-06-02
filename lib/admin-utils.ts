@@ -12,6 +12,8 @@ import {
   serverTimestamp,
   getDocs,
   where,
+  setDoc,
+  getDoc,
 } from "firebase/firestore"
 import { ref, onValue } from "firebase/database"
 
@@ -94,13 +96,30 @@ export async function sendMoneyToDriver(
     const usersQuery = query(collection(db, "users"), where("phone", "==", driverPhone))
     const usersSnapshot = await getDocs(usersQuery)
 
-    if (usersSnapshot.empty) {
-      return { success: false, error: "Driver not found" }
-    }
+    let driverId: string
+    let currentBalance: number
 
-    const driverDoc = usersSnapshot.docs[0]
-    const driverId = driverDoc.id
-    const currentBalance = driverDoc.data().balance || 0
+    if (usersSnapshot.empty) {
+      // Driver doesn't exist in Firestore, create a wallet entry
+      console.log("[v0] Creating new driver wallet for:", driverPhone)
+
+      // Create a new driver document with basic info
+      const newUserRef = await addDoc(collection(db, "users"), {
+        phone: driverPhone,
+        name: driverPhone,
+        isDriver: true,
+        balance: 0,
+        createdAt: serverTimestamp(),
+      })
+
+      driverId = newUserRef.id
+      currentBalance = 0
+    } else {
+      // Driver exists, get their ID and current balance
+      const driverDoc = usersSnapshot.docs[0]
+      driverId = driverDoc.id
+      currentBalance = driverDoc.data().balance || 0
+    }
 
     // Update driver balance
     await updateDoc(doc(db, "users", driverId), {
