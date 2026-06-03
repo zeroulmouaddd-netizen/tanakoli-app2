@@ -41,6 +41,9 @@ interface ScanResult {
   amount?: number
   message?: string
   isRecharge?: boolean
+  rawData?: string
+  parsedData?: Record<string, unknown>
+  error?: string
 }
 
 type ScanMode = "deduction" | "recharge"
@@ -308,14 +311,37 @@ export function DriverDashboard() {
     setIsProcessing(true)
 
     try {
+      // Log raw QR data
+      console.log("[v0] Raw QR Data:", qrData)
+      
       // Parse QR code data
-      const data = JSON.parse(qrData)
-      const { userId, phone, name } = data
+      let parsedData: Record<string, unknown>
+      try {
+        parsedData = JSON.parse(qrData)
+        console.log("[v0] Parsed QR Data:", parsedData)
+      } catch (parseError) {
+        console.error("[v0] QR Parse Error:", parseError)
+        setScanResult({
+          success: false,
+          message: "فشل في قراءة رمز QR - صيغة غير صحيحة",
+          rawData: qrData,
+          error: `Parse error: ${parseError instanceof Error ? parseError.message : "Unknown error"}`
+        })
+        setIsProcessing(false)
+        return
+      }
+
+      const { userId, phone, name, type } = parsedData
+
+      console.log("[v0] QR Type:", type, "User ID:", userId, "Phone:", phone)
 
       if (!userId && !phone) {
         setScanResult({
           success: false,
-          message: "رمز QR غير صالح"
+          message: "رمز QR غير صالح - بيانات المستخدم مفقودة",
+          rawData: qrData,
+          parsedData,
+          error: "Missing userId and phone in QR data"
         })
         setIsProcessing(false)
         return
@@ -328,15 +354,16 @@ export function DriverDashboard() {
 
       if (userId) {
         // Try to get user directly by ID
-        const docRef = doc(db, "users", userId)
         const docSnap = await getDocs(query(usersRef, where("Phone", "==", userId)))
         
         if (!docSnap.empty) {
           userDoc = docSnap.docs[0]
           userDocId = userDoc.id
+          console.log("[v0] Found user by Phone/userId:", userDocId)
         } else {
           // Try userId as doc ID
           userDocId = userId
+          console.log("[v0] Using userId directly:", userDocId)
         }
       } else if (phone) {
         // Search by phone number
@@ -346,13 +373,17 @@ export function DriverDashboard() {
         if (!querySnapshot.empty) {
           userDoc = querySnapshot.docs[0]
           userDocId = userDoc.id
+          console.log("[v0] Found user by phone:", userDocId)
         }
       }
 
       if (!userDocId) {
         setScanResult({
           success: false,
-          message: "المستخدم غير موجود"
+          message: "المستخدم غير موجود - تحقق من رمز QR",
+          rawData: qrData,
+          parsedData,
+          error: "User not found in database"
         })
         setIsProcessing(false)
         return
@@ -364,13 +395,18 @@ export function DriverDashboard() {
       const userDocRef = doc(db, "users", userDocId)
       const passengerName = userData?.fullName || name || "راكب"
 
+      console.log("[v0] Current balance:", currentBalance, "Passenger:", passengerName)
+
       if (scanMode === "recharge") {
         // RECHARGE MODE: Add balance to passenger, deduct from driver
         const rechargeAmountNum = parseInt(rechargeAmount)
         if (!rechargeAmountNum || rechargeAmountNum <= 0) {
           setScanResult({
             success: false,
-            message: "مبلغ الشحن غير صالح"
+            message: "مبلغ الشحن غير صالح - تحقق من المبلغ المدخل",
+            rawData: qrData,
+            parsedData,
+            error: "Invalid recharge amount"
           })
           setIsProcessing(false)
           return
@@ -380,7 +416,10 @@ export function DriverDashboard() {
         if (!firestoreUserId) {
           setScanResult({
             success: false,
-            message: "خطأ في التحقق من الهوية"
+            message: "خطأ في التحقق من الهوية - أعد تسجيل الدخول",
+            rawData: qrData,
+            parsedData,
+            error: "Driver not authenticated"
           })
           setIsProcessing(false)
           return
@@ -394,6 +433,7 @@ export function DriverDashboard() {
           const driverDocSnap = await getDocs(query(collection(db, "users"), where("Phone", "==", firestoreUserId)))
           if (!driverDocSnap.empty) {
             driverCurrentBalance = driverDocSnap.docs[0].data()?.balance ?? 0
+            console.log("[v0] Driver balance:", driverCurrentBalance)
           }
         } catch (error) {
           console.error("[v0] Error getting driver balance:", error)
@@ -404,7 +444,10 @@ export function DriverDashboard() {
         if (driverCurrentBalance < rechargeAmountNum) {
           setScanResult({
             success: false,
-            message: `رصيد غير كافٍ (لديك ${driverCurrentBalance} د.ج)`
+            message: `رصيد غير كافٍ (لديك ${driverCurrentBalance} د.ج)`,
+            rawData: qrData,
+            parsedData,
+            error: `Insufficient balance: ${driverCurrentBalance} < ${rechargeAmountNum}`
           })
           setIsProcessing(false)
           return
@@ -412,6 +455,9 @@ export function DriverDashboard() {
 
         const newPassengerBalance = currentBalance + rechargeAmountNum
         const newDriverBalance = driverCurrentBalance - rechargeAmountNum
+
+        console.log("[v0] Recharge: Passenger", currentBalance, "→", newPassengerBalance)
+        console.log("[v0] Recharge: Driver", driverCurrentBalance, "→", newDriverBalance)
 
         // Add to passenger balance
         await updateDoc(userDocRef, {
@@ -438,6 +484,7 @@ export function DriverDashboard() {
             passengerName: passengerName,
             status: "completed"
           })
+          console.log("[v0] Transaction logged successfully")
         } catch (error) {
           console.error("[v0] Error logging transaction:", error)
         }
@@ -448,9 +495,13 @@ export function DriverDashboard() {
           passengerName: passengerName,
           newBalance: newPassengerBalance,
           amount: rechargeAmountNum,
-          message: "تم الشحن ��نجاح",
-          isRecharge: true
+          message: "تم الشحن بنجاح",
+          isRecharge: true,
+          rawData: qrData,
+          parsedData
         })
+
+        console.log("[v0] Recharge successful")
 
         // Reset recharge amount
         setRechargeAmount("")
@@ -461,7 +512,10 @@ export function DriverDashboard() {
         if (currentBalance < selectedFare) {
           setScanResult({
             success: false,
-            message: `رصيد غير كافٍ (${currentBalance} د.ج)`
+            message: `رصيد غير كافٍ (${currentBalance} د.ج) - المطلوب ${selectedFare} د.ج`,
+            rawData: qrData,
+            parsedData,
+            error: `Insufficient balance: ${currentBalance} < ${selectedFare}`
           })
           setIsProcessing(false)
           return
@@ -469,6 +523,8 @@ export function DriverDashboard() {
 
         // Calculate new balance
         const newBalance = currentBalance - selectedFare
+
+        console.log("[v0] Deduction: Balance", currentBalance, "→", newBalance)
 
         // Deduct fare from balance
         await updateDoc(userDocRef, {
@@ -487,6 +543,7 @@ export function DriverDashboard() {
             passengerName: passengerName,
             status: "completed"
           })
+          console.log("[v0] Transaction logged successfully")
         } catch {
           // Transaction logging failed, but payment still went through
         }
@@ -498,18 +555,23 @@ export function DriverDashboard() {
           newBalance: newBalance,
           amount: selectedFare,
           message: "تم الخصم بنجاح",
-          isRecharge: false
+          isRecharge: false,
+          rawData: qrData,
+          parsedData
         })
+
+        console.log("[v0] Deduction successful")
 
         // Update driver stats
         updateStats(selectedFare)
       }
 
     } catch (error) {
-      console.error("Processing error:", error)
+      console.error("[v0] Processing error:", error)
       setScanResult({
         success: false,
-        message: "خطأ في معالجة الدفع"
+        message: "خطأ في معالجة الدفع - حاول مرة أخرى",
+        error: error instanceof Error ? error.message : "Unknown error"
       })
     } finally {
       setIsProcessing(false)
@@ -853,14 +915,14 @@ export function DriverDashboard() {
       <AnimatePresence>
         {scanResult && (
           <motion.div
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm"
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm overflow-y-auto"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={handleCloseResult}
           >
             <motion.div
-              className={`mx-4 w-full max-w-sm rounded-3xl p-8 ${
+              className={`mx-4 w-full max-w-sm rounded-3xl p-8 my-4 ${
                 scanResult.success 
                   ? scanResult.isRecharge 
                     ? "bg-blue-500" 
@@ -902,13 +964,46 @@ export function DriverDashboard() {
                       </p>
                       <p className="text-3xl font-bold">{scanResult.amount} د.ج</p>
                     </div>
-                    <div className="rounded-xl bg-white/10 px-6 py-2">
+                    <div className="rounded-xl bg-white/10 px-6 py-2 mb-4">
                       <p className="text-sm opacity-70">الرصيد الجديد للراكب</p>
                       <p className="text-xl font-bold">{scanResult.newBalance?.toLocaleString("ar-DZ")} د.ج</p>
                     </div>
                   </>
                 ) : (
-                  <p className="text-lg opacity-90">{scanResult.message}</p>
+                  <>
+                    <p className="text-lg opacity-90 mb-4">{scanResult.message}</p>
+                  </>
+                )}
+
+                {/* Debug Info Section */}
+                {(scanResult.rawData || scanResult.error) && (
+                  <div className="mt-4 w-full rounded-xl bg-black/30 p-3 text-left max-h-[200px] overflow-y-auto">
+                    <p className="text-xs font-bold text-white/70 mb-2">معلومات التصحيح:</p>
+                    {scanResult.rawData && (
+                      <div className="mb-2">
+                        <p className="text-[10px] text-white/60">البيانات الخام:</p>
+                        <p className="text-[11px] text-white/80 break-all font-mono bg-black/50 p-2 rounded">
+                          {scanResult.rawData}
+                        </p>
+                      </div>
+                    )}
+                    {scanResult.parsedData && (
+                      <div className="mb-2">
+                        <p className="text-[10px] text-white/60">البيانات المُحللة:</p>
+                        <p className="text-[11px] text-white/80 break-all font-mono bg-black/50 p-2 rounded">
+                          {JSON.stringify(scanResult.parsedData, null, 2)}
+                        </p>
+                      </div>
+                    )}
+                    {scanResult.error && (
+                      <div>
+                        <p className="text-[10px] text-white/60">الخطأ:</p>
+                        <p className="text-[11px] text-yellow-200 font-mono bg-black/50 p-2 rounded">
+                          {scanResult.error}
+                        </p>
+                      </div>
+                    )}
+                  </div>
                 )}
 
                 {/* Close button */}

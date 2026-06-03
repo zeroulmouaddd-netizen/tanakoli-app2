@@ -71,11 +71,12 @@ export function QRRechargeModal({
   const lastTransactionRef = useRef<string | null>(null)
   const unsubscribeRef = useRef<(() => void) | null>(null)
 
-  // Generate QR code data with actual user ID
+  // Generate QR code data with actual user ID and consistent format
   useEffect(() => {
     if (!firestoreUserId || !isOpen) return
 
     const data = JSON.stringify({
+      type: "recharge",
       action: "recharge",
       userId: firestoreUserId,
       timestamp: Date.now(),

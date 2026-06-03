@@ -138,12 +138,14 @@ export function QRCodeDisplay({ userId, userName, userPhone }: QRCodeDisplayProp
     return () => unsubscribe()
   }, [userId])
 
-  // Stable QR code data
+  // Stable QR code data - Consistent format for all QR codes
   const qrCodeData = qrToken ? JSON.stringify({
+    type: "payment",
     userId,
     name: userName,
     phone: userPhone,
     token: qrToken,
+    timestamp: Date.now(),
   }) : ""
 
   const progressPercentage = (timeRemaining / QR_REFRESH_INTERVAL) * 100
