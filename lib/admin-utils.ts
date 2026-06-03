@@ -90,8 +90,13 @@ export async function sendMoneyToDriver(
   adminMessage: string = "Admin transfer"
 ): Promise<{ success: boolean; error?: string }> {
   try {
+    // Normalize phone number to "0XXXXXXXXX" format (matching Firestore Phone field)
+    const normalizedPhone = driverPhone.startsWith("+213")
+      ? "0" + driverPhone.slice(4)
+      : driverPhone
+
     // Find driver user document by phone
-    const usersQuery = query(collection(db, "users"), where("Phone", "==", driverPhone))
+    const usersQuery = query(collection(db, "users"), where("Phone", "==", normalizedPhone))
     const usersSnapshot = await getDocs(usersQuery)
 
     if (usersSnapshot.empty) {

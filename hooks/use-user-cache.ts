@@ -56,9 +56,7 @@ export function clearUserCache() {
 export function useUserCache() {
   const { currentUser, firestoreUserId, isAuthLoading } = useAuth()
 
-  const [userData, setUserData] = useState<UserData | null>(() =>
-    firestoreUserId ? getCachedUserData() : null
-  )
+  const [userData, setUserData] = useState<UserData | null>(() => getCachedUserData())
   const [isLoading, setIsLoading] = useState(true)
   const [isLoggedIn, setIsLoggedIn] = useState(false)
 

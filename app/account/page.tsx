@@ -40,7 +40,6 @@ export default function AccountPage() {
   const [showQRRecharge, setShowQRRecharge] = useState(false)
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false)
   const [isLoggingOut, setIsLoggingOut] = useState(false)
-  const [displayBalance, setDisplayBalance] = useState(userData?.balance ?? 0)
 
   const { toast } = useToast()
   const { exitDriverMode } = useDriverMode()
@@ -53,7 +52,6 @@ export default function AccountPage() {
       setEditFullName(userData.fullName || "")
       setEditEmail(userData.email || "")
       setEditAddress(userData.address || "")
-      setDisplayBalance(userData.balance ?? 0)
     }
   }, [userData])
 
@@ -206,7 +204,7 @@ export default function AccountPage() {
                 <div className="mb-4">
                   <p className="text-sm text-primary-foreground/80">الرصيد الحالي</p>
                   <div className="text-3xl font-bold text-primary-foreground" dir="ltr">
-                    {displayBalance.toLocaleString("ar-DZ")} <span className="text-lg">د.ج</span>
+                    {(userData?.balance ?? 0).toLocaleString("ar-DZ")} <span className="text-lg">د.ج</span>
                   </div>
                 </div>
                 <div className="flex gap-2">
@@ -362,8 +360,7 @@ export default function AccountPage() {
         <QRRechargeModal 
           isOpen={showQRRecharge}
           onClose={() => setShowQRRecharge(false)}
-          currentBalance={displayBalance}
-          onBalanceUpdate={(newBalance) => setDisplayBalance(newBalance)}
+          currentBalance={userData?.balance ?? 0}
         />
 
         {/* Top-up Modal */}
