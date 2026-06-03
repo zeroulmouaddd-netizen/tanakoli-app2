@@ -191,7 +191,7 @@ export function AppHeader() {
           <h1 className="text-base sm:text-lg font-bold text-foreground truncate">تنقلي خنشلة</h1>
           <span className="text-xs text-muted-foreground">النقل الحضري</span>
         </div>
-        <img src="/logo.png" alt="Tanakoli Khenchela" className="h-8 sm:h-10 w-8 sm:w-10 rounded-lg sm:rounded-full flex-shrink-0" />
+        <img src="/logo.png" alt="Tanakoli Khenchela" className="h-10 sm:h-12 w-10 sm:w-12 rounded-xl object-contain flex-shrink-0" />
       </div>
 
       <Button variant="ghost" size="icon" className="h-10 w-10 sm:h-12 sm:w-12 rounded-full bg-card/80 backdrop-blur-sm relative flex-shrink-0">
