@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation"
 import { motion, AnimatePresence } from "framer-motion"
 import { auth, db } from "@/lib/firebase"
 import { signInWithPhoneNumber, RecaptchaVerifier, type ConfirmationResult } from "firebase/auth"
-import { doc, setDoc } from "firebase/firestore"
+import { doc, setDoc, getDoc } from "firebase/firestore"
 import { User, Phone, Shield, ArrowRight, Loader2, Check, Mail } from "lucide-react"
 
 type Step = "splash" | "step1" | "step2" | "otp"
@@ -229,19 +229,31 @@ export function OnboardingScreen() {
         const docId = user.phoneNumber.startsWith("+213")
           ? "0" + user.phoneNumber.slice(4)
           : user.phoneNumber
-        
-        // Determine which phone to save based on auth method
-        const primaryPhone = authMethod === "phone" ? phone : (phone || "")
-        const primaryEmail = authMethod === "email" ? email : ""
 
-        await setDoc(doc(db, "users", docId), {
-          Phone: docId,
-          fullName: name.trim(),
-          email: primaryEmail,
-          address: address.trim(),
-          balance: 0,
-          role: "passenger",
-        }, { merge: true })
+        const primaryEmail = authMethod === "email" ? email : ""
+        const userDocRef = doc(db, "users", docId)
+        const existing = await getDoc(userDocRef)
+
+        if (existing.exists()) {
+          // Returning user — update profile fields only, never touch balance
+          await setDoc(userDocRef, {
+            Phone: docId,
+            fullName: name.trim(),
+            email: primaryEmail,
+            address: address.trim(),
+            role: "passenger",
+          }, { merge: true })
+        } else {
+          // New user — create document with initial balance of 0
+          await setDoc(userDocRef, {
+            Phone: docId,
+            fullName: name.trim(),
+            email: primaryEmail,
+            address: address.trim(),
+            balance: 0,
+            role: "passenger",
+          })
+        }
       }
       try { sessionStorage.setItem("splashShown", "true") } catch {}
       router.push("/")
