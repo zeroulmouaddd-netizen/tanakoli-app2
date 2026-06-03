@@ -32,7 +32,7 @@ export function AppHeader() {
   }
 
   return (
-    <header className="absolute inset-x-0 top-0 z-10 flex items-center justify-between px-2 sm:px-4 py-2 sm:py-3 md:py-4 gap-2 sm:gap-4">
+    <header className="absolute inset-x-0 top-0 z-10 flex items-center justify-between px-2 sm:px-4 py-3 sm:py-4 gap-2 sm:gap-4 overflow-visible">
       <Sheet open={isOpen} onOpenChange={setIsOpen}>
         <SheetTrigger asChild>
           <Button variant="ghost" size="icon" className="h-10 w-10 sm:h-12 sm:w-12 rounded-full bg-card/80 backdrop-blur-sm flex-shrink-0">
@@ -186,12 +186,14 @@ export function AppHeader() {
         </SheetContent>
       </Sheet>
 
-      <div className="flex items-center gap-2 sm:gap-3 flex-1 justify-end min-w-0">
+      <div className="flex items-center gap-2 sm:gap-3 flex-1 justify-end overflow-visible">
         <div className="flex flex-col items-end min-w-0">
           <h1 className="text-base sm:text-lg font-bold text-foreground truncate">تنقلي خنشلة</h1>
           <span className="text-xs text-muted-foreground">النقل الحضري</span>
         </div>
-        <img src="/logo.png" alt="Tanakoli Khenchela" className="h-10 sm:h-12 w-10 sm:w-12 rounded-xl object-contain flex-shrink-0" />
+        <div className="flex-shrink-0 h-10 sm:h-12 w-10 sm:w-12">
+          <img src="/logo.png" alt="Tanakoli Khenchela" className="h-full w-full rounded-xl object-contain" />
+        </div>
       </div>
 
       <Button variant="ghost" size="icon" className="h-10 w-10 sm:h-12 sm:w-12 rounded-full bg-card/80 backdrop-blur-sm relative flex-shrink-0">
