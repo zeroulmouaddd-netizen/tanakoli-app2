@@ -78,9 +78,11 @@ export function useUserCache() {
       (docSnapshot) => {
         if (docSnapshot.exists()) {
           const data = docSnapshot.data() as UserData
+          console.log("[useUserCache] Firestore snapshot received — userId:", firestoreUserId, "balance:", data.balance)
           setUserData(data)
           setCachedUserData(data)
         } else {
+          console.log("[useUserCache] Firestore snapshot — no document found for userId:", firestoreUserId)
           setUserData(null)
         }
         setIsLoggedIn(true)
