@@ -6,9 +6,8 @@ import { motion } from "framer-motion"
 import { AppHeader } from "@/components/app-header"
 import { BottomNav } from "@/components/bottom-nav"
 import { SettingsBackground } from "@/components/settings-background"
-import { Settings, Bell, Volume2, Globe, ChevronLeft, ChevronRight, Moon, Sun, Check } from "lucide-react"
+import { Settings, Bell, Volume2, Globe, ChevronLeft, ChevronRight, Check } from "lucide-react"
 import { Switch } from "@/components/ui/switch"
-import { useTheme } from "@/lib/theme-context"
 import { PageTransition } from "@/components/page-transition"
 
 type Language = "ar" | "fr" | "en"
@@ -21,7 +20,6 @@ const languages = [
 
 export default function SettingsPage() {
   const router = useRouter()
-  const { isDark, toggleTheme } = useTheme()
   
   // Settings state - persisted to localStorage
   const [tripNotifications, setTripNotifications] = useState(true)
@@ -173,37 +171,7 @@ export default function SettingsPage() {
               </div>
             </motion.div>
 
-            {/* Appearance Section */}
-            <motion.div
-              className="rounded-lg sm:rounded-2xl bg-card p-3 sm:p-4 shadow-sm"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.15 }}
-            >
-              <h2 className="mb-3 sm:mb-4 flex items-center gap-2 text-base sm:text-lg font-bold text-foreground">
-                {isDark ? <Moon className="h-4 sm:h-5 w-4 sm:w-5 text-primary" /> : <Sun className="h-4 sm:h-5 w-4 sm:w-5 text-primary" />}
-                المظهر
-              </h2>
-              
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-lg sm:rounded-xl bg-muted/50 p-3 sm:p-4">
-                <div className="flex items-center gap-2 sm:gap-3 order-2 sm:order-1">
-                  <div className="flex h-8 sm:h-10 w-8 sm:w-10 items-center justify-center rounded-lg bg-primary/10 flex-shrink-0">
-                    {isDark ? <Moon className="h-4 sm:h-5 w-4 sm:w-5 text-primary" /> : <Sun className="h-4 sm:h-5 w-4 sm:w-5 text-primary" />}
-                  </div>
-                  <div>
-                    <p className="text-sm sm:text-base font-medium text-foreground">الوضع الليلي</p>
-                    <p className="text-xs sm:text-sm text-muted-foreground">{isDark ? "مفعّل" : "معطّل"}</p>
-                  </div>
-                </div>
-                {hasMounted && (
-                  <Switch
-                    checked={isDark}
-                    onCheckedChange={toggleTheme}
-                    className="data-[state=checked]:bg-primary order-1 sm:order-2"
-                  />
-                )}
-              </div>
-            </motion.div>
+
 
             {/* Language Section */}
             <motion.div
