@@ -6,13 +6,13 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
-  turbopack: {},
   webpack: (config, { isServer }) => {
     if (!isServer) {
       config.optimization.usedExports = false
     }
     return config
   },
+  allowedDevOrigins: ['*.replit.dev', '*.replit.app'],
   turbopack: {},
 }
 
