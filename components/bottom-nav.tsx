@@ -89,6 +89,7 @@ export function BottomNav() {
                     {hasMounted && (
                       <motion.button
                         onClick={handleOpenModal}
+                        onTouchStart={() => {}}
                         className="flex flex-col items-center gap-0.5 sm:gap-1"
                         whileTap={{ scale: 0.92 }}
                         transition={{ type: "spring", stiffness: 400, damping: 17 }}
@@ -111,7 +112,7 @@ export function BottomNav() {
 
               // Regular nav items
               return (
-                <Link key={item.label} href={item.href} className="flex flex-1 items-center justify-center">
+                <Link key={item.label} href={item.href} onTouchStart={() => {}} className="flex flex-1 items-center justify-center">
                   <motion.div
                     className={`flex flex-col items-center gap-0.5 sm:gap-1 rounded-lg sm:rounded-xl px-2 sm:px-3 py-1.5 sm:py-2 transition-colors ${
                       isActive
@@ -211,6 +212,7 @@ function PaymentQRModal({ isOpen, onClose }: PaymentQRModalProps) {
           {/* Close button - top right on mobile, top left on larger screens */}
           <motion.button
             onClick={onClose}
+            onTouchStart={() => {}}
             className="absolute right-3 top-3 sm:right-auto sm:left-4 sm:top-4 flex h-10 sm:h-12 w-10 sm:w-12 items-center justify-center rounded-full bg-card/90 text-foreground shadow-xl backdrop-blur-sm transition-colors hover:bg-card"
             style={{ zIndex: 10000 }}
             initial={{ opacity: 0, scale: 0.8 }}

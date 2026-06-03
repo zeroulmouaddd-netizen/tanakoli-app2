@@ -8,6 +8,7 @@ import { BusSimulationProvider } from '@/lib/bus-simulation'
 import { DriverModeProvider } from '@/lib/driver-mode-context'
 import { AuthProvider } from '@/lib/auth-context'
 import { AuthGate } from '@/components/auth-gate'
+import { TouchInit } from '@/components/touch-init'
 import './globals.css'
 
 const notoArabic = Noto_Sans_Arabic({ 
@@ -55,6 +56,7 @@ export default function RootLayout({
   return (
     <html lang="ar" dir="rtl" suppressHydrationWarning>
       <body className={`${notoArabic.variable} font-sans antialiased theme-transition`}>
+        <TouchInit />
         <AuthProvider>
           <ThemeProvider>
             <DriverModeProvider>
