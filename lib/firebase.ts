@@ -22,7 +22,26 @@ const firebaseConfig = {
   databaseURL: process.env.NEXT_PUBLIC_FIREBASE_DATABASE_URL,
 }
 
-const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp()
+// Validate that all required config values are present
+const isValidConfig = Object.entries(firebaseConfig).every(
+  ([key, value]) => {
+    // measurementId is optional
+    if (key === 'measurementId') return true
+    return value !== undefined && value !== ''
+  }
+)
+
+if (!isValidConfig) {
+  console.error('[Firebase] Missing required environment variables. Please check your NEXT_PUBLIC_FIREBASE_* env vars.')
+}
+
+let app
+try {
+  app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp()
+} catch (error) {
+  console.error('[Firebase] Initialization error:', error)
+  throw error
+}
 
 if (typeof window !== "undefined") {
   try {
@@ -58,6 +77,6 @@ try {
   db = getFirestore(app)
 }
 
-export const auth = getAuth(app)
-export const rtdb = getDatabase(app)
+export const auth = app ? getAuth(app) : null
+export const rtdb = app ? getDatabase(app) : null
 export { db }
