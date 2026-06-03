@@ -167,15 +167,19 @@ export function NotificationsDrawer() {
       {/* Drawer Modal */}
       <AnimatePresence>
         {isOpen && (
-          <motion.div
-            className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={() => setIsOpen(false)}
-          >
+          <>
+            {/* Backdrop Overlay */}
             <motion.div
-              className="absolute inset-x-0 top-0 h-[90vh] max-h-[90vh] flex flex-col bg-background rounded-b-3xl shadow-2xl"
+              className="fixed inset-0 z-[9998] bg-black/60"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsOpen(false)}
+            />
+
+            {/* Modal Container */}
+            <motion.div
+              className="fixed inset-x-0 top-0 z-[9999] h-[90vh] max-h-[90vh] flex flex-col bg-background rounded-b-3xl shadow-2xl"
               initial={{ y: -500, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               exit={{ y: -500, opacity: 0 }}
@@ -324,7 +328,7 @@ export function NotificationsDrawer() {
                 )}
               </div>
             </motion.div>
-          </motion.div>
+          </>
         )}
       </AnimatePresence>
     </>

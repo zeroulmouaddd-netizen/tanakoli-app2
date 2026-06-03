@@ -66,7 +66,7 @@ export function BottomNav() {
   return (
     <>
       <motion.nav
-        className="fixed bottom-0 left-0 right-0 z-[999]"
+        className="fixed bottom-0 left-0 right-0 z-50"
         initial={{ y: 100, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ type: "spring", stiffness: 300, damping: 30, delay: 0.2 }}
