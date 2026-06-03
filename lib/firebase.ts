@@ -35,7 +35,7 @@ if (!isValidConfig) {
   console.error('[Firebase] Missing required environment variables. Please check your NEXT_PUBLIC_FIREBASE_* env vars.')
 }
 
-let app
+let app: ReturnType<typeof initializeApp> | ReturnType<typeof getApp>
 try {
   app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp()
 } catch (error) {
@@ -77,6 +77,6 @@ try {
   db = getFirestore(app)
 }
 
-export const auth = app ? getAuth(app) : null
-export const rtdb = app ? getDatabase(app) : null
+export const auth = getAuth(app)
+export const rtdb = getDatabase(app)
 export { db }
