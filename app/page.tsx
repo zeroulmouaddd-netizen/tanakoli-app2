@@ -30,12 +30,12 @@ function HomeContent() {
 
   return (
     <PageTransition>
-      <main className={`relative ${isMapFullscreen ? "h-screen overflow-hidden" : "min-h-screen pb-safe"} bg-background`}>
+      <main className={`${isMapFullscreen ? "h-screen overflow-hidden" : "min-h-screen pb-safe"} bg-background`}>
         {/* Animated Background */}
         {!isMapFullscreen && <HomeBackground />}
         
         {/* Content */}
-        <div className="relative z-10">
+        <div className="relative z-0">
           {!isMapFullscreen && <AppHeader />}
 
           <div className={isMapFullscreen ? "h-screen w-full" : "w-full pt-16 sm:pt-20"}>
