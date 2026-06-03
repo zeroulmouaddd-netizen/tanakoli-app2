@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { createPortal } from "react-dom"
-import { Home, MapPin, Clock, User, QrCode, X, Wallet, ScanLine, Bell } from "lucide-react"
+import { Home, MapPin, Clock, User, QrCode, X, Wallet, ScanLine } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { motion, AnimatePresence } from "framer-motion"
@@ -44,7 +44,6 @@ const navItems = [
   { icon: MapPin, label: "المحطات", href: "/stations", type: "link" as const },
   { icon: QrCode, label: "ادفع", href: "", type: "button" as const },
   { icon: Clock, label: "الرحلات", href: "/trips", type: "link" as const },
-  { icon: Bell, label: "الإشعارات", href: "/notifications", type: "link" as const },
   { icon: User, label: "حسابي", href: "/account", type: "link" as const },
 ]
 

@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Bell, Menu, Moon, Sun, MapPin, Clock, Settings, HelpCircle, Info, ChevronLeft, ScanLine, Loader2, AlertCircle, X } from "lucide-react"
+import { Menu, Moon, Sun, MapPin, Clock, Settings, HelpCircle, Info, ChevronLeft, ScanLine, Loader2, AlertCircle, X } from "lucide-react"
 import Link from "next/link"
 import { motion, AnimatePresence } from "framer-motion"
 import { Button } from "@/components/ui/button"
@@ -9,6 +9,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/co
 import { Switch } from "@/components/ui/switch"
 import { useTheme } from "@/lib/theme-context"
 import { useDriverMode } from "@/lib/driver-mode-context"
+import { NotificationsDrawer } from "@/components/notifications-drawer"
 
 const menuItems = [
   { icon: MapPin, label: "المحطات القريبة", href: "/stations" },
@@ -194,12 +195,7 @@ export function AppHeader() {
         <img src="/logo.png" alt="Tanakoli Khenchela" className="h-8 sm:h-10 w-8 sm:w-10 rounded-lg sm:rounded-full flex-shrink-0" />
       </div>
 
-      <Button variant="ghost" size="icon" className="h-10 w-10 sm:h-12 sm:w-12 rounded-full bg-card/80 backdrop-blur-sm relative flex-shrink-0">
-        <Bell className="h-5 w-5" />
-        <span className="absolute -left-0.5 -top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-destructive text-[10px] font-bold text-destructive-foreground">
-          3
-        </span>
-      </Button>
+      <NotificationsDrawer />
     </header>
   )
 }
