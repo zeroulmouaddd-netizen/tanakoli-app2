@@ -291,10 +291,9 @@ export function DriverDashboard() {
           canvas.width = videoWidth
           canvas.height = videoHeight
           context.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height)
-          const imageData = context.getImageData(0, 0, canvas.width, canvas.height)
 
           try {
-            const result = await reader.decodeFromImageData(imageData)
+            const result = reader.decodeFromCanvas(canvas)
             // getText() can return null in some WebView environments — guard it
             const text = result?.getText?.() ?? null
             if (text && typeof text === "string" && text.length > 0) {
