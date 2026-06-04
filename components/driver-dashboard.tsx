@@ -130,19 +130,27 @@ export function DriverDashboard() {
   const videoRef = useRef<HTMLVideoElement>(null)
   const readerRef = useRef<BrowserMultiFormatReader | null>(null)
   const streamRef = useRef<MediaStream | null>(null)
+  // Ref-based flag so the scanLoop closure always reads the current value,
+  // not a stale snapshot captured at the time the closure was created.
+  const isScanningRef = useRef(false)
 
   // Initialize location tracking for driver
   useDriverLocationTracking(currentUser?.phoneNumber || null, true)
 
   // Stop scanner helper (defined early for cleanup)
   const stopScanner = useCallback(() => {
+    // Signal the scanLoop to exit before touching the stream
+    isScanningRef.current = false
     if (streamRef.current) {
       streamRef.current.getTracks().forEach(track => track.stop())
       streamRef.current = null
     }
     if (readerRef.current) {
-      readerRef.current.reset()
+      try { readerRef.current.reset() } catch {}
       readerRef.current = null
+    }
+    if (videoRef.current) {
+      videoRef.current.srcObject = null
     }
     setIsScanning(false)
   }, [])
@@ -230,6 +238,7 @@ export function DriverDashboard() {
 
   const startScanner = async (mode?: ScanMode) => {
     if (mode) setScanMode(mode)
+    isScanningRef.current = true
     setIsScanning(true)
     setScanResult(null)
 
@@ -247,57 +256,69 @@ export function DriverDashboard() {
       const reader = new BrowserMultiFormatReader()
       readerRef.current = reader
 
-      // Start continuous scanning with frame capture
+      // Start continuous scanning with frame capture.
+      // IMPORTANT: always read isScanningRef.current (a ref), never the
+      // `isScanning` state variable — state values are captured at closure
+      // creation time and go stale; refs are always current.
       const scanLoop = async () => {
-        if (!videoRef.current || !streamRef.current) {
+        if (!isScanningRef.current || !videoRef.current || !streamRef.current) {
           return
         }
 
         try {
-          // Use canvas to capture frames from video and decode
+          const videoWidth = videoRef.current.videoWidth
+          const videoHeight = videoRef.current.videoHeight
+
+          // Skip this frame if video dimensions aren't ready yet
+          if (!videoWidth || !videoHeight) {
+            if (isScanningRef.current && streamRef.current) {
+              requestAnimationFrame(scanLoop)
+            }
+            return
+          }
+
           const canvas = document.createElement("canvas")
           const context = canvas.getContext("2d")
-          if (!context) return
+          if (!context) {
+            if (isScanningRef.current && streamRef.current) {
+              requestAnimationFrame(scanLoop)
+            }
+            return
+          }
 
-          canvas.width = videoRef.current.videoWidth
-          canvas.height = videoRef.current.videoHeight
-
-          // Draw current frame to canvas
+          canvas.width = videoWidth
+          canvas.height = videoHeight
           context.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height)
-
-          // Create image data for decoding
           const imageData = context.getImageData(0, 0, canvas.width, canvas.height)
 
           try {
-            // Attempt to decode the frame
             const result = await reader.decodeFromImageData(imageData)
-            if (result) {
-              console.log("[v0] QR code detected:", result.getText())
-              await processQRCode(result.getText())
+            // getText() can return null in some WebView environments — guard it
+            const text = result?.getText?.() ?? null
+            if (text && typeof text === "string" && text.length > 0) {
+              console.log("[Scanner] QR code detected:", text)
+              await processQRCode(text)
               return
             }
           } catch {
-            // No QR code found in this frame, continue scanning
+            // No QR code found in this frame — continue scanning
           }
 
-          // Continue scanning if still active
-          if (isScanning && streamRef.current) {
+          if (isScanningRef.current && streamRef.current) {
             requestAnimationFrame(scanLoop)
           }
         } catch (error) {
-          console.error("[v0] Frame capture error:", error)
-          // Continue scanning despite errors
-          if (isScanning && streamRef.current) {
+          console.error("[Scanner] Frame capture error:", error)
+          if (isScanningRef.current && streamRef.current) {
             requestAnimationFrame(scanLoop)
           }
         }
       }
 
-      // Start the scan loop immediately
       requestAnimationFrame(scanLoop)
 
     } catch (error) {
-      console.error("[v0] Camera error:", error)
+      console.error("[Scanner] Camera error:", error)
       setScanResult({
         success: false,
         message: "تعذر الوصول إلى الكاميرا"
@@ -306,15 +327,19 @@ export function DriverDashboard() {
     }
   }
 
-  const processQRCode = async (qrData: string) => {
+  const processQRCode = async (qrData: string | null | undefined) => {
+    // Guard: reject null/non-string input immediately — avoids indexOf crash
+    if (!qrData || typeof qrData !== "string" || qrData.trim().length === 0) {
+      console.warn("[Scanner] processQRCode called with empty/null data — ignoring")
+      return
+    }
+
     stopScanner()
     setIsProcessing(true)
 
     try {
-      // Log raw QR data
-      console.log("[v0] Raw QR Data:", qrData)
-      
-      // Parse QR code data
+      console.log("[Scanner] Raw QR Data:", qrData)
+
       let parsedData: Record<string, unknown>
       try {
         parsedData = JSON.parse(qrData)
