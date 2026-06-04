@@ -112,6 +112,7 @@ export function DriverDashboard() {
   const { currentUser, firestoreUserId } = useAuth()
   const [selectedFare, setSelectedFare] = useState(30)
   const [isScanning, setIsScanning] = useState(false)
+  const [isCameraReady, setIsCameraReady] = useState(false)
   const [scanResult, setScanResult] = useState<ScanResult | null>(null)
   const [isProcessing, setIsProcessing] = useState(false)
   const [dailyStats, setDailyStats] = useState<DailyStats>({ total: 0, trips: 0, date: getTodayDate() })
@@ -152,6 +153,7 @@ export function DriverDashboard() {
     if (videoRef.current) {
       videoRef.current.srcObject = null
     }
+    setIsCameraReady(false)
     setIsScanning(false)
   }, [])
 
@@ -251,6 +253,7 @@ export function DriverDashboard() {
       if (videoRef.current) {
         videoRef.current.srcObject = stream
         await videoRef.current.play()
+        setIsCameraReady(true)
       }
 
       const reader = new BrowserMultiFormatReader()
@@ -870,9 +873,17 @@ export function DriverDashboard() {
 
             {/* Camera View */}
             <div className="relative h-full w-full">
+              {/* Loading indicator — visible while stream isn't playing yet */}
+              {!isCameraReady && (
+                <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-black gap-3">
+                  <div className="h-10 w-10 animate-spin rounded-full border-4 border-white/20 border-t-primary" />
+                  <span className="text-sm text-white/60">جاري تشغيل الكاميرا…</span>
+                </div>
+              )}
               <video
                 ref={videoRef}
-                className="h-full w-full object-cover"
+                className="h-full w-full object-cover transition-opacity duration-300"
+                style={{ opacity: isCameraReady ? 1 : 0 }}
                 autoPlay
                 playsInline
                 muted
