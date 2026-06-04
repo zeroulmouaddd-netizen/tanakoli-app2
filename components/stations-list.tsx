@@ -1,17 +1,18 @@
 "use client"
 
-import { MapPin, Navigation, Building2, GraduationCap, Hospital, Clock } from "lucide-react"
+import { MapPin, Navigation, Building2, GraduationCap, Hospital, Clock, WifiOff } from "lucide-react"
 import { Card } from "@/components/ui/card"
 import { useEffect, useRef, useState } from "react"
 import L from "leaflet"
 import "leaflet/dist/leaflet.css"
 
-// Real verified GPS coordinates for Khenchela city, Algeria
+// ─── Landmark definitions (real Khenchela GPS coordinates) ────────────────────
+
 interface Landmark {
   id: string
   name: string
   icon: React.ReactNode
-  coordinates: [number, number]
+  coordinates: [number, number] // [lat, lng]
 }
 
 const landmarks: Landmark[] = [
@@ -19,7 +20,7 @@ const landmarks: Landmark[] = [
     id: "1",
     name: "الجامعة",
     icon: <GraduationCap className="h-5 w-5" />,
-    // جامعة عباس لغرور – خنشلة (Université Abbas Laghrour, Khenchela)
+    // جامعة عباس لغرور – خنشلة (Université Abbas Laghrour)
     coordinates: [35.3952, 7.1441],
   },
   {
@@ -40,74 +41,120 @@ const landmarks: Landmark[] = [
     id: "4",
     name: "مسجد الأمير",
     icon: <MapPin className="h-5 w-5" />,
-    // مسجد الأمير عبد القادر – خنشلة (Mosquée Émir Abdelkader, Khenchela)
+    // مسجد الأمير عبد القادر – خنشلة (Mosquée Émir Abdelkader)
     coordinates: [35.4370, 7.1478],
   },
 ]
 
-// Haversine formula — returns distance in meters between two GPS points
-function haversineDistance(
-  [lat1, lon1]: [number, number],
-  [lat2, lon2]: [number, number]
-): number {
-  const R = 6371000 // Earth radius in metres
-  const φ1 = (lat1 * Math.PI) / 180
-  const φ2 = (lat2 * Math.PI) / 180
-  const Δφ = ((lat2 - lat1) * Math.PI) / 180
-  const Δλ = ((lon2 - lon1) * Math.PI) / 180
-  const a =
-    Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
-    Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) * Math.sin(Δλ / 2)
-  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+type GpsStatus = "pending" | "granted" | "denied"
+
+interface RouteResult {
+  distanceMeters: number   // metres along the real road
+  durationSeconds: number  // seconds of walking
+  coords: [number, number][] // [lat, lng] pairs — the road polyline
 }
 
-// Format distance for display
+// ─── Formatting helpers ───────────────────────────────────────────────────────
+
 function formatDistance(meters: number): string {
   if (meters < 1000) return `${Math.round(meters)} م`
   return `${(meters / 1000).toFixed(1)} كم`
 }
 
-// Estimate walking time at 5 km/h
-function formatWalkingTime(meters: number): string {
-  const minutes = Math.round(meters / 83.33) // 5 km/h ≈ 83.33 m/min
+function formatWalkingTime(seconds: number): string {
+  const minutes = Math.round(seconds / 60)
   if (minutes < 1) return "أقل من دقيقة"
   if (minutes === 1) return "دقيقة"
   return `${minutes} دقيقة`
 }
 
-// Hook: watch user's GPS position
-function useUserLocation() {
+// ─── GPS hook ─────────────────────────────────────────────────────────────────
+
+function useUserLocation(): {
+  position: [number, number] | null
+  status: GpsStatus
+} {
   const [position, setPosition] = useState<[number, number] | null>(null)
+  const [status, setStatus] = useState<GpsStatus>("pending")
 
   useEffect(() => {
-    if (!navigator.geolocation) return
+    if (!navigator.geolocation) {
+      setStatus("denied")
+      return
+    }
 
     const id = navigator.geolocation.watchPosition(
-      (pos) => setPosition([pos.coords.latitude, pos.coords.longitude]),
-      () => setPosition(null),
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 5000 }
+      (pos) => {
+        setPosition([pos.coords.latitude, pos.coords.longitude])
+        setStatus("granted")
+      },
+      () => {
+        setStatus("denied")
+        setPosition(null)
+      },
+      { enableHighAccuracy: true, timeout: 12000, maximumAge: 5000 }
     )
 
     return () => navigator.geolocation.clearWatch(id)
   }, [])
 
-  return position
+  return { position, status }
 }
 
-// Mini-Map: shows landmark + user location + straight-line path
+// ─── OSRM walking route fetcher ───────────────────────────────────────────────
+
+async function fetchWalkingRoute(
+  from: [number, number], // [lat, lng]
+  to: [number, number]    // [lat, lng]
+): Promise<RouteResult | null> {
+  try {
+    // OSRM expects lng,lat order
+    const url =
+      `https://router.project-osrm.org/route/v1/foot/` +
+      `${from[1]},${from[0]};${to[1]},${to[0]}` +
+      `?overview=full&geometries=geojson`
+
+    const res = await fetch(url, { signal: AbortSignal.timeout(8000) })
+    if (!res.ok) return null
+
+    const data = await res.json()
+    if (data.code !== "Ok" || !data.routes?.length) return null
+
+    const route = data.routes[0]
+    // GeoJSON coordinates are [lng, lat] — swap to [lat, lng] for Leaflet
+    const coords: [number, number][] = route.geometry.coordinates.map(
+      ([lng, lat]: [number, number]) => [lat, lng]
+    )
+
+    return {
+      distanceMeters: route.distance,
+      durationSeconds: route.duration,
+      coords,
+    }
+  } catch {
+    return null
+  }
+}
+
+// ─── Mini-map component ───────────────────────────────────────────────────────
+
 function MiniMapComponent({
   landmark,
   userPosition,
+  routeCoords,
 }: {
   landmark: Landmark
   userPosition: [number, number] | null
+  routeCoords: [number, number][] | null
 }) {
   const mapContainer = useRef<HTMLDivElement>(null)
   const mapRef = useRef<L.Map | null>(null)
   const routeLineRef = useRef<L.Polyline | null>(null)
   const userMarkerRef = useRef<L.CircleMarker | null>(null)
 
-  // Initialize map once
+  // Initialise map once per landmark
   useEffect(() => {
     if (!mapContainer.current) return
 
@@ -129,14 +176,14 @@ function MiniMapComponent({
 
     L.tileLayer(tileUrl, { maxZoom: 19 }).addTo(map)
 
-    // Landmark marker (green)
+    // Landmark marker — green circle with white border
     L.circleMarker(landmark.coordinates, {
       radius: 9,
       fillColor: "#00A651",
       color: "white",
       weight: 2.5,
       opacity: 1,
-      fillOpacity: 0.9,
+      fillOpacity: 0.95,
     }).addTo(map)
 
     mapRef.current = map
@@ -149,45 +196,48 @@ function MiniMapComponent({
     }
   }, [landmark])
 
-  // Update user location marker and route line whenever position changes
+  // Update user marker + route polyline when either changes
   useEffect(() => {
     const map = mapRef.current
     if (!map) return
 
-    // Remove previous user marker and route line
-    if (userMarkerRef.current) {
-      userMarkerRef.current.remove()
-      userMarkerRef.current = null
-    }
-    if (routeLineRef.current) {
-      routeLineRef.current.remove()
-      routeLineRef.current = null
-    }
+    // Clear old layers
+    routeLineRef.current?.remove()
+    routeLineRef.current = null
+    userMarkerRef.current?.remove()
+    userMarkerRef.current = null
 
     if (!userPosition) return
 
-    // User location marker (blue pulsing dot)
+    // Blue dot — user location
     userMarkerRef.current = L.circleMarker(userPosition, {
-      radius: 7,
+      radius: 8,
       fillColor: "#3B82F6",
       color: "white",
-      weight: 2,
-      opacity: 1,
-      fillOpacity: 0.9,
-    }).addTo(map)
-
-    // Dashed walking route line
-    routeLineRef.current = L.polyline([userPosition, landmark.coordinates], {
-      color: "#00A651",
       weight: 2.5,
-      opacity: 0.8,
-      dashArray: "6, 8",
+      opacity: 1,
+      fillOpacity: 1,
     }).addTo(map)
 
-    // Fit map to show both points with padding
-    const bounds = L.latLngBounds([userPosition, landmark.coordinates])
-    map.fitBounds(bounds, { padding: [24, 24], maxZoom: 16 })
-  }, [userPosition, landmark.coordinates])
+    if (routeCoords && routeCoords.length > 1) {
+      // Real road route — solid green polyline
+      routeLineRef.current = L.polyline(routeCoords, {
+        color: "#00A651",
+        weight: 4,
+        opacity: 0.85,
+        lineJoin: "round",
+        lineCap: "round",
+      }).addTo(map)
+
+      // Fit both endpoints plus some padding
+      const bounds = L.latLngBounds(routeCoords)
+      map.fitBounds(bounds, { padding: [28, 28], maxZoom: 17 })
+    } else {
+      // Route not loaded yet — fit user + landmark
+      const bounds = L.latLngBounds([userPosition, landmark.coordinates])
+      map.fitBounds(bounds, { padding: [28, 28], maxZoom: 16 })
+    }
+  }, [userPosition, routeCoords, landmark.coordinates])
 
   return (
     <div className="relative overflow-hidden rounded-xl sm:rounded-2xl bg-muted shadow-inner">
@@ -197,42 +247,87 @@ function MiniMapComponent({
   )
 }
 
-// Single landmark card
+// ─── Landmark card ────────────────────────────────────────────────────────────
+
 function LandmarkCard({
   landmark,
   userPosition,
+  gpsStatus,
 }: {
   landmark: Landmark
   userPosition: [number, number] | null
+  gpsStatus: GpsStatus
 }) {
-  const distanceMeters = userPosition
-    ? haversineDistance(userPosition, landmark.coordinates)
-    : null
+  const [route, setRoute] = useState<RouteResult | null>(null)
+  const [routeLoading, setRouteLoading] = useState(false)
+  const lastFromRef = useRef<string>("")
 
-  const distanceText = distanceMeters !== null ? formatDistance(distanceMeters) : "—"
-  const walkingTimeText = distanceMeters !== null ? formatWalkingTime(distanceMeters) : "—"
+  // Fetch OSRM route whenever the user's position changes
+  useEffect(() => {
+    if (!userPosition) {
+      setRoute(null)
+      return
+    }
+
+    const key = `${userPosition[0].toFixed(5)},${userPosition[1].toFixed(5)}`
+    if (key === lastFromRef.current) return // same position — no re-fetch
+    lastFromRef.current = key
+
+    setRouteLoading(true)
+    fetchWalkingRoute(userPosition, landmark.coordinates).then((result) => {
+      setRoute(result)
+      setRouteLoading(false)
+    })
+  }, [userPosition, landmark.coordinates])
+
+  // Display values — prefer real route data, fall back gracefully
+  const distanceText = route
+    ? formatDistance(route.distanceMeters)
+    : routeLoading
+    ? "..."
+    : "—"
+
+  const walkingTimeText = route
+    ? formatWalkingTime(route.durationSeconds)
+    : routeLoading
+    ? "..."
+    : "—"
 
   return (
     <Card className="flex flex-col gap-3 sm:gap-4 overflow-hidden p-3 sm:p-4">
-      {/* Top: Landmark name and icon */}
+      {/* Header */}
       <div className="flex items-start justify-between gap-3 sm:gap-4">
         <div className="flex flex-1 flex-col items-end gap-2">
-          <h3 className="text-base sm:text-lg font-semibold text-card-foreground">{landmark.name}</h3>
+          <h3 className="text-base sm:text-lg font-semibold text-card-foreground">
+            {landmark.name}
+          </h3>
         </div>
         <div className="flex h-10 sm:h-12 w-10 sm:w-12 flex-shrink-0 items-center justify-center rounded-lg sm:rounded-xl bg-primary/10 text-primary">
           {landmark.icon}
         </div>
       </div>
 
-      {/* Mini-Map */}
-      <MiniMapComponent landmark={landmark} userPosition={userPosition} />
+      {/* GPS denied banner */}
+      {gpsStatus === "denied" && (
+        <div className="flex items-center justify-center gap-2 rounded-xl bg-amber-500/10 px-4 py-3 text-amber-600 dark:text-amber-400">
+          <WifiOff className="h-4 w-4 flex-shrink-0" />
+          <span className="text-sm font-medium">يرجى تفعيل GPS</span>
+        </div>
+      )}
 
-      {/* Distance & Walking Time */}
+      {/* Mini-map */}
+      <MiniMapComponent
+        landmark={landmark}
+        userPosition={userPosition}
+        routeCoords={route?.coords ?? null}
+      />
+
+      {/* Distance & time row */}
       <div className="grid grid-cols-2 gap-2 sm:gap-3 rounded-lg sm:rounded-xl bg-primary/5 px-3 sm:px-4 py-2 sm:py-3">
         <div className="flex flex-col items-end gap-1">
           <span className="text-xs font-medium text-muted-foreground">المسافة سيراً</span>
           <div className="flex items-center gap-1">
-            <span className="text-lg sm:text-lg font-bold text-foreground">{distanceText}</span>
+            <span className="text-lg font-bold text-foreground">{distanceText}</span>
             <MapPin className="h-3 sm:h-4 w-3 sm:w-4 text-muted-foreground" />
           </div>
         </div>
@@ -241,15 +336,17 @@ function LandmarkCard({
             <Clock className="h-3 w-3" />
             <span>الوقت</span>
           </div>
-          <span className="text-lg sm:text-lg font-bold text-foreground">{walkingTimeText}</span>
+          <span className="text-lg font-bold text-foreground">{walkingTimeText}</span>
         </div>
       </div>
     </Card>
   )
 }
 
+// ─── Exported list ────────────────────────────────────────────────────────────
+
 export function StationsList() {
-  const userPosition = useUserLocation()
+  const { position, status } = useUserLocation()
 
   return (
     <div className="relative">
@@ -268,7 +365,12 @@ export function StationsList() {
 
         <div className="flex flex-col gap-3 sm:gap-4">
           {landmarks.map((landmark) => (
-            <LandmarkCard key={landmark.id} landmark={landmark} userPosition={userPosition} />
+            <LandmarkCard
+              key={landmark.id}
+              landmark={landmark}
+              userPosition={position}
+              gpsStatus={status}
+            />
           ))}
         </div>
       </div>
