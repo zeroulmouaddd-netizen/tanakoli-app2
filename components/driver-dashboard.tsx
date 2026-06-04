@@ -960,104 +960,181 @@ export function DriverDashboard() {
       <AnimatePresence>
         {scanResult && (
           <motion.div
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm overflow-y-auto"
+            className="fixed inset-0 z-50 flex items-center justify-center p-4"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={handleCloseResult}
           >
+            {/* Backdrop */}
+            <div className="absolute inset-0 bg-black/70 backdrop-blur-md" />
+
             <motion.div
-              className={`mx-4 w-full max-w-sm rounded-3xl p-8 my-4 ${
-                scanResult.success 
-                  ? scanResult.isRecharge 
-                    ? "bg-blue-500" 
-                    : "bg-green-500" 
-                  : "bg-red-500"
+              className={`relative w-full max-w-sm overflow-hidden rounded-3xl ${
+                scanResult.success
+                  ? scanResult.isRecharge
+                    ? "bg-gradient-to-br from-[#0f2557] via-[#1a3a8f] to-[#0d1f4a]"
+                    : "bg-gradient-to-br from-[#0a3320] via-[#0f5132] to-[#072b1a]"
+                  : "bg-gradient-to-br from-[#3b0a0a] via-[#7f1d1d] to-[#450a0a]"
               }`}
-              initial={{ scale: 0.8, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.8, opacity: 0 }}
+              initial={{ scale: 0.85, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 10 }}
+              transition={{ type: "spring", stiffness: 320, damping: 26 }}
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="flex flex-col items-center text-center text-white">
-                {/* Icon */}
-                <div className={`mb-4 flex h-20 w-20 items-center justify-center rounded-full ${
-                  scanResult.success ? "bg-white/20" : "bg-white/20"
-                }`}>
-                  {scanResult.success ? (
-                    <Check className="h-10 w-10" />
-                  ) : (
-                    <AlertCircle className="h-10 w-10" />
+              {/* Subtle top shimmer line */}
+              <div className={`absolute inset-x-0 top-0 h-px ${
+                scanResult.success
+                  ? scanResult.isRecharge
+                    ? "bg-gradient-to-r from-transparent via-blue-400/60 to-transparent"
+                    : "bg-gradient-to-r from-transparent via-emerald-400/60 to-transparent"
+                  : "bg-gradient-to-r from-transparent via-red-400/60 to-transparent"
+              }`} />
+
+              <div className="flex flex-col items-center px-8 pb-8 pt-10 text-center text-white">
+
+                {/* Icon with pulse ring */}
+                <div className="relative mb-6">
+                  {scanResult.success && (
+                    <motion.div
+                      className={`absolute inset-0 rounded-full ${
+                        scanResult.isRecharge ? "bg-blue-400/30" : "bg-emerald-400/30"
+                      }`}
+                      initial={{ scale: 1, opacity: 0.8 }}
+                      animate={{ scale: 2, opacity: 0 }}
+                      transition={{ duration: 1, repeat: Infinity, repeatDelay: 0.4 }}
+                    />
                   )}
+                  <motion.div
+                    className={`relative flex h-24 w-24 items-center justify-center rounded-full ${
+                      scanResult.success
+                        ? scanResult.isRecharge
+                          ? "bg-blue-500/30 ring-2 ring-blue-400/50"
+                          : "bg-emerald-500/30 ring-2 ring-emerald-400/50"
+                        : "bg-red-500/30 ring-2 ring-red-400/50"
+                    }`}
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{ type: "spring", stiffness: 280, damping: 20, delay: 0.05 }}
+                  >
+                    {scanResult.success ? (
+                      <motion.div
+                        initial={{ scale: 0, rotate: -30 }}
+                        animate={{ scale: 1, rotate: 0 }}
+                        transition={{ type: "spring", stiffness: 300, damping: 18, delay: 0.15 }}
+                      >
+                        <Check
+                          className={`h-12 w-12 ${
+                            scanResult.isRecharge ? "text-blue-300" : "text-emerald-300"
+                          }`}
+                          strokeWidth={3}
+                        />
+                      </motion.div>
+                    ) : (
+                      <motion.div
+                        initial={{ scale: 0 }}
+                        animate={{ scale: 1 }}
+                        transition={{ type: "spring", stiffness: 300, damping: 18, delay: 0.15 }}
+                      >
+                        <AlertCircle className="h-12 w-12 text-red-300" strokeWidth={2.5} />
+                      </motion.div>
+                    )}
+                  </motion.div>
                 </div>
 
-                {/* Message */}
-                <h2 className="mb-2 text-2xl font-bold">
-                  {scanResult.success 
-                    ? scanResult.isRecharge 
-                      ? "تم الشحن بنجاح" 
-                      : "تم الخصم بنجاح" 
-                    : "فشل العملية"}
-                </h2>
-                
+                {/* Title */}
+                <motion.h2
+                  className="mb-1 text-2xl font-bold tracking-tight"
+                  initial={{ opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.22, duration: 0.35 }}
+                >
+                  {scanResult.success
+                    ? scanResult.isRecharge ? "تم الشحن بنجاح" : "تم الخصم بنجاح"
+                    : "فشلت العملية"}
+                </motion.h2>
+
                 {scanResult.success ? (
                   <>
-                    <p className="mb-4 text-lg opacity-90">{scanResult.passengerName}</p>
-                    <div className="mb-3 rounded-2xl bg-white/20 px-8 py-4">
-                      <p className="text-sm opacity-80">
+                    {/* Passenger name */}
+                    <motion.p
+                      className="mb-6 text-base font-medium text-white/60 tracking-wide"
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.32, duration: 0.3 }}
+                    >
+                      {scanResult.passengerName}
+                    </motion.p>
+
+                    {/* Amount card */}
+                    <motion.div
+                      className={`mb-4 w-full rounded-2xl px-6 py-5 ${
+                        scanResult.isRecharge
+                          ? "bg-blue-500/20 ring-1 ring-blue-400/20"
+                          : "bg-emerald-500/20 ring-1 ring-emerald-400/20"
+                      }`}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.42, duration: 0.3 }}
+                    >
+                      <p className="mb-1 text-xs font-medium uppercase tracking-widest text-white/40">
                         {scanResult.isRecharge ? "المبلغ المشحون" : "المبلغ المخصوم"}
                       </p>
-                      <p className="text-3xl font-bold">{scanResult.amount} د.ج</p>
-                    </div>
-                    <div className="rounded-xl bg-white/10 px-6 py-2 mb-4">
-                      <p className="text-sm opacity-70">الرصيد الجديد للراكب</p>
-                      <p className="text-xl font-bold">{scanResult.newBalance?.toLocaleString("ar-DZ")} د.ج</p>
-                    </div>
+                      <p
+                        className={`text-5xl font-extrabold tabular-nums ${
+                          scanResult.isRecharge
+                            ? "text-blue-200 drop-shadow-[0_0_18px_rgba(147,197,253,0.45)]"
+                            : "text-emerald-200 drop-shadow-[0_0_18px_rgba(110,231,183,0.45)]"
+                        }`}
+                        dir="ltr"
+                      >
+                        {scanResult.amount}
+                        <span className="ml-1 text-2xl font-semibold opacity-70">د.ج</span>
+                      </p>
+                    </motion.div>
+
+                    {/* New balance */}
+                    <motion.div
+                      className="mb-8 flex items-center gap-2 rounded-xl bg-white/5 px-5 py-3"
+                      initial={{ opacity: 0, y: 8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.52, duration: 0.3 }}
+                    >
+                      <span className="text-sm text-white/40">الرصيد الجديد للراكب</span>
+                      <span className="text-base font-semibold text-white/80" dir="ltr">
+                        {scanResult.newBalance?.toLocaleString("ar-DZ")} د.ج
+                      </span>
+                    </motion.div>
                   </>
                 ) : (
-                  <>
-                    <p className="text-lg opacity-90 mb-4">{scanResult.message}</p>
-                  </>
+                  <motion.p
+                    className="mb-8 mt-3 text-base leading-relaxed text-white/60"
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.28, duration: 0.3 }}
+                  >
+                    {scanResult.message}
+                  </motion.p>
                 )}
 
-                {/* Debug Info Section */}
-                {(scanResult.rawData || scanResult.error) && (
-                  <div className="mt-4 w-full rounded-xl bg-black/30 p-3 text-left max-h-[200px] overflow-y-auto">
-                    <p className="text-xs font-bold text-white/70 mb-2">معلومات التصحيح:</p>
-                    {scanResult.rawData && (
-                      <div className="mb-2">
-                        <p className="text-[10px] text-white/60">البيانات الخام:</p>
-                        <p className="text-[11px] text-white/80 break-all font-mono bg-black/50 p-2 rounded">
-                          {scanResult.rawData}
-                        </p>
-                      </div>
-                    )}
-                    {scanResult.parsedData && (
-                      <div className="mb-2">
-                        <p className="text-[10px] text-white/60">البيانات المُحللة:</p>
-                        <p className="text-[11px] text-white/80 break-all font-mono bg-black/50 p-2 rounded">
-                          {JSON.stringify(scanResult.parsedData, null, 2)}
-                        </p>
-                      </div>
-                    )}
-                    {scanResult.error && (
-                      <div>
-                        <p className="text-[10px] text-white/60">الخطأ:</p>
-                        <p className="text-[11px] text-yellow-200 font-mono bg-black/50 p-2 rounded">
-                          {scanResult.error}
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {/* Close button */}
-                <button
+                {/* Close pill button */}
+                <motion.button
                   onClick={handleCloseResult}
-                  className="mt-6 rounded-xl bg-white/20 px-8 py-3 font-medium transition-colors hover:bg-white/30"
+                  className={`w-full rounded-full py-4 text-base font-semibold tracking-wide transition-all ${
+                    scanResult.success
+                      ? scanResult.isRecharge
+                        ? "bg-blue-500/25 text-blue-200 hover:bg-blue-500/40 ring-1 ring-blue-400/30"
+                        : "bg-emerald-500/25 text-emerald-200 hover:bg-emerald-500/40 ring-1 ring-emerald-400/30"
+                      : "bg-red-500/25 text-red-200 hover:bg-red-500/40 ring-1 ring-red-400/30"
+                  }`}
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: scanResult.success ? 0.6 : 0.34, duration: 0.3 }}
+                  whileTap={{ scale: 0.97 }}
                 >
                   إغلاق
-                </button>
+                </motion.button>
               </div>
             </motion.div>
           </motion.div>
