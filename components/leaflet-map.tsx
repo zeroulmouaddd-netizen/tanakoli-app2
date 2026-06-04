@@ -15,9 +15,9 @@ import { useTheme } from "@/lib/theme-context"
 import { useRouteSubStations } from "@/hooks/use-routes"
 import { useBusSimulation, type SimulatedBus } from "@/lib/bus-simulation"
 
-// Tile layer URLs
+// Tile layer URLs — OSM standard for maximum reliability and detail
 const TILE_LAYERS = {
-  light: "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png",
+  light: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
   dark: "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
 }
 
@@ -641,7 +641,8 @@ export default function LeafletMap({ trackingLineId, isFullscreen = false }: Lea
   const subStationMarkersRef = useRef<Map<string, L.Marker>>(new Map())
   const driverMarkerRef = useRef<L.Marker | null>(null) // For real-time driver location
   const { isDark } = useTheme()
-  
+  const [tilesLoaded, setTilesLoaded] = useState(false)
+
   // Route viewing state
   const [viewMode, setViewMode] = useState<RouteViewMode>("all")
   const [selectedRoute, setSelectedRoute] = useState<SelectedRoute>(null)
@@ -727,13 +728,21 @@ const { subStations } = useRouteSubStations(selectedRoute)
     }
   }, [trackingLineId, handleRouteSelect])
 
-  // Switch tile layer based on theme
+  // Switch tile layer based on theme (setUrl reuses the existing layer — no re-create)
   useEffect(() => {
     if (!mapRef.current || !tileLayerRef.current) return
-    
     const newUrl = isDark ? TILE_LAYERS.dark : TILE_LAYERS.light
     tileLayerRef.current.setUrl(newUrl)
   }, [isDark])
+
+  // Re-measure the container whenever fullscreen state changes so Leaflet
+  // fills the new dimensions without gray edges
+  useEffect(() => {
+    const t = setTimeout(() => {
+      if (mapRef.current) mapRef.current.invalidateSize(true)
+    }, 250)
+    return () => clearTimeout(t)
+  }, [isFullscreen])
 
   // Real-time listener for Firebase buses (live GPS from Driver App)
   // Falls back gracefully - fleet buses will still render if Firebase fails
@@ -825,21 +834,28 @@ const { subStations } = useRouteSubStations(selectedRoute)
       zoom: 13,
       zoomControl: false,
       scrollWheelZoom: true,
-      minZoom: 9,
+      minZoom: 10,
       maxZoom: 18,
+      preferCanvas: true,
     })
 
     mapRef.current = map
 
-    // Add initial tile layer (will be updated based on theme)
+    // Add initial tile layer — initialized once, never re-created on re-renders
     tileLayerRef.current = L.tileLayer(TILE_LAYERS.light, {
-      maxZoom: 19,
+      maxZoom: 18,
       minZoom: 10,
       tileSize: 256,
       zoomOffset: 0,
-      keepBuffer: 4,
+      keepBuffer: 8,
+      updateWhenIdle: false,
       updateWhenZooming: false,
+      crossOrigin: true,
     }).addTo(map)
+
+    // Show tile-loading indicator until the first batch of tiles is ready
+    map.on("loading", () => setTilesLoaded(false))
+    map.on("load", () => setTilesLoaded(true))
 
 L.control.zoom({ position: "bottomright" }).addTo(map)
     
@@ -1272,7 +1288,17 @@ const marker = L.marker(subStation.coords, {
 
   return (
     <div className="relative h-full w-full">
-      <div ref={containerRef} className="h-full w-full" style={{ background: "#e8e0d8" }} />
+      <div ref={containerRef} className="h-full w-full" style={{ background: isDark ? "#1a2235" : "#e8e0d8" }} />
+
+      {/* Tile loading indicator — shown until map fires its first "load" event */}
+      {!tilesLoaded && (
+        <div className="pointer-events-none absolute inset-0 z-[500] flex items-center justify-center">
+          <div className="flex flex-col items-center gap-2 rounded-xl bg-card/80 px-5 py-3 shadow backdrop-blur-sm">
+            <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary/30 border-t-primary" />
+            <span className="text-xs font-medium text-muted-foreground">جاري التحميل...</span>
+          </div>
+        </div>
+      )}
       
       {/* Route Controller - Top Right */}
       <RouteController
