@@ -5,8 +5,7 @@ import { motion, AnimatePresence } from "framer-motion"
 import { X, CheckCircle2, AlertCircle, Bus, Calendar, Clock, Ticket } from "lucide-react"
 import { db } from "@/lib/firebase"
 import { doc, runTransaction, collection, addDoc, serverTimestamp } from "firebase/firestore"
-
-const USER_ID = "0775453629"
+import { useAuth } from "@/lib/auth-context"
 
 // Success sound effect - plays a short beep
 const playSuccessSound = () => {
@@ -98,6 +97,7 @@ const contentVariants = {
 }
 
 export function PaymentModal({ isOpen, onClose }: PaymentModalProps) {
+  const { firestoreUserId } = useAuth()
   const [status, setStatus] = useState<"idle" | "processing" | "success" | "error">("idle")
   const [errorMessage, setErrorMessage] = useState("")
   const [ticketData, setTicketData] = useState<{
@@ -116,10 +116,15 @@ export function PaymentModal({ isOpen, onClose }: PaymentModalProps) {
   }, [isOpen])
 
   const handlePayment = async () => {
+    if (!firestoreUserId) {
+      setStatus("error")
+      setErrorMessage("يجب تسجيل الدخول أولاً")
+      return
+    }
     setStatus("processing")
     
     try {
-      const userDocRef = doc(db, "users", USER_ID)
+      const userDocRef = doc(db, "users", firestoreUserId)
       const ticketId = `TKT-${Date.now().toString(36).toUpperCase()}`
       const now = new Date()
       
@@ -146,7 +151,7 @@ export function PaymentModal({ isOpen, onClose }: PaymentModalProps) {
         ticketId,
         amount: TICKET_PRICE,
         timestamp: serverTimestamp(),
-        userId: USER_ID,
+        userId: firestoreUserId,
         createdAt: now.toISOString(),
       })
 

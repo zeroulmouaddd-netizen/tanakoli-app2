@@ -22,7 +22,7 @@ import {
   MapPin
 } from "lucide-react"
 import { db } from "@/lib/firebase"
-import { collection, query, where, getDocs, doc, updateDoc, increment, addDoc, serverTimestamp, orderBy, limit, onSnapshot, Timestamp } from "firebase/firestore"
+import { collection, query, where, getDocs, doc, updateDoc, increment, addDoc, serverTimestamp, orderBy, limit, onSnapshot, Timestamp, runTransaction } from "firebase/firestore"
 import { useDriverMode } from "@/lib/driver-mode-context"
 import { useAuth } from "@/lib/auth-context"
 import { useDriverLocationTracking } from "@/hooks/use-driver-location-tracking"
@@ -453,68 +453,69 @@ export function DriverDashboard() {
           return
         }
 
-        // Get driver's current balance
+        // Atomically read both balances, validate, and write in a single Firestore transaction
         const driverDocRef = doc(db, "users", firestoreUserId)
-        let driverCurrentBalance = 0
-        
+        let newPassengerBalance = 0
+        let newDriverBalance = 0
+        let insufficientBalance = false
+        let insufficientAmount = 0
+
         try {
-          const driverDocSnap = await getDocs(query(collection(db, "users"), where("Phone", "==", firestoreUserId)))
-          if (!driverDocSnap.empty) {
-            driverCurrentBalance = driverDocSnap.docs[0].data()?.balance ?? 0
-            console.log("[v0] Driver balance:", driverCurrentBalance)
+          await runTransaction(db, async (transaction) => {
+            const driverSnap = await transaction.get(driverDocRef)
+            const passengerSnap = await transaction.get(userDocRef)
+
+            const currentDriverBalance = driverSnap.data()?.balance ?? 0
+            const currentPassengerBalance = passengerSnap.data()?.balance ?? 0
+
+            console.log("[v0] Driver balance (inside tx):", currentDriverBalance)
+
+            if (currentDriverBalance < rechargeAmountNum) {
+              // Signal the insufficient-balance case before aborting the transaction
+              insufficientBalance = true
+              insufficientAmount = currentDriverBalance
+              throw new Error("ABORT_INSUFFICIENT_BALANCE")
+            }
+
+            newPassengerBalance = currentPassengerBalance + rechargeAmountNum
+            newDriverBalance = currentDriverBalance - rechargeAmountNum
+
+            console.log("[v0] Recharge: Passenger", currentPassengerBalance, "→", newPassengerBalance)
+            console.log("[v0] Recharge: Driver", currentDriverBalance, "→", newDriverBalance)
+
+            // Both balance updates happen atomically
+            transaction.update(userDocRef, { balance: increment(rechargeAmountNum) })
+            transaction.update(driverDocRef, { balance: increment(-rechargeAmountNum) })
+
+            // Transaction log is also part of the same atomic write
+            const txRef = doc(collection(db, "transactions"))
+            transaction.set(txRef, {
+              userId: userDocId,
+              driverId: firestoreUserId,
+              type: "balance_recharge",
+              amount: rechargeAmountNum,
+              previousBalance: currentPassengerBalance,
+              newBalance: newPassengerBalance,
+              driverPreviousBalance: currentDriverBalance,
+              driverNewBalance: newDriverBalance,
+              driverTimestamp: serverTimestamp(),
+              passengerName: passengerName,
+              status: "completed"
+            })
+          })
+        } catch (txError) {
+          if (insufficientBalance) {
+            setScanResult({
+              success: false,
+              message: `رصيد غير كافٍ (لديك ${insufficientAmount} د.ج)`,
+              rawData: qrData,
+              parsedData,
+              error: `Insufficient balance: ${insufficientAmount} < ${rechargeAmountNum}`
+            })
+            setIsProcessing(false)
+            return
           }
-        } catch (error) {
-          console.error("[v0] Error getting driver balance:", error)
-          driverCurrentBalance = 0
-        }
-
-        // Check if driver has sufficient balance
-        if (driverCurrentBalance < rechargeAmountNum) {
-          setScanResult({
-            success: false,
-            message: `رصيد غير كافٍ (لديك ${driverCurrentBalance} د.ج)`,
-            rawData: qrData,
-            parsedData,
-            error: `Insufficient balance: ${driverCurrentBalance} < ${rechargeAmountNum}`
-          })
-          setIsProcessing(false)
-          return
-        }
-
-        const newPassengerBalance = currentBalance + rechargeAmountNum
-        const newDriverBalance = driverCurrentBalance - rechargeAmountNum
-
-        console.log("[v0] Recharge: Passenger", currentBalance, "→", newPassengerBalance)
-        console.log("[v0] Recharge: Driver", driverCurrentBalance, "→", newDriverBalance)
-
-        // Add to passenger balance
-        await updateDoc(userDocRef, {
-          balance: increment(rechargeAmountNum)
-        })
-
-        // Deduct from driver balance
-        await updateDoc(driverDocRef, {
-          balance: increment(-rechargeAmountNum)
-        })
-
-        // Record the transaction
-        try {
-          await addDoc(collection(db, "transactions"), {
-            userId: userDocId,
-            driverId: firestoreUserId,
-            type: "balance_recharge",
-            amount: rechargeAmountNum,
-            previousBalance: currentBalance,
-            newBalance: newPassengerBalance,
-            driverPreviousBalance: driverCurrentBalance,
-            driverNewBalance: newDriverBalance,
-            driverTimestamp: serverTimestamp(),
-            passengerName: passengerName,
-            status: "completed"
-          })
-          console.log("[v0] Transaction logged successfully")
-        } catch (error) {
-          console.error("[v0] Error logging transaction:", error)
+          throw txError
         }
 
         // Success!

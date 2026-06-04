@@ -69,6 +69,7 @@ export function QRRechargeModal({
   const [notification, setNotification] = useState<RechargeNotification | null>(null)
   const [displayBalance, setDisplayBalance] = useState(currentBalance)
   const lastTransactionRef = useRef<string | null>(null)
+  const prevBalanceRef = useRef(currentBalance)
   const unsubscribeRef = useRef<(() => void) | null>(null)
 
   // Generate QR code data with actual user ID and consistent format
@@ -93,25 +94,29 @@ export function QRRechargeModal({
           const userData = docSnapshot.data()
           const newBalance = userData.balance || 0
 
-          // Only show notification if balance increased
-          if (newBalance > displayBalance && lastTransactionRef.current === null) {
-            const amountAdded = newBalance - displayBalance
+          // Only show notification if balance genuinely increased and no
+          // notification is already visible (lastTransactionRef is the guard)
+          if (newBalance > prevBalanceRef.current && lastTransactionRef.current === null) {
+            const amountAdded = newBalance - prevBalanceRef.current
+            lastTransactionRef.current = `${Date.now()}` // mark notification as active
+            prevBalanceRef.current = newBalance
+
             setNotification({
               amount: amountAdded,
               newBalance: newBalance,
               timestamp: Date.now(),
             })
-
-            // Update display balance immediately
             setDisplayBalance(newBalance)
             onBalanceUpdate?.(newBalance)
 
-            // Auto-hide notification after 5 seconds
+            // Auto-hide notification and reset guard after 5 seconds
             setTimeout(() => {
               setNotification(null)
+              lastTransactionRef.current = null
             }, 5000)
-          } else if (newBalance !== displayBalance) {
-            // Silent update if balance changed but less than expected
+          } else if (newBalance !== prevBalanceRef.current) {
+            // Silent balance sync (e.g. deduction while modal is open)
+            prevBalanceRef.current = newBalance
             setDisplayBalance(newBalance)
             onBalanceUpdate?.(newBalance)
           }
@@ -127,7 +132,11 @@ export function QRRechargeModal({
         unsubscribeRef.current()
       }
     }
-  }, [firestoreUserId, isOpen, displayBalance, onBalanceUpdate])
+  // displayBalance intentionally excluded: it was causing the listener to
+  // re-subscribe on every balance change, leaking Firestore connections.
+  // prevBalanceRef tracks the previous value without causing re-subscriptions.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [firestoreUserId, isOpen, onBalanceUpdate])
 
   // Clean up listener when modal closes
   useEffect(() => {
