@@ -833,6 +833,12 @@ const { subStations } = useRouteSubStations(selectedRoute)
 
     // Add initial tile layer (will be updated based on theme)
     tileLayerRef.current = L.tileLayer(TILE_LAYERS.light, {
+      maxZoom: 19,
+      minZoom: 10,
+      tileSize: 256,
+      zoomOffset: 0,
+      keepBuffer: 4,
+      updateWhenZooming: false,
     }).addTo(map)
 
 L.control.zoom({ position: "bottomright" }).addTo(map)
@@ -840,7 +846,17 @@ L.control.zoom({ position: "bottomright" }).addTo(map)
     // Track zoom level for bus icon scaling
     map.on("zoomend", () => {
       setCurrentZoom(map.getZoom())
+      // Re-render any tiles that may have gone gray during zoom
+      setTimeout(() => map.invalidateSize(), 150)
     })
+
+    // Fix gray tiles on any container resize (fullscreen, panel open/close, etc.)
+    const resizeObserver = new ResizeObserver(() => {
+      setTimeout(() => {
+        if (mapRef.current) mapRef.current.invalidateSize()
+      }, 200)
+    })
+    if (container) resizeObserver.observe(container)
     
     // Create marker cluster group for static fleet buses
     // Simulated (moving) buses are NOT clustered to prevent flickering
@@ -1256,7 +1272,7 @@ const marker = L.marker(subStation.coords, {
 
   return (
     <div className="relative h-full w-full">
-      <div ref={containerRef} className="h-full w-full" />
+      <div ref={containerRef} className="h-full w-full" style={{ background: "#e8e0d8" }} />
       
       {/* Route Controller - Top Right */}
       <RouteController
