@@ -15,9 +15,9 @@ import { useTheme } from "@/lib/theme-context"
 import { useRouteSubStations } from "@/hooks/use-routes"
 import { useBusSimulation, type SimulatedBus } from "@/lib/bus-simulation"
 
-// Tile layer URLs — OSM standard for maximum reliability and detail
+// Tile layer URLs — single stable OSM endpoint (no subdomain variable)
 const TILE_LAYERS = {
-  light: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+  light: "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
   dark: "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
 }
 
@@ -841,21 +841,28 @@ const { subStations } = useRouteSubStations(selectedRoute)
 
     mapRef.current = map
 
-    // Add initial tile layer — initialized once, never re-created on re-renders
+    // Add initial tile layer — initialized ONCE, never re-created on re-renders
     tileLayerRef.current = L.tileLayer(TILE_LAYERS.light, {
       maxZoom: 18,
       minZoom: 10,
       tileSize: 256,
       zoomOffset: 0,
-      keepBuffer: 8,
-      updateWhenIdle: false,
+      keepBuffer: 6,
+      updateWhenIdle: true,
       updateWhenZooming: false,
-      crossOrigin: true,
+      crossOrigin: "anonymous",
     }).addTo(map)
 
-    // Show tile-loading indicator until the first batch of tiles is ready
-    map.on("loading", () => setTilesLoaded(false))
-    map.on("load", () => setTilesLoaded(true))
+    // Bug 1 fix: hide spinner after first tile-batch load OR 2 s fallback.
+    // NEVER reset it back to false — prevents spinner flickering on every pan/zoom.
+    const hideSpinner = () => setTilesLoaded(true)
+    tileLayerRef.current.on("load", hideSpinner)
+    const spinnerFallback = setTimeout(hideSpinner, 2000)
+
+    // Bug 4 fix: guarantee Leaflet knows the real container size after mount
+    const mountSizeTimer = setTimeout(() => {
+      if (mapRef.current) mapRef.current.invalidateSize(true)
+    }, 300)
 
 L.control.zoom({ position: "bottomright" }).addTo(map)
     
@@ -986,6 +993,8 @@ L.marker(KHENCHELA_CITY_CENTER, { icon: currentLocationIcon })
     setMapReady(true)
   
     return () => {
+      clearTimeout(spinnerFallback)
+      clearTimeout(mountSizeTimer)
       setMapReady(false)
       // Clear simulated bus markers (direct on map)
       busMarkersRef.current.forEach((marker) => marker.remove())
@@ -1288,7 +1297,7 @@ const marker = L.marker(subStation.coords, {
 
   return (
     <div className="relative h-full w-full">
-      <div ref={containerRef} className="h-full w-full" style={{ background: isDark ? "#1a2235" : "#e8e0d8" }} />
+      <div ref={containerRef} className="h-full w-full" style={{ background: isDark ? "#1a2235" : "#e8e0d8", minHeight: "200px" }} />
 
       {/* Tile loading indicator — shown until map fires its first "load" event */}
       {!tilesLoaded && (
