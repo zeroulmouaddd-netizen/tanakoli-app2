@@ -22,7 +22,7 @@ import {
   MapPin
 } from "lucide-react"
 import { db } from "@/lib/firebase"
-import { collection, query, where, getDocs, doc, updateDoc, increment, addDoc, serverTimestamp, orderBy, limit, onSnapshot, Timestamp, runTransaction } from "firebase/firestore"
+import { collection, query, where, getDocs, getDoc, doc, updateDoc, increment, addDoc, serverTimestamp, orderBy, limit, onSnapshot, Timestamp, runTransaction } from "firebase/firestore"
 import { useDriverMode } from "@/lib/driver-mode-context"
 import { useAuth } from "@/lib/auth-context"
 import { useDriverLocationTracking } from "@/hooks/use-driver-location-tracking"
@@ -230,7 +230,7 @@ export function DriverDashboard() {
     
     setShowRechargeModal(false)
     setScanMode("recharge")
-    startScanner()
+    startScanner("recharge", rechargeAmount)
   }
 
   // Handle preset amount selection
@@ -238,8 +238,8 @@ export function DriverDashboard() {
     setRechargeAmount(amount.toString())
   }
 
-  const startScanner = async (mode?: ScanMode) => {
-    if (mode) setScanMode(mode)
+  const startScanner = async (mode: ScanMode = "deduction", currentRechargeAmount: string = "") => {
+    setScanMode(mode)
     isScanningRef.current = true
     setIsScanning(true)
     setScanResult(null)
@@ -260,9 +260,8 @@ export function DriverDashboard() {
       readerRef.current = reader
 
       // Start continuous scanning with frame capture.
-      // IMPORTANT: always read isScanningRef.current (a ref), never the
-      // `isScanning` state variable — state values are captured at closure
-      // creation time and go stale; refs are always current.
+      // mode and currentRechargeAmount are captured from the function parameters
+      // (not from state) so they never go stale across async frames.
       const scanLoop = async () => {
         if (!isScanningRef.current || !videoRef.current || !streamRef.current) {
           return
@@ -300,7 +299,7 @@ export function DriverDashboard() {
             const text = result?.getText?.() ?? null
             if (text && typeof text === "string" && text.length > 0) {
               console.log("[Scanner] QR code detected:", text)
-              await processQRCode(text)
+              await processQRCode(text, mode, currentRechargeAmount)
               return
             }
           } catch {
@@ -330,7 +329,7 @@ export function DriverDashboard() {
     }
   }
 
-  const processQRCode = async (qrData: string | null | undefined) => {
+  const processQRCode = async (qrData: string | null | undefined, mode: ScanMode, currentRechargeAmount: string) => {
     // Guard: reject null/non-string input immediately — avoids indexOf crash
     if (!qrData || typeof qrData !== "string" || qrData.trim().length === 0) {
       console.warn("[Scanner] processQRCode called with empty/null data — ignoring")
@@ -381,31 +380,41 @@ export function DriverDashboard() {
       let userDocId = ""
 
       if (userId) {
-        // Try to get user directly by ID
-        const docSnap = await getDocs(query(usersRef, where("Phone", "==", userId)))
-        
-        if (!docSnap.empty) {
-          userDoc = docSnap.docs[0]
+        // First: try to find by Phone field matching userId value
+        const phoneSnap = await getDocs(query(usersRef, where("Phone", "==", userId)))
+        if (!phoneSnap.empty) {
+          userDoc = phoneSnap.docs[0]
           userDocId = userDoc.id
           console.log("[v0] Found user by Phone/userId:", userDocId)
         } else {
-          // Try userId as doc ID
-          userDocId = userId
-          console.log("[v0] Using userId directly:", userDocId)
+          // Fallback: treat userId as the Firestore document ID and fetch directly
+          userDocId = userId as string
+          const directSnap = await getDoc(doc(db, "users", userDocId))
+          if (directSnap.exists()) {
+            userDoc = directSnap
+            console.log("[v0] Found user by doc ID:", userDocId)
+          }
         }
       } else if (phone) {
-        // Search by phone number
+        // Search by phone number field
         const q = query(usersRef, where("Phone", "==", phone))
         const querySnapshot = await getDocs(q)
-        
         if (!querySnapshot.empty) {
           userDoc = querySnapshot.docs[0]
           userDocId = userDoc.id
           console.log("[v0] Found user by phone:", userDocId)
+        } else {
+          // Also try fetching by phone as doc ID
+          userDocId = phone as string
+          const directSnap = await getDoc(doc(db, "users", userDocId))
+          if (directSnap.exists()) {
+            userDoc = directSnap
+            console.log("[v0] Found user by phone as doc ID:", userDocId)
+          }
         }
       }
 
-      if (!userDocId) {
+      if (!userDocId || !userDoc) {
         setScanResult({
           success: false,
           message: "المستخدم غير موجود - تحقق من رمز QR",
@@ -418,16 +427,16 @@ export function DriverDashboard() {
       }
 
       // Get user data
-      const userData = userDoc?.data()
+      const userData = userDoc.data()
       const currentBalance = userData?.balance ?? 0
       const userDocRef = doc(db, "users", userDocId)
       const passengerName = userData?.fullName || name || "راكب"
 
       console.log("[v0] Current balance:", currentBalance, "Passenger:", passengerName)
 
-      if (scanMode === "recharge") {
+      if (mode === "recharge") {
         // RECHARGE MODE: Add balance to passenger, deduct from driver
-        const rechargeAmountNum = parseInt(rechargeAmount)
+        const rechargeAmountNum = parseInt(currentRechargeAmount)
         if (!rechargeAmountNum || rechargeAmountNum <= 0) {
           setScanResult({
             success: false,

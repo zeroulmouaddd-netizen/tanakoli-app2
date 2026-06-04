@@ -9,6 +9,7 @@ import { motion, AnimatePresence } from "framer-motion"
 import dynamic from "next/dynamic"
 import { useUserCache } from "@/hooks/use-user-cache"
 import { useAuth } from "@/lib/auth-context"
+import { PaymentModal } from "@/components/payment-modal"
 
 // Dynamic import with SSR disabled for QR code
 const QRCodeDisplay = dynamic(
@@ -147,9 +148,9 @@ export function BottomNav() {
         </div>
       </motion.nav>
 
-      {/* QR Modal Portal */}
-      {hasMounted && showModal && createPortal(
-        <PaymentQRModal isOpen={showModal} onClose={() => setShowModal(false)} />,
+      {/* Payment Modal Portal */}
+      {hasMounted && createPortal(
+        <PaymentModal isOpen={showModal} onClose={() => setShowModal(false)} />,
         document.body
       )}
     </>
