@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://tanakoli-app2.vercel.app/sitemap.xml
