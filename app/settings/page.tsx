@@ -6,17 +6,9 @@ import { motion } from "framer-motion"
 import { AppHeader } from "@/components/app-header"
 import { BottomNav } from "@/components/bottom-nav"
 import { SettingsBackground } from "@/components/settings-background"
-import { Settings, Bell, Volume2, Globe, ChevronLeft, ChevronRight, Check } from "lucide-react"
+import { Settings, Bell, Volume2, ChevronRight } from "lucide-react"
 import { Switch } from "@/components/ui/switch"
 import { PageTransition } from "@/components/page-transition"
-
-type Language = "ar" | "fr" | "en"
-
-const languages = [
-  { code: "ar" as Language, name: "العربية", nativeName: "العربية" },
-  { code: "fr" as Language, name: "Français", nativeName: "Français" },
-  { code: "en" as Language, name: "English", nativeName: "English" },
-]
 
 export default function SettingsPage() {
   const router = useRouter()
@@ -24,8 +16,6 @@ export default function SettingsPage() {
   // Settings state - persisted to localStorage
   const [tripNotifications, setTripNotifications] = useState(true)
   const [alertSounds, setAlertSounds] = useState(true)
-  const [selectedLanguage, setSelectedLanguage] = useState<Language>("ar")
-  const [showLanguageSelector, setShowLanguageSelector] = useState(false)
   const [hasMounted, setHasMounted] = useState(false)
 
   // Load settings from localStorage on mount
@@ -34,11 +24,9 @@ export default function SettingsPage() {
     try {
       const savedNotifications = localStorage.getItem("tripNotifications")
       const savedSounds = localStorage.getItem("alertSounds")
-      const savedLanguage = localStorage.getItem("appLanguage") as Language
-      
+
       if (savedNotifications !== null) setTripNotifications(savedNotifications === "true")
       if (savedSounds !== null) setAlertSounds(savedSounds === "true")
-      if (savedLanguage) setSelectedLanguage(savedLanguage)
     } catch {
       // Ignore localStorage errors
     }
@@ -62,18 +50,6 @@ export default function SettingsPage() {
       // Ignore
     }
   }
-
-  const handleLanguageSelect = (lang: Language) => {
-    setSelectedLanguage(lang)
-    setShowLanguageSelector(false)
-    try {
-      localStorage.setItem("appLanguage", lang)
-    } catch {
-      // Ignore
-    }
-  }
-
-  const currentLanguage = languages.find(l => l.code === selectedLanguage)
 
   return (
     <PageTransition>
@@ -169,69 +145,6 @@ export default function SettingsPage() {
                   )}
                 </div>
               </div>
-            </motion.div>
-
-
-
-            {/* Language Section */}
-            <motion.div
-              className="rounded-lg sm:rounded-2xl bg-card p-3 sm:p-4 shadow-sm"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
-            >
-              <h2 className="mb-3 sm:mb-4 flex items-center gap-2 text-base sm:text-lg font-bold text-foreground">
-                <Globe className="h-4 sm:h-5 w-4 sm:w-5 text-primary" />
-                اللغة
-              </h2>
-              
-              <button
-                onClick={() => setShowLanguageSelector(!showLanguageSelector)}
-                className="flex w-full flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-3 rounded-lg sm:rounded-xl bg-muted/50 p-3 sm:p-4 transition-colors hover:bg-muted"
-              >
-                <div className="flex items-center gap-2 sm:gap-3 order-2 sm:order-1">
-                  <div className="flex h-8 sm:h-10 w-8 sm:w-10 items-center justify-center rounded-lg bg-primary/10 flex-shrink-0">
-                    <Globe className="h-4 sm:h-5 w-4 sm:w-5 text-primary" />
-                  </div>
-                  <div className="text-right">
-                    <p className="text-sm sm:text-base font-medium text-foreground">لغة التطبيق</p>
-                    <p className="text-xs sm:text-sm text-muted-foreground">{currentLanguage?.nativeName}</p>
-                  </div>
-                </div>
-                <ChevronLeft className={`h-4 sm:h-5 w-4 sm:w-5 text-muted-foreground transition-transform order-1 sm:order-2 flex-shrink-0 ${showLanguageSelector ? "rotate-90" : ""}`} />
-              </button>
-
-              {/* Language Options */}
-              {showLanguageSelector && (
-                <motion.div
-                  className="mt-3 space-y-2"
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: "auto" }}
-                  exit={{ opacity: 0, height: 0 }}
-                >
-                  {languages.map((lang) => (
-                    <button
-                      key={lang.code}
-                      onClick={() => handleLanguageSelect(lang.code)}
-                      className={`flex w-full flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-3 rounded-lg sm:rounded-xl p-3 sm:p-4 transition-colors ${
-                        selectedLanguage === lang.code
-                          ? "bg-primary/10 border-2 border-primary"
-                          : "bg-muted/30 hover:bg-muted/50"
-                      }`}
-                    >
-                      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-1 sm:gap-3 order-2 sm:order-1">
-                        <span className="text-base sm:text-lg font-medium text-foreground">{lang.nativeName}</span>
-                        <span className="text-xs sm:text-sm text-muted-foreground">({lang.name})</span>
-                      </div>
-                      {selectedLanguage === lang.code && (
-                        <div className="flex h-5 sm:h-6 w-5 sm:w-6 items-center justify-center rounded-full bg-primary order-1 sm:order-2 flex-shrink-0">
-                          <Check className="h-3 sm:h-4 w-3 sm:w-4 text-primary-foreground" />
-                        </div>
-                      )}
-                    </button>
-                  ))}
-                </motion.div>
-              )}
             </motion.div>
           </div>
         </div>
