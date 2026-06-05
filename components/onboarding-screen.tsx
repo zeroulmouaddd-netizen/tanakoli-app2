@@ -350,15 +350,6 @@ export function OnboardingScreen() {
               </svg>
             </div>
 
-            {/* Back button - positioned at top */}
-            <button
-              onClick={() => { setError(""); setAuthMethod(null); setStep("splash") }}
-              className="relative z-10 self-start mt-6 flex items-center gap-2 text-sm text-white/60 hover:text-white/90 transition-colors"
-            >
-              <ArrowRight className="h-4 w-4" />
-              <span>رجوع</span>
-              </button>
-
             {/* Centered form content */}
             <div className="relative z-10 w-full max-w-sm flex-1 flex flex-col items-center justify-center">
               <div className="mb-8 text-center">
@@ -697,15 +688,16 @@ export function OnboardingScreen() {
               </svg>
             </div>
 
-            <div className="relative z-10 w-full max-w-sm">
-              <button
-                onClick={() => { setError(""); setOtp(["","","","","",""]); setStep("step2") }}
-                className="mb-6 flex items-center gap-2 text-sm text-white/60 hover:text-white/90 transition-colors"
-              >
-                <ArrowRight className="h-4 w-4" />
-                <span>رجوع</span>
-              </button>
+            {/* Back button - fixed top-left */}
+            <button
+              onClick={() => { setError(""); setOtp(["","","","","",""]); setStep("step2") }}
+              className="fixed top-5 left-5 z-20 flex items-center gap-2 text-sm text-white/60 hover:text-white/90 transition-colors"
+            >
+              <ArrowRight className="h-4 w-4" />
+              <span>رجوع</span>
+            </button>
 
+            <div className="relative z-10 w-full max-w-sm">
               <div className="mb-8 text-center">
                 <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-white/10 backdrop-blur-sm border border-white/20">
                   <Shield className="h-8 w-8 text-emerald-400" />
