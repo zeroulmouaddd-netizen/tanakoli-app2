@@ -777,10 +777,10 @@ export function OnboardingScreen({ onShowIntro }: OnboardingScreenProps = {}) {
 
       </AnimatePresence>
 
-      {onShowIntro && (
+      {onShowIntro && step === "step1" && (
         <button
           onClick={onShowIntro}
-          className="absolute bottom-6 inset-x-0 mx-auto w-fit text-xs text-white/25 hover:text-white/50 transition-colors duration-200"
+          className="absolute bottom-6 inset-x-0 mx-auto w-fit z-10 text-xs text-white/25 hover:text-white/50 transition-colors duration-200"
         >
           عرض مقدمة التطبيق
         </button>
