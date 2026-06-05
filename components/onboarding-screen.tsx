@@ -691,7 +691,7 @@ export function OnboardingScreen() {
             {/* Back button - fixed top-left */}
             <button
               onClick={() => { setError(""); setOtp(["","","","","",""]); setStep("step2") }}
-              className="fixed top-5 left-5 z-20 flex items-center gap-2 text-sm text-white/60 hover:text-white/90 transition-colors"
+              className="fixed top-5 right-5 z-20 flex items-center gap-2 text-sm text-white/60 hover:text-white/90 transition-colors"
             >
               <ArrowRight className="h-4 w-4" />
               <span>رجوع</span>
