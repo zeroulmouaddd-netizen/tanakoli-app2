@@ -13,7 +13,11 @@ type AuthMethod = "phone" | "email"
 
 
 
-export function OnboardingScreen() {
+interface OnboardingScreenProps {
+  onShowIntro?: () => void
+}
+
+export function OnboardingScreen({ onShowIntro }: OnboardingScreenProps = {}) {
   const router = useRouter()
   const [step, setStep] = useState<Step>("step1")
   const [showSplashButton, setShowSplashButton] = useState(false)
@@ -772,6 +776,15 @@ export function OnboardingScreen() {
         )}
 
       </AnimatePresence>
+
+      {onShowIntro && (
+        <button
+          onClick={onShowIntro}
+          className="absolute bottom-6 inset-x-0 mx-auto w-fit text-xs text-white/25 hover:text-white/50 transition-colors duration-200"
+        >
+          عرض مقدمة التطبيق
+        </button>
+      )}
     </motion.div>
   )
 }

@@ -30,6 +30,13 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
     setIntroSeen(true)
   }
 
+  const handleShowIntro = () => {
+    try {
+      localStorage.removeItem(STORAGE_KEY)
+    } catch {}
+    setIntroSeen(false)
+  }
+
   // Skip auth gate for admin routes — they have their own password protection
   if (pathname?.startsWith("/admin")) {
     return <>{children}</>
@@ -46,7 +53,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
   }
 
   if (!currentUser) {
-    return <OnboardingScreen />
+    return <OnboardingScreen onShowIntro={handleShowIntro} />
   }
 
   return <>{children}</>
