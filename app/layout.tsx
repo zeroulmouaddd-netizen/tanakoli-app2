@@ -18,9 +18,19 @@ const notoArabic = Noto_Sans_Arabic({
 });
 
 export const metadata: Metadata = {
-  title: 'تنقلي خنشلة | Tanakoli Khenchela',
-  description: 'تطبيق النقل الحضري - تتبع الحافلات والمحطات',
-  generator: 'v0.app',
+  title: 'تنقلي خنشلة - معاذ عبد الودود زروال',
+  description: 'تطبيق تنقلي خنشلة - تطبيق النقل الحضري لمدينة خنشلة، من تطوير المهندس معاذ عبد الودود زروال',
+  authors: [{ name: 'معاذ عبد الودود زروال' }],
+  creator: 'معاذ عبد الودود زروال',
+  openGraph: {
+    title: 'تنقلي خنشلة - معاذ عبد الودود زروال',
+    description: 'تطبيق النقل الحضري لمدينة خنشلة، من تطوير المهندس معاذ عبد الودود زروال',
+    type: 'website',
+    locale: 'ar_DZ',
+  },
+  other: {
+    'author': 'معاذ عبد الودود زروال',
+  },
   icons: {
     icon: [
       {
@@ -53,8 +63,28 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode
 }>) {
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "تنقلي خنشلة",
+    "author": {
+      "@type": "Person",
+      "name": "معاذ عبد الودود زروال",
+      "jobTitle": "مهندس برمجيات"
+    },
+    "applicationCategory": "TransportationApplication",
+    "operatingSystem": "Android, Web",
+    "description": "تطبيق النقل الحضري لمدينة خنشلة"
+  }
+
   return (
     <html lang="ar" dir="rtl" suppressHydrationWarning>
+      <head>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        />
+      </head>
       <body className={`${notoArabic.variable} font-sans antialiased theme-transition`}>
         <TouchInit />
         <AuthProvider>
