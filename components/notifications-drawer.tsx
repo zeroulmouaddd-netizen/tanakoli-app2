@@ -1,6 +1,7 @@
 "use client"
 
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
+import { createPortal } from "react-dom"
 import { motion, AnimatePresence } from "framer-motion"
 import { Bell, BellOff, CreditCard, ArrowDownCircle, AlertTriangle, X } from "lucide-react"
 import { useNotifications, type AppNotification } from "@/hooks/use-notifications"
@@ -70,7 +71,7 @@ function NotifItem({ notif }: { notif: AppNotification }) {
   )
 }
 
-export function NotificationsDrawer({ open, onClose }: NotificationsDrawerProps) {
+function DrawerContent({ open, onClose }: NotificationsDrawerProps) {
   const { notifications, markAllRead } = useNotifications()
 
   useEffect(() => {
@@ -84,22 +85,38 @@ export function NotificationsDrawer({ open, onClose }: NotificationsDrawerProps)
     <AnimatePresence>
       {open && (
         <>
+          {/* Backdrop — sits above Leaflet's stacking context via portal */}
           <motion.div
-            className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm"
+            style={{ position: "fixed", inset: 0, zIndex: 100000, background: "rgba(0,0,0,0.45)", backdropFilter: "blur(4px)" }}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
           />
 
+          {/* Drawer panel */}
           <motion.div
-            className="fixed bottom-0 left-0 right-0 z-50 flex max-h-[80dvh] flex-col overflow-hidden rounded-t-3xl bg-card shadow-2xl"
+            dir="rtl"
+            style={{
+              position: "fixed",
+              bottom: 0,
+              left: 0,
+              right: 0,
+              zIndex: 100001,
+              maxHeight: "80dvh",
+              display: "flex",
+              flexDirection: "column",
+              overflow: "hidden",
+              borderRadius: "24px 24px 0 0",
+              boxShadow: "0 -8px 40px rgba(0,0,0,0.3)",
+            }}
+            className="bg-card"
             initial={{ y: "100%" }}
             animate={{ y: 0 }}
             exit={{ y: "100%" }}
             transition={{ type: "spring", stiffness: 320, damping: 32 }}
-            dir="rtl"
           >
+            {/* Header */}
             <div className="flex items-center justify-between border-b border-border px-4 py-4">
               <button
                 onClick={onClose}
@@ -113,6 +130,7 @@ export function NotificationsDrawer({ open, onClose }: NotificationsDrawerProps)
               </div>
             </div>
 
+            {/* List */}
             <div className="flex-1 overflow-y-auto" style={{ WebkitOverflowScrolling: "touch" }}>
               {notifications.length === 0 ? (
                 <div className="flex flex-col items-center justify-center gap-3 py-16 text-center">
@@ -136,10 +154,26 @@ export function NotificationsDrawer({ open, onClose }: NotificationsDrawerProps)
               )}
             </div>
 
-            <div className="h-[env(safe-area-inset-bottom,0px)]" />
+            <div style={{ height: "env(safe-area-inset-bottom, 0px)" }} />
           </motion.div>
         </>
       )}
     </AnimatePresence>
+  )
+}
+
+export function NotificationsDrawer({ open, onClose }: NotificationsDrawerProps) {
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+    return () => setMounted(false)
+  }, [])
+
+  if (!mounted) return null
+
+  return createPortal(
+    <DrawerContent open={open} onClose={onClose} />,
+    document.body
   )
 }
