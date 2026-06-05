@@ -71,11 +71,18 @@ export function BottomNav() {
         animate={{ y: 0, opacity: 1 }}
         transition={{ type: "spring", stiffness: 300, damping: 30, delay: 0.2 }}
       >
-        {/* Solid nav bar with glass effect and top border */}
-        <div className="border-t border-border/50 bg-card pb-safe backdrop-blur-xl">
-          {/* Subtle top shadow for depth */}
-          <div className="absolute inset-x-0 -top-px h-px bg-gradient-to-r from-transparent via-border/30 to-transparent" />
-          
+        {/* Glassmorphism nav bar */}
+        <div
+          className="relative pb-safe backdrop-blur-2xl"
+          style={{
+            background: "linear-gradient(180deg, rgba(15,23,42,0.85) 0%, rgba(10,16,32,0.95) 100%)",
+            borderTop: "1px solid rgba(16,185,129,0.18)",
+            boxShadow: "0 -1px 0 0 rgba(16,185,129,0.08), 0 -8px 32px rgba(0,0,0,0.35)",
+          }}
+        >
+          {/* Top glow line */}
+          <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-emerald-500/40 to-transparent" />
+
           {/* Nav content - 5 equal slots */}
           <div className="flex h-14 sm:h-16 items-stretch">
             {navItems.map((item, index) => {
@@ -114,31 +121,57 @@ export function BottomNav() {
               return (
                 <Link key={item.label} href={item.href} onTouchStart={() => {}} className="flex flex-1 items-center justify-center">
                   <motion.div
-                    className={`flex flex-col items-center gap-0.5 sm:gap-1 rounded-lg sm:rounded-xl px-2 sm:px-3 py-1.5 sm:py-2 transition-colors ${
-                      isActive
-                        ? "text-primary"
-                        : "text-muted-foreground hover:text-foreground"
-                    }`}
-                    whileTap={{ scale: 0.92 }}
+                    className="relative flex flex-col items-center gap-0.5 sm:gap-1 px-2 sm:px-3 py-1.5 sm:py-2"
+                    whileTap={{ scale: 0.90 }}
                     transition={{ type: "spring", stiffness: 400, damping: 17 }}
                   >
+                    {/* Active pill bubble behind icon + label */}
                     {isActive && (
                       <motion.div
-                        className="absolute inset-0 rounded-lg sm:rounded-xl bg-primary/10"
-                        layoutId="activeTab"
-                        transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                        className="absolute inset-0 rounded-xl"
+                        layoutId="activeTabBubble"
+                        transition={{ type: "spring", stiffness: 380, damping: 30 }}
+                        style={{
+                          background: "rgba(16,185,129,0.12)",
+                          boxShadow: "0 0 12px rgba(16,185,129,0.2), inset 0 1px 0 rgba(16,185,129,0.15)",
+                        }}
                       />
                     )}
-                    
+
+                    {/* Icon */}
                     <motion.div
                       className="relative z-10"
-                      animate={isActive ? { scale: 1.1 } : { scale: 1 }}
-                      transition={{ type: "spring", stiffness: 400, damping: 17 }}
+                      animate={
+                        isActive
+                          ? { scale: 1.12, filter: "drop-shadow(0 0 6px rgba(16,185,129,0.8))" }
+                          : { scale: 1,    filter: "drop-shadow(0 0 0px transparent)" }
+                      }
+                      transition={{ type: "spring", stiffness: 380, damping: 20 }}
                     >
-                      <item.icon className="h-4 sm:h-5 w-4 sm:w-5" />
+                      <item.icon
+                        className="h-4 sm:h-5 w-4 sm:w-5 transition-colors duration-200"
+                        style={{ color: isActive ? "#10B981" : "rgba(148,163,184,0.6)" }}
+                      />
                     </motion.div>
-                    
-                    <span className="relative z-10 text-[9px] sm:text-[10px] font-medium">{item.label}</span>
+
+                    {/* Label */}
+                    <span
+                      className="relative z-10 text-[9px] sm:text-[10px] font-medium transition-colors duration-200"
+                      style={{ color: isActive ? "#10B981" : "rgba(148,163,184,0.5)" }}
+                    >
+                      {item.label}
+                    </span>
+
+                    {/* Small pill indicator dot beneath label when active */}
+                    <motion.div
+                      animate={isActive ? { opacity: 1, scaleX: 1 } : { opacity: 0, scaleX: 0 }}
+                      transition={{ type: "spring", stiffness: 400, damping: 25 }}
+                      className="absolute -bottom-0.5 h-0.5 w-4 rounded-full"
+                      style={{
+                        background: "linear-gradient(90deg, #10B981, #38BDF8)",
+                        boxShadow: "0 0 6px rgba(16,185,129,0.8)",
+                      }}
+                    />
                   </motion.div>
                 </Link>
               )
