@@ -6,6 +6,7 @@ import { X, CheckCircle2, AlertCircle, Bus, Calendar, Clock, Ticket } from "luci
 import { db } from "@/lib/firebase"
 import { doc, runTransaction, collection, addDoc, serverTimestamp } from "firebase/firestore"
 import { useAuth } from "@/lib/auth-context"
+import { addNotification, LOW_BALANCE_THRESHOLD } from "@/lib/notifications"
 
 // Success sound effect - plays a short beep
 const playSuccessSound = () => {
@@ -128,6 +129,7 @@ export function PaymentModal({ isOpen, onClose }: PaymentModalProps) {
       const ticketId = `TKT-${Date.now().toString(36).toUpperCase()}`
       const now = new Date()
       
+      let balanceAfterPayment = 0
       await runTransaction(db, async (transaction) => {
         const userDoc = await transaction.get(userDocRef)
         
@@ -142,6 +144,7 @@ export function PaymentModal({ isOpen, onClose }: PaymentModalProps) {
         }
         
         const newBalance = currentBalance - TICKET_PRICE
+        balanceAfterPayment = newBalance
         transaction.update(userDocRef, { balance: newBalance })
       })
 
@@ -165,7 +168,13 @@ export function PaymentModal({ isOpen, onClose }: PaymentModalProps) {
       
       // Play success sound
       playSuccessSound()
-      
+
+      // Notify passenger: payment confirmation + low balance warning
+      await addNotification(firestoreUserId!, "payment", `تم دفع أجرة بمبلغ ${TICKET_PRICE} د.ج`, TICKET_PRICE)
+      if (balanceAfterPayment < LOW_BALANCE_THRESHOLD) {
+        await addNotification(firestoreUserId!, "low_balance", "رصيدك منخفض، يرجى الشحن")
+      }
+
       setStatus("success")
     } catch (error) {
       setStatus("error")

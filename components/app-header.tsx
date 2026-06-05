@@ -9,6 +9,8 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/co
 import { Switch } from "@/components/ui/switch"
 import { useTheme } from "@/lib/theme-context"
 import { useDriverMode } from "@/lib/driver-mode-context"
+import { useNotifications } from "@/hooks/use-notifications"
+import { NotificationsDrawer } from "@/components/notifications-drawer"
 
 const menuItems = [
   { icon: MapPin, label: "المحطات القريبة", href: "/stations" },
@@ -20,8 +22,10 @@ const menuItems = [
 
 export function AppHeader() {
   const [isOpen, setIsOpen] = useState(false)
+  const [notifOpen, setNotifOpen] = useState(false)
   const { theme, toggleTheme, isDark } = useTheme()
   const { enterDriverMode, isAuthorizedDriver, isCheckingRole, roleError, clearRoleError } = useDriverMode()
+  const { unreadCount } = useNotifications()
 
   const handleEnterDriverMode = async () => {
     const success = await enterDriverMode()
@@ -196,12 +200,21 @@ export function AppHeader() {
         </div>
       </div>
 
-      <Button variant="ghost" size="icon" className="h-10 w-10 sm:h-12 sm:w-12 rounded-full bg-card/80 backdrop-blur-sm relative flex-shrink-0">
+      <Button
+        variant="ghost"
+        size="icon"
+        className="h-10 w-10 sm:h-12 sm:w-12 rounded-full bg-card/80 backdrop-blur-sm relative flex-shrink-0"
+        onClick={() => setNotifOpen(true)}
+      >
         <Bell className="h-5 w-5" />
-        <span className="absolute -left-0.5 -top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-destructive text-[10px] font-bold text-destructive-foreground">
-          3
-        </span>
+        {unreadCount > 0 && (
+          <span className="absolute -left-0.5 -top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-destructive text-[10px] font-bold text-destructive-foreground">
+            {unreadCount > 9 ? "9+" : unreadCount}
+          </span>
+        )}
       </Button>
+
+      <NotificationsDrawer open={notifOpen} onClose={() => setNotifOpen(false)} />
     </header>
   )
 }

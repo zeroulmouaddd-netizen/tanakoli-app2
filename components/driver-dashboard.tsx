@@ -23,6 +23,7 @@ import {
 } from "lucide-react"
 import { db } from "@/lib/firebase"
 import { collection, query, where, getDocs, getDoc, doc, updateDoc, increment, addDoc, serverTimestamp, orderBy, limit, onSnapshot, Timestamp, runTransaction } from "firebase/firestore"
+import { addNotification, LOW_BALANCE_THRESHOLD } from "@/lib/notifications"
 import { useDriverMode } from "@/lib/driver-mode-context"
 import { useAuth } from "@/lib/auth-context"
 import { useDriverLocationTracking } from "@/hooks/use-driver-location-tracking"
@@ -526,6 +527,9 @@ export function DriverDashboard() {
           throw txError
         }
 
+        // Notify passenger: recharge received
+        await addNotification(userDocId, "recharge", `تم شحن رصيدك بمبلغ ${rechargeAmountNum} د.ج`, rechargeAmountNum)
+
         // Success!
         setScanResult({
           success: true,
@@ -583,6 +587,15 @@ export function DriverDashboard() {
           console.log("[v0] Transaction logged successfully")
         } catch {
           // Transaction logging failed, but payment still went through
+        }
+
+        // Notify driver: payment received confirmation
+        if (firestoreUserId) {
+          await addNotification(firestoreUserId, "payment", `تم دفع أجرة بمبلغ ${selectedFare} د.ج`, selectedFare)
+        }
+        // Notify passenger if balance is now low
+        if (newBalance < LOW_BALANCE_THRESHOLD) {
+          await addNotification(userDocId, "low_balance", "رصيدك منخفض، يرجى الشحن")
         }
 
         // Success!
