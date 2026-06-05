@@ -3,7 +3,77 @@
 import { useState, useEffect } from "react"
 import { motion } from "framer-motion"
 
-// Modern TK Logo: Road-path T integrated with sleek bus silhouette
+const DURATION = 3200
+
+function Particles() {
+  const dots = [
+    { cx: "12%",  cy: "18%", r: 1.5, delay: 0,    dur: 4 },
+    { cx: "82%",  cy: "12%", r: 1,   delay: 0.8,  dur: 5 },
+    { cx: "67%",  cy: "75%", r: 2,   delay: 1.4,  dur: 3.5 },
+    { cx: "25%",  cy: "60%", r: 1.2, delay: 0.3,  dur: 6 },
+    { cx: "90%",  cy: "45%", r: 1.8, delay: 2,    dur: 4.5 },
+    { cx: "45%",  cy: "88%", r: 1,   delay: 0.6,  dur: 5.5 },
+    { cx: "5%",   cy: "40%", r: 1.5, delay: 1.8,  dur: 4 },
+    { cx: "73%",  cy: "30%", r: 1,   delay: 1.1,  dur: 3.8 },
+    { cx: "38%",  cy: "22%", r: 2,   delay: 2.5,  dur: 5 },
+    { cx: "58%",  cy: "55%", r: 1.3, delay: 0.9,  dur: 4.2 },
+    { cx: "20%",  cy: "82%", r: 1,   delay: 1.6,  dur: 6.5 },
+    { cx: "93%",  cy: "70%", r: 1.5, delay: 0.4,  dur: 3.5 },
+  ]
+
+  const streaks = [
+    { x1: "15%", y1: "25%", x2: "25%", y2: "18%", delay: 1,   dur: 4 },
+    { x1: "70%", y1: "15%", x2: "80%", y2: "8%",  delay: 2.2, dur: 5 },
+    { x1: "50%", y1: "70%", x2: "62%", y2: "65%", delay: 0.5, dur: 4.5 },
+    { x1: "8%",  y1: "55%", x2: "16%", y2: "48%", delay: 3,   dur: 3.8 },
+    { x1: "85%", y1: "55%", x2: "93%", y2: "50%", delay: 1.5, dur: 5.2 },
+  ]
+
+  return (
+    <svg className="absolute inset-0 w-full h-full pointer-events-none" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <style>{`
+          @keyframes twinkle {
+            0%, 100% { opacity: 0.15; transform: scale(1); }
+            50% { opacity: 0.9; transform: scale(1.4); }
+          }
+          @keyframes streak {
+            0%, 100% { opacity: 0; }
+            30%, 70% { opacity: 0.6; }
+          }
+        `}</style>
+      </defs>
+      {dots.map((d, i) => (
+        <circle
+          key={i}
+          cx={d.cx} cy={d.cy} r={d.r}
+          fill="#10B981"
+          style={{
+            animation: `twinkle ${d.dur}s ease-in-out ${d.delay}s infinite`,
+            transformOrigin: `${d.cx} ${d.cy}`,
+          }}
+        />
+      ))}
+      {streaks.map((s, i) => (
+        <line
+          key={i}
+          x1={s.x1} y1={s.y1} x2={s.x2} y2={s.y2}
+          stroke="url(#streakGrad)"
+          strokeWidth="1"
+          strokeLinecap="round"
+          style={{ animation: `streak ${s.dur}s ease-in-out ${s.delay}s infinite` }}
+        />
+      ))}
+      <defs>
+        <linearGradient id="streakGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#10B981" stopOpacity="0" />
+          <stop offset="100%" stopColor="#38BDF8" stopOpacity="1" />
+        </linearGradient>
+      </defs>
+    </svg>
+  )
+}
+
 function TKLogo({ className }: { className?: string }) {
   return (
     <svg
@@ -13,7 +83,6 @@ function TKLogo({ className }: { className?: string }) {
       className={className}
     >
       <defs>
-        {/* Emerald Green to Electric Blue gradient */}
         <linearGradient id="tkGradient" x1="0%" y1="0%" x2="100%" y2="100%">
           <stop offset="0%" stopColor="#10B981" />
           <stop offset="40%" stopColor="#059669" />
@@ -28,7 +97,6 @@ function TKLogo({ className }: { className?: string }) {
           <stop offset="0%" stopColor="#10B981" stopOpacity="0.9" />
           <stop offset="100%" stopColor="#3B82F6" stopOpacity="0.9" />
         </linearGradient>
-        {/* Glow filter */}
         <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
           <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
           <feMerge>
@@ -36,56 +104,36 @@ function TKLogo({ className }: { className?: string }) {
             <feMergeNode in="SourceGraphic"/>
           </feMerge>
         </filter>
-        {/* Drop shadow */}
         <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
           <feDropShadow dx="0" dy="4" stdDeviation="8" floodColor="#000" floodOpacity="0.3"/>
         </filter>
       </defs>
-      
-      {/* Background circle with glass effect */}
       <circle cx="100" cy="100" r="90" fill="white" fillOpacity="0.1" />
       <circle cx="100" cy="100" r="88" stroke="url(#tkGradientLight)" strokeWidth="2" strokeOpacity="0.5" fill="none" />
-      
-      {/* Stylized "T" as a road/path */}
       <g filter="url(#shadow)">
-        {/* Horizontal road (top of T) */}
         <rect x="35" y="45" width="130" height="22" rx="11" fill="url(#tkGradient)" />
-        {/* Road markings on horizontal */}
         <line x1="50" y1="56" x2="65" y2="56" stroke="white" strokeWidth="2" strokeLinecap="round" strokeDasharray="6 4" opacity="0.7" />
         <line x1="80" y1="56" x2="95" y2="56" stroke="white" strokeWidth="2" strokeLinecap="round" strokeDasharray="6 4" opacity="0.7" />
         <line x1="110" y1="56" x2="125" y2="56" stroke="white" strokeWidth="2" strokeLinecap="round" strokeDasharray="6 4" opacity="0.7" />
         <line x1="140" y1="56" x2="150" y2="56" stroke="white" strokeWidth="2" strokeLinecap="round" strokeDasharray="6 4" opacity="0.7" />
-        
-        {/* Vertical road (stem of T) with perspective */}
         <path d="M88 67 L112 67 L118 145 L82 145 Z" fill="url(#roadGradient)" />
-        {/* Road center line */}
         <line x1="100" y1="75" x2="100" y2="90" stroke="white" strokeWidth="2" strokeLinecap="round" opacity="0.7" />
         <line x1="100" y1="100" x2="100" y2="115" stroke="white" strokeWidth="2" strokeLinecap="round" opacity="0.7" />
         <line x1="100" y1="125" x2="100" y2="138" stroke="white" strokeWidth="2" strokeLinecap="round" opacity="0.7" />
       </g>
-      
-      {/* Minimalist Bus Silhouette on the road */}
       <g filter="url(#glow)" transform="translate(72, 95)">
-        {/* Bus body */}
         <rect x="0" y="5" width="56" height="28" rx="6" fill="white" />
-        {/* Bus roof */}
         <rect x="4" y="0" width="48" height="8" rx="4" fill="white" />
-        {/* Windows */}
         <rect x="6" y="10" width="10" height="10" rx="2" fill="url(#tkGradient)" opacity="0.8" />
         <rect x="19" y="10" width="10" height="10" rx="2" fill="url(#tkGradient)" opacity="0.8" />
         <rect x="32" y="10" width="10" height="10" rx="2" fill="url(#tkGradient)" opacity="0.8" />
-        {/* Front section */}
         <rect x="44" y="10" width="8" height="10" rx="2" fill="url(#tkGradient)" opacity="0.6" />
-        {/* Wheels */}
         <circle cx="14" cy="35" r="6" fill="#1E293B" />
         <circle cx="14" cy="35" r="3" fill="#64748B" />
         <circle cx="42" cy="35" r="6" fill="#1E293B" />
         <circle cx="42" cy="35" r="3" fill="#64748B" />
-        {/* Headlight */}
         <circle cx="50" cy="25" r="2.5" fill="#FCD34D" />
       </g>
-      
-      {/* "K" stylized hint - subtle accent */}
       <g opacity="0.15">
         <path d="M145 75 L165 55" stroke="url(#tkGradient)" strokeWidth="8" strokeLinecap="round" />
         <path d="M145 75 L165 95" stroke="url(#tkGradient)" strokeWidth="8" strokeLinecap="round" />
@@ -94,187 +142,197 @@ function TKLogo({ className }: { className?: string }) {
   )
 }
 
-// City silhouette pattern for background
-function CitySilhouette({ className }: { className?: string }) {
+function LoadingDots() {
+  const [frame, setFrame] = useState(0)
+  useEffect(() => {
+    const id = setInterval(() => setFrame(f => (f + 1) % 4), 500)
+    return () => clearInterval(id)
+  }, [])
+  const dots = ["", ".", "..", "..."][frame]
   return (
-    <svg
-      viewBox="0 0 1200 200"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-      className={className}
-      preserveAspectRatio="xMidYMax slice"
-    >
-      <defs>
-        <linearGradient id="cityGradient" x1="0%" y1="100%" x2="0%" y2="0%">
-          <stop offset="0%" stopColor="#10B981" stopOpacity="0.15" />
-          <stop offset="100%" stopColor="#3B82F6" stopOpacity="0.05" />
-        </linearGradient>
-      </defs>
-      {/* City buildings silhouette */}
-      <path
-        d="M0 200 L0 160 L30 160 L30 140 L50 140 L50 120 L70 120 L70 160 L100 160 L100 100 L120 100 L120 80 L140 80 L140 100 L160 100 L160 140 L200 140 L200 90 L220 90 L220 70 L240 70 L240 90 L260 90 L260 120 L300 120 L300 60 L320 60 L320 40 L340 40 L340 60 L360 60 L360 100 L400 100 L400 130 L450 130 L450 80 L470 80 L470 50 L490 50 L490 30 L510 30 L510 50 L530 50 L530 80 L550 80 L550 110 L600 110 L600 70 L620 70 L620 90 L640 90 L640 130 L700 130 L700 100 L720 100 L720 60 L740 60 L740 40 L760 40 L760 60 L780 60 L780 90 L820 90 L820 140 L860 140 L860 110 L880 110 L880 80 L900 80 L900 60 L920 60 L920 80 L940 80 L940 120 L1000 120 L1000 90 L1020 90 L1020 70 L1040 70 L1040 90 L1060 90 L1060 140 L1100 140 L1100 100 L1120 100 L1120 130 L1160 130 L1160 160 L1200 160 L1200 200 Z"
-        fill="url(#cityGradient)"
-      />
-      {/* Aurès mountains in background */}
-      <path
-        d="M0 200 L100 180 L200 150 L350 120 L450 140 L550 90 L650 110 L750 70 L850 100 L950 130 L1050 110 L1150 150 L1200 170 L1200 200 Z"
-        fill="url(#cityGradient)"
-        opacity="0.5"
-      />
-    </svg>
+    <span className="inline-block min-w-[140px] text-right" dir="rtl">
+      جاري التحميل<span className="text-emerald-400">{dots}</span>
+    </span>
   )
 }
 
 export function SplashScreen({ onComplete }: { onComplete: () => void }) {
-  const [showButton, setShowButton] = useState(false)
+  const [progress, setProgress] = useState(0)
 
-  // Show button after initial animations complete
   useEffect(() => {
-    const timer = setTimeout(() => setShowButton(true), 1200)
-    return () => clearTimeout(timer)
-  }, [])
+    const start = performance.now()
+    let raf: number
+    const tick = (now: number) => {
+      const pct = Math.min((now - start) / DURATION, 1)
+      setProgress(pct)
+      if (pct < 1) {
+        raf = requestAnimationFrame(tick)
+      } else {
+        setTimeout(onComplete, 200)
+      }
+    }
+    raf = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(raf)
+  }, [onComplete])
 
   return (
     <div
       className="fixed inset-0 z-50 flex flex-col items-center justify-center overflow-hidden"
-      style={{
-        // GPU acceleration for smooth rendering
-        transform: "translateZ(0)",
-        backfaceVisibility: "hidden",
-        WebkitFontSmoothing: "antialiased",
-      }}
+      style={{ transform: "translateZ(0)", backfaceVisibility: "hidden" }}
     >
-      {/* Static Background - no animations */}
-      <div className="absolute inset-0 bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900">
-        {/* Subtle radial gradient accent - static */}
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-emerald-900/20 via-transparent to-blue-900/20" />
-        {/* Static gradient orbs - no animation */}
-        <div className="absolute left-1/4 top-1/4 h-96 w-96 rounded-full bg-emerald-500/10 blur-3xl" />
-        <div className="absolute right-1/4 bottom-1/4 h-96 w-96 rounded-full bg-blue-500/10 blur-3xl" />
-        {/* City silhouette at bottom */}
-        <div className="absolute inset-x-0 bottom-0 h-48 opacity-60">
-          <CitySilhouette className="h-full w-full" />
-        </div>
+      {/* ── Animated gradient background ── */}
+      <div className="absolute inset-0" style={{ animation: "bgShift 8s ease-in-out infinite" }}>
+        <style>{`
+          @keyframes bgShift {
+            0%   { background: linear-gradient(135deg, #0a0f1e 0%, #0d2137 40%, #061a2e 100%); }
+            33%  { background: linear-gradient(135deg, #051a2c 0%, #0a2e2a 40%, #071a3a 100%); }
+            66%  { background: linear-gradient(135deg, #080e24 0%, #0b2040 40%, #0a2a28 100%); }
+            100% { background: linear-gradient(135deg, #0a0f1e 0%, #0d2137 40%, #061a2e 100%); }
+          }
+          @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50%       { transform: translateY(-12px); }
+          }
+          @keyframes pulseRing1 {
+            0%, 100% { opacity: 0.5; transform: scale(1); }
+            50%       { opacity: 0.15; transform: scale(1.15); }
+          }
+          @keyframes pulseRing2 {
+            0%, 100% { opacity: 0.25; transform: scale(1.12); }
+            50%       { opacity: 0.55; transform: scale(1); }
+          }
+          @keyframes pulseRing3 {
+            0%, 100% { opacity: 0.1; transform: scale(1.25); }
+            50%       { opacity: 0.35; transform: scale(1.08); }
+          }
+          @keyframes glowPulse {
+            0%, 100% { opacity: 0.5; }
+            50%       { opacity: 1; }
+          }
+        `}</style>
       </div>
 
-      {/* Content Container with GPU acceleration */}
-      <div 
-        className="relative z-10 flex flex-col items-center gap-6 px-6 text-center"
-        style={{ transform: "translateZ(0)" }}
-      >
-        
-        {/* Main Logo - single fade-in animation */}
+      {/* Radial accent overlay */}
+      <div className="absolute inset-0 pointer-events-none"
+        style={{ background: "radial-gradient(ellipse 70% 55% at 50% 45%, rgba(16,185,129,0.08) 0%, rgba(14,165,233,0.06) 50%, transparent 100%)" }}
+      />
+
+      {/* Particles */}
+      <Particles />
+
+      {/* ── Center content ── */}
+      <div className="relative z-10 flex flex-col items-center gap-8 px-6 text-center">
+
+        {/* Logo with pulsing rings + float */}
         <motion.div
-          className="relative"
-          initial={{ scale: 0.8, opacity: 0 }}
+          className="relative flex items-center justify-center"
+          initial={{ scale: 0.75, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
-          transition={{ duration: 0.6, ease: "easeOut" }}
+          transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
         >
-          {/* Static glow ring - no animation */}
-          <div
-            className="absolute -inset-8 rounded-full opacity-60"
+          {/* Pulse rings */}
+          <div className="absolute rounded-full border border-emerald-400/50 w-64 h-64"
+            style={{ animation: "pulseRing1 2.4s ease-in-out infinite", transformOrigin: "center" }} />
+          <div className="absolute rounded-full border border-teal-400/30 w-72 h-72"
+            style={{ animation: "pulseRing2 2.4s ease-in-out infinite 0.4s", transformOrigin: "center" }} />
+          <div className="absolute rounded-full border border-sky-400/20 w-80 h-80"
+            style={{ animation: "pulseRing3 2.4s ease-in-out infinite 0.8s", transformOrigin: "center" }} />
+
+          {/* Green glow shadow beneath (simulates ground glow) */}
+          <div className="absolute bottom-0 w-32 h-6 rounded-full"
             style={{
-              background: "radial-gradient(circle, rgba(16,185,129,0.4) 0%, rgba(59,130,246,0.3) 40%, transparent 70%)"
+              background: "radial-gradient(ellipse, rgba(16,185,129,0.55) 0%, transparent 70%)",
+              filter: "blur(8px)",
+              animation: "pulseRing1 2.4s ease-in-out infinite",
+              transform: "translateY(28px)",
             }}
           />
-          
-          {/* Logo container */}
-          <div
-            className="relative flex h-44 w-44 items-center justify-center rounded-[2rem] border border-white/20 bg-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.3),inset_0_1px_0_rgba(255,255,255,0.1)] backdrop-blur-xl"
-            style={{
-              boxShadow: "0 8px 32px rgba(16,185,129,0.2), 0 0 60px rgba(59,130,246,0.15), inset 0 1px 0 rgba(255,255,255,0.1)"
-            }}
-          >
-            <TKLogo className="h-40 w-40" />
+
+          {/* Floating logo container */}
+          <div style={{ animation: "float 3s ease-in-out infinite" }}>
+            {/* Outer glow halo */}
+            <div className="absolute -inset-6 rounded-full"
+              style={{
+                background: "radial-gradient(circle, rgba(16,185,129,0.35) 0%, rgba(14,165,233,0.2) 50%, transparent 75%)",
+                animation: "glowPulse 2.4s ease-in-out infinite",
+              }}
+            />
+            <div
+              className="relative flex h-44 w-44 items-center justify-center rounded-[2rem] border border-white/15 bg-white/8 backdrop-blur-xl"
+              style={{
+                boxShadow: "0 0 40px rgba(16,185,129,0.3), 0 0 80px rgba(14,165,233,0.15), inset 0 1px 0 rgba(255,255,255,0.12)",
+              }}
+            >
+              <TKLogo className="h-40 w-40" />
+            </div>
           </div>
         </motion.div>
 
-        {/* App Name - single fade-in */}
+        {/* App name */}
         <motion.div
-          className="space-y-2"
-          initial={{ opacity: 0, y: 20 }}
+          className="space-y-1"
+          initial={{ opacity: 0, y: 18 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3, duration: 0.5, ease: "easeOut" }}
-          style={{ textRendering: "optimizeLegibility" }}
+          transition={{ delay: 0.35, duration: 0.6, ease: "easeOut" }}
         >
-          <h1 className="bg-gradient-to-r from-emerald-300 via-white to-blue-300 bg-clip-text text-5xl font-bold tracking-tight text-transparent drop-shadow-lg">
+          <h1
+            className="text-5xl font-bold tracking-tight"
+            style={{
+              background: "linear-gradient(90deg, #34D399, #fff 45%, #38BDF8)",
+              WebkitBackgroundClip: "text",
+              WebkitTextFillColor: "transparent",
+              backgroundClip: "text",
+              textShadow: "none",
+              filter: "drop-shadow(0 0 20px rgba(16,185,129,0.4))",
+            }}
+          >
             تنقلي خنشلة
           </h1>
-          <p className="text-xl font-medium tracking-wide text-white/80">
+          <p className="text-base font-medium tracking-widest text-white/50 uppercase">
             Tanakoli Khenchela
           </p>
         </motion.div>
 
-        {/* Tagline - single fade-in */}
+        {/* Loading text with animated dots */}
         <motion.div
-          className="max-w-sm space-y-1"
-          initial={{ opacity: 0, y: 15 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.5, duration: 0.5, ease: "easeOut" }}
-          style={{ textRendering: "optimizeLegibility" }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.6, duration: 0.5 }}
+          className="text-sm font-medium text-white/50 tracking-wide"
         >
-          <p className="text-lg font-medium text-white/90">
-            مدينتك، نقلك. لنبدأ الرحلة!
-          </p>
-          <p className="text-sm text-emerald-300/80">
-            Your city, your transport. Let's begin!
-          </p>
+          <LoadingDots />
         </motion.div>
-
-        {/* Get Started Button - Fixed size, single fade-in, no looping animations */}
-        <motion.button
-          onClick={onComplete}
-          className="relative mt-6 flex h-14 w-52 items-center justify-center overflow-hidden rounded-full border border-white/20 bg-gradient-to-r from-emerald-500 via-teal-500 to-blue-500 text-lg font-bold text-white shadow-2xl transition-transform duration-200 hover:scale-105 active:scale-95"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ 
-            opacity: showButton ? 1 : 0, 
-            y: showButton ? 0 : 20,
-          }}
-          transition={{ duration: 0.5, ease: "easeOut" }}
-          style={{
-            // Fixed dimensions to prevent layout shift
-            minWidth: "208px",
-            minHeight: "56px",
-            textRendering: "optimizeLegibility",
-            transform: "translateZ(0)",
-          }}
-        >
-          {/* Static glow - no animation */}
-          <div
-            className="absolute -inset-2 rounded-full bg-gradient-to-r from-emerald-400/30 via-teal-400/30 to-blue-400/30 blur-xl"
-          />
-          <span 
-            className="relative z-10 flex items-center gap-3 text-xl"
-            style={{ textRendering: "optimizeLegibility" }}
-          >
-            ابدأ الآن
-            <svg 
-              className="h-6 w-6" 
-              fill="none" 
-              stroke="currentColor" 
-              viewBox="0 0 24 24"
-            >
-              <path 
-                strokeLinecap="round" 
-                strokeLinejoin="round" 
-                strokeWidth={2.5} 
-                d="M13 7l5 5m0 0l-5 5m5-5H6" 
-              />
-            </svg>
-          </span>
-        </motion.button>
       </div>
 
-      {/* Footer - single fade-in */}
+      {/* ── Glowing progress bar at bottom ── */}
       <motion.div
-        className="absolute bottom-8 z-10 text-center"
+        className="absolute bottom-0 left-0 right-0 z-10"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        transition={{ delay: 0.7, duration: 0.5 }}
-        style={{ textRendering: "optimizeLegibility" }}
+        transition={{ delay: 0.2, duration: 0.4 }}
       >
-        <p className="text-sm text-white/50">ETUS Khenchela</p>
-        <p className="mt-1 text-xs text-white/30">مؤسسة النقل الحضري</p>
+        {/* Track */}
+        <div className="h-[3px] w-full bg-white/8">
+          {/* Fill */}
+          <div
+            className="h-full rounded-full transition-none"
+            style={{
+              width: `${progress * 100}%`,
+              background: "linear-gradient(90deg, #10B981, #38BDF8)",
+              boxShadow: "0 0 12px rgba(16,185,129,0.8), 0 0 24px rgba(56,189,248,0.4)",
+            }}
+          />
+        </div>
+      </motion.div>
+
+      {/* Footer */}
+      <motion.div
+        className="absolute bottom-6 z-10 text-center"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.8, duration: 0.5 }}
+      >
+        <p className="text-xs text-white/30 tracking-wider">ETUS Khenchela · مؤسسة النقل الحضري</p>
       </motion.div>
     </div>
   )
