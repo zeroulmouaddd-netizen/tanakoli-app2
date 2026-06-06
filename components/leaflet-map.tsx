@@ -10,7 +10,7 @@ import { db, rtdb } from "@/lib/firebase"
 import { collection, onSnapshot } from "firebase/firestore"
 import { ref, onValue } from "firebase/database"
 import { motion, AnimatePresence } from "framer-motion"
-import { Layers, ChevronDown, ChevronUp, MapPin, Maximize2, Minimize2 } from "lucide-react"
+import { Layers, ChevronDown, ChevronUp, MapPin, Maximize2, Minimize2, LocateFixed } from "lucide-react"
 import { useTheme } from "@/lib/theme-context"
 import { useRouteSubStations } from "@/hooks/use-routes"
 import { useBusSimulation, type SimulatedBus } from "@/lib/bus-simulation"
@@ -640,8 +640,14 @@ export default function LeafletMap({ trackingLineId, isFullscreen = false }: Lea
   const stationMarkersRef = useRef<Map<string, L.Marker>>(new Map())
   const subStationMarkersRef = useRef<Map<string, L.Marker>>(new Map())
   const driverMarkerRef = useRef<L.Marker | null>(null) // For real-time driver location
+  const userMarkerRef = useRef<L.Marker | null>(null) // For "locate me" blue dot
   const { isDark } = useTheme()
   const [tilesLoaded, setTilesLoaded] = useState(false)
+
+  // Locate me state
+  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null)
+  const [isLocating, setIsLocating] = useState(false)
+  const [locateError, setLocateError] = useState<string | null>(null)
 
   // Route viewing state
   const [viewMode, setViewMode] = useState<RouteViewMode>("all")
@@ -1293,6 +1299,57 @@ const marker = L.marker(subStation.coords, {
     }
   }, [driverLocation, mapReady, isValidCoord])
 
+  // Handle "locate me" button tap
+  const handleLocateMe = useCallback(() => {
+    if (!navigator.geolocation) {
+      setLocateError("يرجى السماح بالوصول للموقع")
+      return
+    }
+    setIsLocating(true)
+    setLocateError(null)
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const { latitude: lat, longitude: lng } = pos.coords
+        setUserLocation({ lat, lng })
+        setIsLocating(false)
+        const map = mapRef.current
+        if (map) map.flyTo([lat, lng], 15, { duration: 1.2 })
+      },
+      () => {
+        setLocateError("يرجى السماح بالوصول للموقع")
+        setIsLocating(false)
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    )
+  }, [])
+
+  // Keep the blue dot in sync with userLocation
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map || !mapReady) return
+    if (!userLocation) return
+
+    const blueDotIcon = L.divIcon({
+      className: "",
+      html: `<div style="
+        width:18px;height:18px;border-radius:50%;
+        background:#3B82F6;border:3px solid white;
+        box-shadow:0 0 0 4px rgba(59,130,246,0.3);
+      "></div>`,
+      iconSize: [18, 18],
+      iconAnchor: [9, 9],
+    })
+
+    if (userMarkerRef.current) {
+      userMarkerRef.current.setLatLng([userLocation.lat, userLocation.lng])
+    } else {
+      userMarkerRef.current = L.marker([userLocation.lat, userLocation.lng], {
+        icon: blueDotIcon,
+        zIndexOffset: 700,
+      }).addTo(map)
+    }
+  }, [userLocation, mapReady])
+
   return (
     <div className="relative h-full w-full">
       <div ref={containerRef} className="h-full w-full" style={{ background: isDark ? "#1a2235" : "#e8e0d8", minHeight: "200px" }} />
@@ -1316,6 +1373,28 @@ const marker = L.marker(subStation.coords, {
         onRouteSelect={handleRouteSelect}
         isDark={isDark}
       />
+
+      {/* Locate Me Button - Bottom Right */}
+      <div className="absolute bottom-6 right-4 z-[1000] flex flex-col items-end gap-2">
+        {locateError && (
+          <div className="rounded-xl bg-red-500/90 px-3 py-1.5 text-xs font-medium text-white shadow backdrop-blur-sm" dir="rtl">
+            {locateError}
+          </div>
+        )}
+        <button
+          onClick={handleLocateMe}
+          disabled={isLocating}
+          className="flex h-11 w-11 items-center justify-center rounded-full shadow-lg transition-transform active:scale-95 disabled:opacity-70"
+          style={{ background: isDark ? "rgba(30,41,59,0.95)" : "rgba(255,255,255,0.95)", border: "1px solid rgba(59,130,246,0.4)" }}
+          aria-label="تحديد موقعي"
+        >
+          {isLocating ? (
+            <div className="h-5 w-5 animate-spin rounded-full border-2 border-blue-400/40 border-t-blue-500" />
+          ) : (
+            <LocateFixed size={20} className={userLocation ? "text-blue-500" : isDark ? "text-slate-300" : "text-slate-600"} />
+          )}
+        </button>
+      </div>
     </div>
   )
 }
