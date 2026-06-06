@@ -864,8 +864,6 @@ const { subStations } = useRouteSubStations(selectedRoute)
       if (mapRef.current) mapRef.current.invalidateSize(true)
     }, 300)
 
-L.control.zoom({ position: "bottomright" }).addTo(map)
-    
     // Track zoom level for bus icon scaling
     map.on("zoomend", () => {
       setCurrentZoom(map.getZoom())
