@@ -4,12 +4,16 @@ import { useState, useRef, useCallback, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { motion, AnimatePresence } from "framer-motion"
 import { auth, db } from "@/lib/firebase"
-import { signInWithPhoneNumber, RecaptchaVerifier, type ConfirmationResult } from "firebase/auth"
+import { signInWithPhoneNumber, RecaptchaVerifier, signInAnonymously, type ConfirmationResult } from "firebase/auth"
 import { doc, setDoc, getDoc } from "firebase/firestore"
 import { User, Phone, Shield, ArrowRight, Loader2, Check, Mail } from "lucide-react"
 
 type Step = "splash" | "step1" | "step2" | "otp"
 type AuthMethod = "phone" | "email"
+
+// ── Test account for Google Play review ──────────────────────────────────────
+const TEST_PHONE_E164 = "+213555555555"
+const TEST_OTP        = "123456"
 
 
 
@@ -164,6 +168,13 @@ export function OnboardingScreen({ onShowIntro }: OnboardingScreenProps = {}) {
     setError("")
     setIsLoading(true)
 
+    // ── Test account shortcut: skip Firebase OTP entirely ──────────────────
+    if (formatPhone(phone) === TEST_PHONE_E164) {
+      setIsLoading(false)
+      setStep("otp")
+      return
+    }
+
     // Init reCAPTCHA
     try {
       await initRecaptcha()
@@ -223,9 +234,25 @@ export function OnboardingScreen({ onShowIntro }: OnboardingScreenProps = {}) {
 
   const handleVerify = async () => {
     const code = otp.join("")
-    if (code.length < 6 || !confirmationRef.current) return
+    if (code.length < 6) return
     setIsLoading(true)
     setError("")
+
+    // ── Test account bypass: anonymous sign-in, no Firebase SMS needed ───────
+    if (formatPhone(phone) === TEST_PHONE_E164 && code === TEST_OTP) {
+      try {
+        await signInAnonymously(auth)
+        try { sessionStorage.setItem("splashShown", "true") } catch {}
+        router.push("/")
+      } catch (err: any) {
+        setError("حساب الاختبار غير متاح. تأكد من تفعيل Anonymous Auth في Firebase.")
+      } finally {
+        setIsLoading(false)
+      }
+      return
+    }
+
+    if (!confirmationRef.current) { setIsLoading(false); return }
     try {
       const result = await confirmationRef.current.confirm(code)
       const user = result.user
@@ -430,6 +457,34 @@ export function OnboardingScreen({ onShowIntro }: OnboardingScreenProps = {}) {
                   </button>
                 )}
               </form>
+
+              {/* ── Test Account panel (for Google Play reviewer) ── */}
+              <div
+                className="mt-6 w-full rounded-2xl border p-4"
+                style={{
+                  background: "rgba(16,185,129,0.06)",
+                  borderColor: "rgba(16,185,129,0.25)",
+                  backdropFilter: "blur(8px)",
+                }}
+              >
+                <div className="mb-2 flex items-center gap-2">
+                  <div className="flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500/20">
+                    <Check className="h-3 w-3 text-emerald-400" />
+                  </div>
+                  <p className="text-xs font-semibold text-emerald-300">حساب تجريبي — Test Account</p>
+                </div>
+                <div className="space-y-1 rounded-xl bg-black/20 px-3 py-2" dir="ltr">
+                  <p className="text-xs text-white/50">
+                    Phone: <span className="font-mono font-bold text-white/80">0555555555</span>
+                  </p>
+                  <p className="text-xs text-white/50">
+                    OTP code: <span className="font-mono font-bold text-white/80">123456</span>
+                  </p>
+                </div>
+                <p className="mt-2 text-center text-xs text-white/30">
+                  أدخل الرقم أعلاه ثم استخدم الرمز 123456
+                </p>
+              </div>
             </div>
           </motion.div>
         )}
@@ -710,6 +765,19 @@ export function OnboardingScreen({ onShowIntro }: OnboardingScreenProps = {}) {
                 <p className="mt-1 text-sm text-white/60">تم إرسال رمز مكوّن من 6 أرقام إلى</p>
                 <p className="mt-1 text-sm font-bold text-emerald-400" dir="ltr">{phone}</p>
               </div>
+
+              {/* Test account OTP hint */}
+              {formatPhone(phone) === TEST_PHONE_E164 && (
+                <div
+                  className="mb-4 flex items-center gap-2 rounded-xl border px-3 py-2"
+                  style={{ background:"rgba(16,185,129,0.08)", borderColor:"rgba(16,185,129,0.25)" }}
+                >
+                  <Check className="h-4 w-4 shrink-0 text-emerald-400" />
+                  <p className="text-xs text-emerald-300">
+                    Test account — use code: <span className="font-mono font-bold">123456</span>
+                  </p>
+                </div>
+              )}
 
               <div className="mb-6 flex justify-center gap-2" dir="ltr">
                 {otp.map((digit, i) => (
