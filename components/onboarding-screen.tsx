@@ -11,9 +11,10 @@ import { User, Phone, Shield, ArrowRight, Loader2, Check, Mail } from "lucide-re
 type Step = "splash" | "step1" | "step2" | "otp"
 type AuthMethod = "phone" | "email"
 
-// ── Test account for Google Play review ──────────────────────────────────────
-const TEST_PHONE_E164 = "+213555555555"
-const TEST_OTP        = "123456"
+// ── Test accounts for Google Play review ─────────────────────────────────────
+const TEST_PHONE_E164        = "+213555555555" // passenger test
+const TEST_DRIVER_PHONE_E164 = "+213666666666" // driver test
+const TEST_OTP               = "123456"        // shared OTP for both
 
 
 
@@ -168,8 +169,8 @@ export function OnboardingScreen({ onShowIntro }: OnboardingScreenProps = {}) {
     setError("")
     setIsLoading(true)
 
-    // ── Test account shortcut: skip Firebase OTP entirely ──────────────────
-    if (formatPhone(phone) === TEST_PHONE_E164) {
+    // ── Test accounts shortcut: skip Firebase OTP entirely ─────────────────
+    if (formatPhone(phone) === TEST_PHONE_E164 || formatPhone(phone) === TEST_DRIVER_PHONE_E164) {
       setIsLoading(false)
       setStep("otp")
       return
@@ -239,13 +240,21 @@ export function OnboardingScreen({ onShowIntro }: OnboardingScreenProps = {}) {
     setError("")
 
     // ── Test account bypass: anonymous sign-in, no Firebase SMS needed ───────
-    if (formatPhone(phone) === TEST_PHONE_E164 && code === TEST_OTP) {
+    const isPassengerTest = formatPhone(phone) === TEST_PHONE_E164 && code === TEST_OTP
+    const isDriverTest    = formatPhone(phone) === TEST_DRIVER_PHONE_E164 && code === TEST_OTP
+
+    if (isPassengerTest || isDriverTest) {
       try {
+        if (isDriverTest) {
+          // Mark this session as a test driver so driver-mode-context allows it
+          try { sessionStorage.setItem("tanakoli_test_driver_mode", "true") } catch {}
+        }
         await signInAnonymously(auth)
         try { sessionStorage.setItem("splashShown", "true") } catch {}
         router.push("/")
       } catch (err: any) {
         setError("حساب الاختبار غير متاح. تأكد من تفعيل Anonymous Auth في Firebase.")
+        try { sessionStorage.removeItem("tanakoli_test_driver_mode") } catch {}
       } finally {
         setIsLoading(false)
       }
@@ -458,32 +467,62 @@ export function OnboardingScreen({ onShowIntro }: OnboardingScreenProps = {}) {
                 )}
               </form>
 
-              {/* ── Test Account panel (for Google Play reviewer) ── */}
-              <div
-                className="mt-6 w-full rounded-2xl border p-4"
-                style={{
-                  background: "rgba(16,185,129,0.06)",
-                  borderColor: "rgba(16,185,129,0.25)",
-                  backdropFilter: "blur(8px)",
-                }}
-              >
-                <div className="mb-2 flex items-center gap-2">
-                  <div className="flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500/20">
-                    <Check className="h-3 w-3 text-emerald-400" />
+              {/* ── Test Account panels (for Google Play reviewer) ── */}
+              <div className="mt-6 w-full space-y-3">
+
+                {/* Passenger test */}
+                <div
+                  className="w-full rounded-2xl border p-4"
+                  style={{
+                    background: "rgba(16,185,129,0.06)",
+                    borderColor: "rgba(16,185,129,0.25)",
+                    backdropFilter: "blur(8px)",
+                  }}
+                >
+                  <div className="mb-2 flex items-center gap-2">
+                    <div className="flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500/20">
+                      <Check className="h-3 w-3 text-emerald-400" />
+                    </div>
+                    <p className="text-xs font-semibold text-emerald-300">حساب راكب تجريبي — Passenger Test</p>
                   </div>
-                  <p className="text-xs font-semibold text-emerald-300">حساب تجريبي — Test Account</p>
+                  <div className="space-y-1 rounded-xl bg-black/20 px-3 py-2" dir="ltr">
+                    <p className="text-xs text-white/50">
+                      Phone: <span className="font-mono font-bold text-white/80">0555555555</span>
+                    </p>
+                    <p className="text-xs text-white/50">
+                      OTP: <span className="font-mono font-bold text-white/80">123456</span>
+                    </p>
+                  </div>
                 </div>
-                <div className="space-y-1 rounded-xl bg-black/20 px-3 py-2" dir="ltr">
-                  <p className="text-xs text-white/50">
-                    Phone: <span className="font-mono font-bold text-white/80">0555555555</span>
-                  </p>
-                  <p className="text-xs text-white/50">
-                    OTP code: <span className="font-mono font-bold text-white/80">123456</span>
+
+                {/* Driver test */}
+                <div
+                  className="w-full rounded-2xl border p-4"
+                  style={{
+                    background: "rgba(59,130,246,0.06)",
+                    borderColor: "rgba(59,130,246,0.25)",
+                    backdropFilter: "blur(8px)",
+                  }}
+                >
+                  <div className="mb-2 flex items-center gap-2">
+                    <div className="flex h-5 w-5 items-center justify-center rounded-full bg-blue-500/20">
+                      <Check className="h-3 w-3 text-blue-400" />
+                    </div>
+                    <p className="text-xs font-semibold text-blue-300">حساب سائق تجريبي — Driver Test</p>
+                  </div>
+                  <div className="space-y-1 rounded-xl bg-black/20 px-3 py-2" dir="ltr">
+                    <p className="text-xs text-white/50">
+                      Phone: <span className="font-mono font-bold text-white/80">0666666666</span>
+                    </p>
+                    <p className="text-xs text-white/50">
+                      OTP: <span className="font-mono font-bold text-white/80">123456</span>
+                    </p>
+                  </div>
+                  <p className="mt-2 text-center text-xs text-blue-300/50">
+                    بعد تسجيل الدخول → القائمة الجانبية → وضع السائق
                   </p>
                 </div>
-                <p className="mt-2 text-center text-xs text-white/30">
-                  أدخل الرقم أعلاه ثم استخدم الرمز 123456
-                </p>
+
               </div>
             </div>
           </motion.div>
@@ -767,14 +806,22 @@ export function OnboardingScreen({ onShowIntro }: OnboardingScreenProps = {}) {
               </div>
 
               {/* Test account OTP hint */}
-              {formatPhone(phone) === TEST_PHONE_E164 && (
+              {(formatPhone(phone) === TEST_PHONE_E164 || formatPhone(phone) === TEST_DRIVER_PHONE_E164) && (
                 <div
                   className="mb-4 flex items-center gap-2 rounded-xl border px-3 py-2"
-                  style={{ background:"rgba(16,185,129,0.08)", borderColor:"rgba(16,185,129,0.25)" }}
+                  style={{
+                    background: formatPhone(phone) === TEST_DRIVER_PHONE_E164
+                      ? "rgba(59,130,246,0.08)" : "rgba(16,185,129,0.08)",
+                    borderColor: formatPhone(phone) === TEST_DRIVER_PHONE_E164
+                      ? "rgba(59,130,246,0.25)" : "rgba(16,185,129,0.25)",
+                  }}
                 >
                   <Check className="h-4 w-4 shrink-0 text-emerald-400" />
                   <p className="text-xs text-emerald-300">
-                    Test account — use code: <span className="font-mono font-bold">123456</span>
+                    {formatPhone(phone) === TEST_DRIVER_PHONE_E164
+                      ? "Driver test account"
+                      : "Passenger test account"
+                    }{" "}— use code: <span className="font-mono font-bold">123456</span>
                   </p>
                 </div>
               )}

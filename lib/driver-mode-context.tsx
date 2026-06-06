@@ -9,6 +9,9 @@ import { isAuthorizedDriverPhone } from "@/lib/driver-config"
 const DRIVER_MODE_KEY = "tanoukli_driver_mode"
 const DRIVER_AUTH_SESSION_KEY = "tanakoli_is_driver"
 
+// ── Test driver flag — set by onboarding for Play Store reviewer ─────────────
+const TEST_DRIVER_FLAG = "tanakoli_test_driver_mode"
+
 interface DriverModeContextType {
   isDriverMode: boolean
   isAuthorizedDriver: boolean
@@ -53,6 +56,14 @@ export function DriverModeProvider({ children }: { children: ReactNode }) {
   // Compute driver authorization from the phone whitelist, cached in sessionStorage
   useEffect(() => {
     if (isAuthLoading) return
+
+    // Test driver bypass — reviewer session set by onboarding screen
+    try {
+      if (sessionStorage.getItem(TEST_DRIVER_FLAG) === "true" && currentUser) {
+        setIsAuthorizedDriver(true)
+        return
+      }
+    } catch {}
 
     if (!currentUser?.phoneNumber) {
       setIsAuthorizedDriver(false)
@@ -119,6 +130,15 @@ export function DriverModeProvider({ children }: { children: ReactNode }) {
       return false
     }
 
+    // Test driver bypass — allow reviewer session without phone whitelist
+    try {
+      if (sessionStorage.getItem(TEST_DRIVER_FLAG) === "true") {
+        setIsDriverMode(true)
+        setPersistedDriverMode(true)
+        return true
+      }
+    } catch {}
+
     if (!isAuthorizedDriverPhone(currentUser.phoneNumber)) {
       setRoleError("عذراً، هذا الحساب غير مصرح له بالدخول كونه ليس سائقاً معتمداً")
       return false
@@ -133,6 +153,8 @@ export function DriverModeProvider({ children }: { children: ReactNode }) {
     setIsDriverMode(false)
     setPersistedDriverMode(false)
     setRoleError(null)
+    // Clear test driver flag on explicit exit so the session doesn't linger
+    try { sessionStorage.removeItem(TEST_DRIVER_FLAG) } catch {}
   }, [])
 
   const clearRoleError = useCallback(() => {
