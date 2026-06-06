@@ -1,511 +1,390 @@
 "use client"
 
 import { useRouter } from "next/navigation"
-import { motion, useAnimationFrame, useMotionValue, AnimatePresence } from "framer-motion"
+import { motion, AnimatePresence } from "framer-motion"
 import { AppHeader } from "@/components/app-header"
 import { BottomNav } from "@/components/bottom-nav"
 import { PageTransition } from "@/components/page-transition"
-import { ChevronRight, ChevronLeft, Bus, MapPin, Users, Shield } from "lucide-react"
-import { useState, useRef } from "react"
-
-function TKLogo({ className }: { className?: string }) {
-  return (
-    <svg
-      viewBox="0 0 200 200"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-      className={className}
-    >
-      <defs>
-        <linearGradient id="tkGradientAbout" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#10B981" />
-          <stop offset="40%" stopColor="#059669" />
-          <stop offset="70%" stopColor="#0EA5E9" />
-          <stop offset="100%" stopColor="#3B82F6" />
-        </linearGradient>
-        <linearGradient id="tkGradientLightAbout" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#34D399" />
-          <stop offset="100%" stopColor="#60A5FA" />
-        </linearGradient>
-        <linearGradient id="roadGradientAbout" x1="0%" y1="0%" x2="0%" y2="100%">
-          <stop offset="0%" stopColor="#10B981" stopOpacity="0.9" />
-          <stop offset="100%" stopColor="#3B82F6" stopOpacity="0.9" />
-        </linearGradient>
-        <filter id="glowAbout" x="-50%" y="-50%" width="200%" height="200%">
-          <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
-          <feMerge>
-            <feMergeNode in="coloredBlur"/>
-            <feMergeNode in="SourceGraphic"/>
-          </feMerge>
-        </filter>
-        <filter id="shadowAbout" x="-20%" y="-20%" width="140%" height="140%">
-          <feDropShadow dx="0" dy="4" stdDeviation="8" floodColor="#000" floodOpacity="0.3"/>
-        </filter>
-      </defs>
-      <circle cx="100" cy="100" r="90" fill="white" fillOpacity="0.1" />
-      <circle cx="100" cy="100" r="88" stroke="url(#tkGradientLightAbout)" strokeWidth="2" strokeOpacity="0.5" fill="none" />
-      <g filter="url(#shadowAbout)">
-        <rect x="35" y="45" width="130" height="22" rx="11" fill="url(#tkGradientAbout)" />
-        <line x1="50" y1="56" x2="65" y2="56" stroke="white" strokeWidth="2" strokeLinecap="round" strokeDasharray="6 4" opacity="0.7" />
-        <line x1="80" y1="56" x2="95" y2="56" stroke="white" strokeWidth="2" strokeLinecap="round" strokeDasharray="6 4" opacity="0.7" />
-        <line x1="110" y1="56" x2="125" y2="56" stroke="white" strokeWidth="2" strokeLinecap="round" strokeDasharray="6 4" opacity="0.7" />
-        <line x1="140" y1="56" x2="150" y2="56" stroke="white" strokeWidth="2" strokeLinecap="round" strokeDasharray="6 4" opacity="0.7" />
-        <path d="M88 67 L112 67 L118 145 L82 145 Z" fill="url(#roadGradientAbout)" />
-        <line x1="100" y1="75" x2="100" y2="90" stroke="white" strokeWidth="2" strokeLinecap="round" opacity="0.7" />
-        <line x1="100" y1="100" x2="100" y2="115" stroke="white" strokeWidth="2" strokeLinecap="round" opacity="0.7" />
-        <line x1="100" y1="125" x2="100" y2="138" stroke="white" strokeWidth="2" strokeLinecap="round" opacity="0.7" />
-      </g>
-      <g filter="url(#glowAbout)" transform="translate(72, 95)">
-        <rect x="0" y="5" width="56" height="28" rx="6" fill="white" />
-        <rect x="4" y="0" width="48" height="8" rx="4" fill="white" />
-        <rect x="6" y="10" width="10" height="10" rx="2" fill="url(#tkGradientAbout)" opacity="0.8" />
-        <rect x="19" y="10" width="10" height="10" rx="2" fill="url(#tkGradientAbout)" opacity="0.8" />
-        <rect x="32" y="10" width="10" height="10" rx="2" fill="url(#tkGradientAbout)" opacity="0.8" />
-        <rect x="44" y="10" width="8" height="10" rx="2" fill="url(#tkGradientAbout)" opacity="0.6" />
-        <circle cx="14" cy="35" r="6" fill="#1E293B" />
-        <circle cx="14" cy="35" r="3" fill="#64748B" />
-        <circle cx="42" cy="35" r="6" fill="#1E293B" />
-        <circle cx="42" cy="35" r="3" fill="#64748B" />
-        <circle cx="50" cy="25" r="2.5" fill="#FCD34D" />
-      </g>
-      <g opacity="0.15">
-        <path d="M145 75 L165 55" stroke="url(#tkGradientAbout)" strokeWidth="8" strokeLinecap="round" />
-        <path d="M145 75 L165 95" stroke="url(#tkGradientAbout)" strokeWidth="8" strokeLinecap="round" />
-      </g>
-    </svg>
-  )
-}
-
-function AnimatedOrb({ x, y, size, color, duration, delay }: {
-  x: string; y: string; size: number; color: string; duration: number; delay: number
-}) {
-  return (
-    <motion.div
-      className="absolute rounded-full pointer-events-none"
-      style={{
-        left: x,
-        top: y,
-        width: size,
-        height: size,
-        background: color,
-        filter: `blur(${size * 0.45}px)`,
-      }}
-      animate={{
-        x: [0, 30, -20, 15, 0],
-        y: [0, -25, 20, -10, 0],
-        scale: [1, 1.15, 0.9, 1.1, 1],
-        opacity: [0.35, 0.55, 0.3, 0.5, 0.35],
-      }}
-      transition={{
-        duration,
-        delay,
-        repeat: Infinity,
-        ease: "easeInOut",
-      }}
-    />
-  )
-}
-
-function LiveBackground() {
-  return (
-    <div className="fixed inset-0 z-0 overflow-hidden" style={{ background: "linear-gradient(135deg, #020c14 0%, #050f1a 40%, #030e18 70%, #010a12 100%)" }}>
-      <AnimatedOrb x="10%" y="8%"  size={220} color="radial-gradient(circle, rgba(16,185,129,0.55) 0%, transparent 70%)"  duration={9}  delay={0} />
-      <AnimatedOrb x="65%" y="5%"  size={180} color="radial-gradient(circle, rgba(6,182,212,0.45) 0%, transparent 70%)"   duration={11} delay={1.5} />
-      <AnimatedOrb x="5%"  y="55%" size={200} color="radial-gradient(circle, rgba(59,130,246,0.4) 0%, transparent 70%)"   duration={13} delay={3} />
-      <AnimatedOrb x="70%" y="55%" size={240} color="radial-gradient(circle, rgba(16,185,129,0.35) 0%, transparent 70%)"  duration={10} delay={0.8} />
-      <AnimatedOrb x="35%" y="35%" size={160} color="radial-gradient(circle, rgba(34,211,238,0.3) 0%, transparent 70%)"   duration={14} delay={2} />
-      <AnimatedOrb x="55%" y="80%" size={190} color="radial-gradient(circle, rgba(99,102,241,0.35) 0%, transparent 70%)"  duration={12} delay={4} />
-
-      <motion.div
-        className="absolute inset-0"
-        style={{
-          background: "linear-gradient(180deg, rgba(16,185,129,0.04) 0%, rgba(6,182,212,0.06) 30%, rgba(59,130,246,0.04) 60%, transparent 100%)",
-        }}
-        animate={{ opacity: [0.6, 1, 0.6] }}
-        transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
-      />
-
-      <div className="absolute inset-0" style={{
-        backgroundImage: `radial-gradient(circle at 1px 1px, rgba(16,185,129,0.04) 1px, transparent 0)`,
-        backgroundSize: "32px 32px",
-      }} />
-    </div>
-  )
-}
-
-function PulsingDotIcon() {
-  return (
-    <div className="relative flex items-center justify-center w-14 h-14">
-      {[1, 2, 3].map((i) => (
-        <motion.div
-          key={i}
-          className="absolute rounded-full border border-emerald-400/60"
-          animate={{ scale: [0.4, 1.8], opacity: [0.8, 0] }}
-          transition={{ duration: 2, delay: i * 0.6, repeat: Infinity, ease: "easeOut" }}
-          style={{ width: 48, height: 48 }}
-        />
-      ))}
-      <motion.div
-        className="w-4 h-4 rounded-full bg-emerald-400"
-        animate={{ scale: [0.9, 1.15, 0.9] }}
-        transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-        style={{ boxShadow: "0 0 12px rgba(16,185,129,0.9)" }}
-      />
-    </div>
-  )
-}
-
-function RadarIcon() {
-  return (
-    <div className="relative flex items-center justify-center w-14 h-14">
-      {[1, 2].map((i) => (
-        <motion.div
-          key={i}
-          className="absolute rounded-full border border-cyan-400/50"
-          style={{ width: i * 20, height: i * 20 }}
-          animate={{ scale: [1, 1.5], opacity: [0.7, 0] }}
-          transition={{ duration: 1.8, delay: i * 0.5, repeat: Infinity, ease: "easeOut" }}
-        />
-      ))}
-      <motion.div
-        className="absolute w-7 h-0.5 origin-left rounded-full bg-gradient-to-r from-cyan-400 to-transparent"
-        style={{ left: "50%", top: "50%", translateY: "-50%" }}
-        animate={{ rotate: [0, 360] }}
-        transition={{ duration: 2.5, repeat: Infinity, ease: "linear" }}
-      />
-      <div className="w-2 h-2 rounded-full bg-cyan-400" style={{ boxShadow: "0 0 8px rgba(6,182,212,0.9)" }} />
-    </div>
-  )
-}
-
-function RouteLineIcon() {
-  return (
-    <div className="relative flex items-center justify-center w-14 h-14 overflow-hidden">
-      <svg width="52" height="52" viewBox="0 0 52 52" fill="none">
-        <motion.path
-          d="M6 40 C 14 40, 18 12, 26 12 S 38 40, 46 40"
-          stroke="url(#routeGrad)"
-          strokeWidth="2.5"
-          strokeLinecap="round"
-          fill="none"
-          initial={{ pathLength: 0 }}
-          animate={{ pathLength: [0, 1, 0] }}
-          transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
-        />
-        <defs>
-          <linearGradient id="routeGrad" x1="0" y1="0" x2="52" y2="0" gradientUnits="userSpaceOnUse">
-            <stop stopColor="#10B981" />
-            <stop offset="1" stopColor="#3B82F6" />
-          </linearGradient>
-        </defs>
-        <motion.circle
-          cx="6" cy="40" r="3" fill="#10B981"
-          animate={{ opacity: [1, 0.3, 1] }}
-          transition={{ duration: 2.5, repeat: Infinity }}
-        />
-        <motion.circle
-          cx="46" cy="40" r="3" fill="#3B82F6"
-          animate={{ opacity: [0.3, 1, 0.3] }}
-          transition={{ duration: 2.5, repeat: Infinity }}
-        />
-      </svg>
-    </div>
-  )
-}
-
-function ShieldIcon() {
-  return (
-    <div className="relative flex items-center justify-center w-14 h-14">
-      <motion.div
-        animate={{ scale: [1, 1.08, 1], opacity: [0.5, 1, 0.5] }}
-        transition={{ duration: 2.2, repeat: Infinity, ease: "easeInOut" }}
-        className="absolute inset-0 rounded-full"
-        style={{ background: "radial-gradient(circle, rgba(99,102,241,0.4) 0%, transparent 70%)" }}
-      />
-      <Shield className="w-7 h-7 text-indigo-400" strokeWidth={1.5} />
-    </div>
-  )
-}
+import { ChevronRight, ChevronLeft } from "lucide-react"
+import { useState } from "react"
 
 const features = [
   {
-    icon: <PulsingDotIcon />,
+    id: 0,
+    emoji: "📡",
     title: "تتبع مباشر",
-    description: "متابعة الحافلات في الوقت الفعلي بدقة عالية",
-    accent: "from-emerald-500/20 to-emerald-500/5",
-    border: "border-emerald-500/20",
-    label: "LIVE",
+    desc: "تابع موقع الحافلات لحظة بلحظة على الخريطة في الوقت الفعلي",
+    from: "#064e3b",
+    to: "#065f46",
+    border: "rgba(52,211,153,0.25)",
+    glow: "rgba(16,185,129,0.15)",
   },
   {
-    icon: <RadarIcon />,
-    title: "خرائط تفاعلية",
-    description: "عرض المحطات والمسارات على خريطة ذكية",
-    accent: "from-cyan-500/20 to-cyan-500/5",
-    border: "border-cyan-500/20",
-    label: "MAP",
+    id: 1,
+    emoji: "🗺️",
+    title: "خريطة تفاعلية",
+    desc: "استكشف مسارات النقل ومحطات التوقف بخريطة ذكية وسهلة الاستخدام",
+    from: "#0c4a6e",
+    to: "#075985",
+    border: "rgba(56,189,248,0.25)",
+    glow: "rgba(14,165,233,0.15)",
   },
   {
-    icon: <RouteLineIcon />,
-    title: "خدمة المواطنين",
-    description: "تسهيل التنقل الحضري لكل مواطن",
-    accent: "from-blue-500/20 to-blue-500/5",
-    border: "border-blue-500/20",
-    label: "CITY",
+    id: 2,
+    emoji: "📍",
+    title: "المحطات القريبة",
+    desc: "اكتشف أقرب محطة إليك فورًا واعرف مواعيد الحافلات القادمة",
+    from: "#1e1b4b",
+    to: "#312e81",
+    border: "rgba(165,180,252,0.25)",
+    glow: "rgba(99,102,241,0.15)",
   },
   {
-    icon: <ShieldIcon />,
-    title: "موثوقية عالية",
-    description: "بيانات دقيقة ومحدثة باستمرار",
-    accent: "from-indigo-500/20 to-indigo-500/5",
-    border: "border-indigo-500/20",
-    label: "SAFE",
+    id: 3,
+    emoji: "🕓",
+    title: "سجل الرحلات",
+    desc: "استعرض رحلاتك السابقة وتتبع إنفاقك على وسائل النقل بسهولة",
+    from: "#431407",
+    to: "#7c2d12",
+    border: "rgba(251,146,60,0.25)",
+    glow: "rgba(249,115,22,0.15)",
   },
 ]
 
-function FeatureSwiper() {
-  const [active, setActive] = useState(0)
-  const [direction, setDirection] = useState(0)
-
-  const go = (dir: number) => {
-    setDirection(dir)
-    setActive((prev) => (prev + dir + features.length) % features.length)
-  }
-
+function BusIllustration() {
   return (
-    <div className="mb-6">
-      <h3 className="mb-4 text-lg font-bold text-white/90 text-right">مميزات التطبيق</h3>
-      <div className="relative overflow-hidden rounded-2xl" style={{ height: 220 }}>
-        <AnimatePresence mode="wait" custom={direction}>
-          <motion.div
-            key={active}
-            custom={direction}
-            variants={{
-              enter: (d: number) => ({ x: d > 0 ? 220 : -220, opacity: 0 }),
-              center: { x: 0, opacity: 1 },
-              exit: (d: number) => ({ x: d > 0 ? -220 : 220, opacity: 0 }),
-            }}
-            initial="enter"
-            animate="center"
-            exit="exit"
-            transition={{ duration: 0.35, ease: "easeInOut" }}
-            className={`absolute inset-0 flex flex-col items-center justify-center gap-4 rounded-2xl border bg-gradient-to-b p-6 ${features[active].accent} ${features[active].border}`}
-            style={{ backdropFilter: "blur(16px)", background: "rgba(5,15,30,0.7)" }}
-          >
-            <div className={`absolute inset-0 rounded-2xl bg-gradient-to-b ${features[active].accent} opacity-40`} />
-            <div className="relative z-10 flex flex-col items-center gap-3 text-center">
-              {features[active].icon}
-              <div>
-                <p className="text-xs font-mono tracking-widest text-white/30 mb-1">{features[active].label}</p>
-                <h4 className="text-xl font-bold text-white mb-1">{features[active].title}</h4>
-                <p className="text-sm text-white/50 leading-relaxed">{features[active].description}</p>
-              </div>
-            </div>
-          </motion.div>
-        </AnimatePresence>
+    <div className="about-float flex justify-center">
+      <svg width="180" height="110" viewBox="0 0 180 110" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="busBody" x1="0" y1="0" x2="180" y2="110" gradientUnits="userSpaceOnUse">
+            <stop stopColor="#10b981" />
+            <stop offset="0.5" stopColor="#0ea5e9" />
+            <stop offset="1" stopColor="#6366f1" />
+          </linearGradient>
+          <linearGradient id="roadLine" x1="0" y1="0" x2="180" y2="0" gradientUnits="userSpaceOnUse">
+            <stop stopColor="#10b981" stopOpacity="0" />
+            <stop offset="0.3" stopColor="#10b981" stopOpacity="0.8" />
+            <stop offset="0.7" stopColor="#0ea5e9" stopOpacity="0.8" />
+            <stop offset="1" stopColor="#6366f1" stopOpacity="0" />
+          </linearGradient>
+          <filter id="busShadow">
+            <feDropShadow dx="0" dy="4" stdDeviation="6" floodColor="#10b981" floodOpacity="0.35"/>
+          </filter>
+          <filter id="glowFilter">
+            <feGaussianBlur stdDeviation="2.5" result="blur"/>
+            <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+          </filter>
+        </defs>
 
-        <button
-          onClick={() => go(-1)}
-          className="absolute left-2 top-1/2 -translate-y-1/2 z-20 flex h-8 w-8 items-center justify-center rounded-full border border-white/10 bg-black/30 text-white/60 backdrop-blur-sm active:scale-95 transition-transform"
-        >
-          <ChevronLeft className="h-4 w-4" />
-        </button>
-        <button
-          onClick={() => go(1)}
-          className="absolute right-2 top-1/2 -translate-y-1/2 z-20 flex h-8 w-8 items-center justify-center rounded-full border border-white/10 bg-black/30 text-white/60 backdrop-blur-sm active:scale-95 transition-transform"
-        >
-          <ChevronRight className="h-4 w-4" />
-        </button>
-      </div>
+        {/* Road / route line */}
+        <rect x="0" y="96" width="180" height="2" rx="1" fill="url(#roadLine)" />
 
-      <div className="mt-3 flex justify-center gap-2">
-        {features.map((_, i) => (
-          <button key={i} onClick={() => { setDirection(i > active ? 1 : -1); setActive(i) }}>
-            <motion.div
-              animate={{ width: i === active ? 24 : 8, opacity: i === active ? 1 : 0.35 }}
-              transition={{ duration: 0.3 }}
-              className="h-2 rounded-full bg-emerald-400"
-            />
-          </button>
+        {/* Dashes on road */}
+        {[20, 55, 90, 125, 160].map((x) => (
+          <rect key={x} x={x} y="98.5" width="14" height="1.5" rx="0.75" fill="white" fillOpacity="0.15" />
         ))}
-      </div>
+
+        {/* Bus body */}
+        <g filter="url(#busShadow)">
+          <rect x="18" y="28" width="144" height="62" rx="10" fill="url(#busBody)" />
+          {/* Roof accent */}
+          <rect x="26" y="22" width="128" height="14" rx="7" fill="url(#busBody)" opacity="0.85" />
+          {/* Windows row */}
+          {[32, 62, 92, 122].map((x) => (
+            <rect key={x} x={x} y="38" width="24" height="18" rx="4" fill="white" fillOpacity="0.18" />
+          ))}
+          {/* Front window */}
+          <rect x="148" y="34" width="8" height="22" rx="3" fill="white" fillOpacity="0.22" />
+          {/* Door */}
+          <rect x="26" y="52" width="16" height="24" rx="3" fill="white" fillOpacity="0.1" />
+          <line x1="34" y1="52" x2="34" y2="76" stroke="white" strokeWidth="0.8" strokeOpacity="0.2" />
+          {/* Headlights */}
+          <circle cx="161" cy="72" r="5" fill="#fef08a" opacity="0.9" filter="url(#glowFilter)" />
+          <circle cx="161" cy="72" r="3" fill="white" />
+          {/* Tail light */}
+          <rect x="19" y="68" width="5" height="10" rx="2" fill="#f87171" opacity="0.9" />
+        </g>
+
+        {/* Wheels */}
+        <circle cx="48" cy="94" r="12" fill="#1e293b" />
+        <circle cx="48" cy="94" r="7" fill="#334155" />
+        <circle cx="48" cy="94" r="3" fill="#64748b" />
+        <circle cx="132" cy="94" r="12" fill="#1e293b" />
+        <circle cx="132" cy="94" r="7" fill="#334155" />
+        <circle cx="132" cy="94" r="3" fill="#64748b" />
+
+        {/* Route dots above */}
+        {[30, 70, 110, 150].map((x, i) => (
+          <g key={x}>
+            <circle cx={x} cy="13" r={i === 1 ? 5 : 3.5} fill={i === 1 ? "#10b981" : "white"} fillOpacity={i === 1 ? 1 : 0.35} />
+            {i < 3 && <line x1={x + (i === 1 ? 5 : 3.5)} y1="13" x2={x + 37} y2="13" stroke="white" strokeWidth="1" strokeOpacity="0.2" strokeDasharray="4 3" />}
+          </g>
+        ))}
+      </svg>
     </div>
   )
 }
 
 export default function AboutPage() {
   const router = useRouter()
+  const [active, setActive] = useState(0)
+  const [dir, setDir] = useState(1)
+
+  const go = (d: number) => {
+    setDir(d)
+    setActive((p) => (p + d + features.length) % features.length)
+  }
 
   return (
     <PageTransition>
-      <main className="relative min-h-screen pb-40">
-        <LiveBackground />
+      {/* ── CSS keyframe animations ── */}
+      <style>{`
+        @keyframes orbDrift1 {
+          0%   { transform: translate(0px, 0px) scale(1); }
+          33%  { transform: translate(28px, -22px) scale(1.08); }
+          66%  { transform: translate(-18px, 16px) scale(0.95); }
+          100% { transform: translate(0px, 0px) scale(1); }
+        }
+        @keyframes orbDrift2 {
+          0%   { transform: translate(0px, 0px) scale(1); }
+          40%  { transform: translate(-24px, 20px) scale(1.06); }
+          80%  { transform: translate(18px, -14px) scale(0.97); }
+          100% { transform: translate(0px, 0px) scale(1); }
+        }
+        @keyframes orbDrift3 {
+          0%   { transform: translate(0px, 0px) scale(1); }
+          50%  { transform: translate(20px, 18px) scale(1.04); }
+          100% { transform: translate(0px, 0px) scale(1); }
+        }
+        @keyframes aboutFloat {
+          0%   { transform: translateY(0px); }
+          50%  { transform: translateY(-10px); }
+          100% { transform: translateY(0px); }
+        }
+        .about-float { animation: aboutFloat 4.5s ease-in-out infinite; }
+        .orb1 { animation: orbDrift1 18s ease-in-out infinite; }
+        .orb2 { animation: orbDrift2 22s ease-in-out infinite; }
+        .orb3 { animation: orbDrift3 16s ease-in-out infinite; }
+        .orb4 { animation: orbDrift1 26s ease-in-out infinite reverse; }
+        .orb5 { animation: orbDrift2 20s ease-in-out infinite 4s; }
+      `}</style>
 
+      <main className="relative min-h-screen pb-36" style={{ background: "#030d18" }}>
+        {/* ── Static dark background ── */}
+        <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none" aria-hidden>
+          {/* grid overlay */}
+          <div style={{
+            position: "absolute", inset: 0,
+            backgroundImage: "radial-gradient(circle at 1px 1px, rgba(16,185,129,0.04) 1px, transparent 0)",
+            backgroundSize: "36px 36px",
+          }} />
+          {/* orbs */}
+          <div className="orb1" style={{ position:"absolute", left:"8%",  top:"6%",  width:260, height:260, borderRadius:"50%", background:"radial-gradient(circle, rgba(16,185,129,0.32) 0%, transparent 70%)", filter:"blur(48px)" }} />
+          <div className="orb2" style={{ position:"absolute", right:"6%", top:"15%", width:220, height:220, borderRadius:"50%", background:"radial-gradient(circle, rgba(6,182,212,0.28) 0%, transparent 70%)",  filter:"blur(44px)" }} />
+          <div className="orb3" style={{ position:"absolute", left:"20%", top:"45%", width:200, height:200, borderRadius:"50%", background:"radial-gradient(circle, rgba(59,130,246,0.24) 0%, transparent 70%)",  filter:"blur(40px)" }} />
+          <div className="orb4" style={{ position:"absolute", right:"15%",bottom:"25%",width:240, height:240, borderRadius:"50%", background:"radial-gradient(circle, rgba(16,185,129,0.2) 0%, transparent 70%)",  filter:"blur(50px)" }} />
+          <div className="orb5" style={{ position:"absolute", left:"50%", bottom:"10%",width:180, height:180, borderRadius:"50%", background:"radial-gradient(circle, rgba(99,102,241,0.22) 0%, transparent 70%)", filter:"blur(38px)" }} />
+          {/* vignette */}
+          <div style={{ position:"absolute", inset:0, background:"radial-gradient(ellipse at center, transparent 40%, rgba(3,13,24,0.7) 100%)" }} />
+        </div>
+
+        {/* ── Page content ── */}
         <div className="relative z-10">
           <AppHeader />
 
-          <div className="px-4 pt-20">
+          <div className="px-4 pt-20 max-w-md mx-auto">
+
+            {/* Back */}
             <motion.button
               onClick={() => router.back()}
-              className="mb-4 flex items-center gap-2 text-sm text-white/40 hover:text-white/70 transition-colors"
-              initial={{ opacity: 0, x: -10 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.2 }}
+              initial={{ opacity:0, x:-8 }}
+              animate={{ opacity:1, x:0 }}
+              transition={{ duration:0.25 }}
+              className="mb-6 flex items-center gap-1 text-sm"
+              style={{ color:"rgba(255,255,255,0.38)" }}
             >
-              <ChevronRight className="h-5 w-5" />
-              <span>رجوع</span>
+              <ChevronRight className="h-4 w-4" />
+              رجوع
             </motion.button>
 
+            {/* ── Identity section ── */}
             <motion.div
-              className="mb-6 flex items-center gap-3"
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3 }}
+              initial={{ opacity:0, y:16 }}
+              animate={{ opacity:1, y:0 }}
+              transition={{ duration:0.45 }}
+              className="mb-8 rounded-3xl border p-6 text-center"
+              style={{
+                background:"rgba(255,255,255,0.03)",
+                borderColor:"rgba(255,255,255,0.07)",
+                backdropFilter:"blur(12px)",
+              }}
             >
-              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500 to-blue-500 shadow-lg" style={{ boxShadow: "0 0 24px rgba(16,185,129,0.4)" }}>
-                <svg className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+              {/* Bus illustration */}
+              <div className="mb-5">
+                <BusIllustration />
               </div>
-              <div>
-                <h1 className="text-2xl font-bold text-white">حول التطبيق</h1>
-                <p className="text-sm text-white/40">بطاقة التعريف</p>
-              </div>
+
+              {/* App name */}
+              <h1
+                className="mb-1 text-3xl font-extrabold tracking-tight"
+                style={{
+                  background:"linear-gradient(90deg,#34d399,#22d3ee,#818cf8)",
+                  WebkitBackgroundClip:"text",
+                  WebkitTextFillColor:"transparent",
+                }}
+              >
+                تنقلي خنشلة
+              </h1>
+              <p className="mb-4 text-sm font-light" style={{ color:"rgba(255,255,255,0.35)" }}>
+                Tanakoli Khenchela
+              </p>
+
+              {/* Description */}
+              <p className="text-sm leading-7" style={{ color:"rgba(255,255,255,0.5)" }}>
+                تطبيق ذكي لتحديث النقل الحضري في مدينة خنشلة، يتيح تتبع الحافلات ومعرفة المواعيد بكل سهولة.{" "}
+                تم تطوير وتصميم هذا التطبيق بالكامل بواسطة المطور{" "}
+                <span
+                  className="font-semibold"
+                  style={{
+                    background:"linear-gradient(90deg,#34d399,#22d3ee)",
+                    WebkitBackgroundClip:"text",
+                    WebkitTextFillColor:"transparent",
+                  }}
+                >
+                  Mouad ZR
+                </span>
+              </p>
             </motion.div>
 
+            {/* ── Feature swiper ── */}
             <motion.div
-              className="mb-6 overflow-hidden rounded-2xl p-6 shadow-2xl border border-white/5"
-              style={{ background: "rgba(5,15,30,0.75)", backdropFilter: "blur(20px)" }}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.1 }}
+              initial={{ opacity:0, y:16 }}
+              animate={{ opacity:1, y:0 }}
+              transition={{ duration:0.45, delay:0.12 }}
+              className="mb-8"
             >
-              <div className="absolute inset-0 overflow-hidden rounded-2xl pointer-events-none">
-                <motion.div
-                  className="absolute left-1/4 top-1/4 h-32 w-32 rounded-full"
-                  style={{ background: "radial-gradient(circle, rgba(16,185,129,0.15) 0%, transparent 70%)", filter: "blur(20px)" }}
-                  animate={{ scale: [1, 1.3, 1], opacity: [0.5, 0.9, 0.5] }}
-                  transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
-                />
-                <motion.div
-                  className="absolute right-1/4 bottom-1/4 h-32 w-32 rounded-full"
-                  style={{ background: "radial-gradient(circle, rgba(59,130,246,0.15) 0%, transparent 70%)", filter: "blur(20px)" }}
-                  animate={{ scale: [1.2, 1, 1.2], opacity: [0.4, 0.8, 0.4] }}
-                  transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
-                />
-              </div>
+              <p className="mb-3 text-right text-base font-bold" style={{ color:"rgba(255,255,255,0.75)" }}>
+                مميزات التطبيق
+              </p>
 
-              <div className="relative flex flex-col items-center text-center">
-                <motion.div
-                  className="relative mb-6"
-                  initial={{ scale: 0.8, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  transition={{ delay: 0.2, duration: 0.5 }}
-                >
+              {/* Card */}
+              <div className="relative overflow-hidden rounded-2xl" style={{ height:190 }}>
+                <AnimatePresence mode="wait" custom={dir}>
                   <motion.div
-                    className="absolute -inset-4 rounded-full"
-                    style={{ background: "radial-gradient(circle, rgba(16,185,129,0.3) 0%, rgba(59,130,246,0.2) 40%, transparent 70%)" }}
-                    animate={{ scale: [1, 1.15, 1] }}
-                    transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+                    key={active}
+                    custom={dir}
+                    variants={{
+                      enter:  (d:number) => ({ x: d > 0 ? 260 : -260, opacity:0 }),
+                      center: { x:0, opacity:1 },
+                      exit:   (d:number) => ({ x: d > 0 ? -260 : 260, opacity:0 }),
+                    }}
+                    initial="enter"
+                    animate="center"
+                    exit="exit"
+                    transition={{ duration:0.32, ease:"easeInOut" }}
+                    className="absolute inset-0 flex flex-col items-center justify-center gap-3 rounded-2xl border p-6 text-center"
+                    style={{
+                      background:`linear-gradient(135deg, ${features[active].from}, ${features[active].to})`,
+                      borderColor: features[active].border,
+                      boxShadow: `0 0 40px ${features[active].glow}`,
+                    }}
+                  >
+                    <span style={{ fontSize:42, lineHeight:1 }}>{features[active].emoji}</span>
+                    <div>
+                      <h3 className="mb-1 text-lg font-bold text-white">{features[active].title}</h3>
+                      <p className="text-xs leading-6" style={{ color:"rgba(255,255,255,0.55)" }}>
+                        {features[active].desc}
+                      </p>
+                    </div>
+                  </motion.div>
+                </AnimatePresence>
+
+                {/* Arrows */}
+                <button
+                  onClick={() => go(-1)}
+                  className="absolute left-2 top-1/2 z-20 -translate-y-1/2 flex h-8 w-8 items-center justify-center rounded-full transition-transform active:scale-90"
+                  style={{ background:"rgba(0,0,0,0.35)", border:"1px solid rgba(255,255,255,0.1)" }}
+                >
+                  <ChevronLeft className="h-4 w-4 text-white/60" />
+                </button>
+                <button
+                  onClick={() => go(1)}
+                  className="absolute right-2 top-1/2 z-20 -translate-y-1/2 flex h-8 w-8 items-center justify-center rounded-full transition-transform active:scale-90"
+                  style={{ background:"rgba(0,0,0,0.35)", border:"1px solid rgba(255,255,255,0.1)" }}
+                >
+                  <ChevronRight className="h-4 w-4 text-white/60" />
+                </button>
+              </div>
+
+              {/* Dots */}
+              <div className="mt-3 flex justify-center gap-2">
+                {features.map((_, i) => (
+                  <button
+                    key={i}
+                    onClick={() => { setDir(i > active ? 1 : -1); setActive(i) }}
+                    className="transition-all duration-300"
+                    style={{
+                      height:6,
+                      width: i === active ? 22 : 6,
+                      borderRadius:3,
+                      background: i === active ? "#34d399" : "rgba(255,255,255,0.2)",
+                    }}
                   />
-                  <div className="relative flex h-36 w-36 items-center justify-center rounded-[1.5rem] border border-white/15 bg-white/5 shadow-2xl backdrop-blur-xl">
-                    <TKLogo className="h-32 w-32" />
-                  </div>
-                </motion.div>
-
-                <motion.h2
-                  className="mb-2 bg-gradient-to-r from-emerald-300 via-white to-blue-300 bg-clip-text text-3xl font-bold text-transparent"
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.3 }}
-                >
-                  تنقلي خنشلة
-                </motion.h2>
-
-                <motion.p
-                  className="mb-4 text-lg font-medium text-white/70"
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.35 }}
-                >
-                  Tanakoli Khenchela
-                </motion.p>
-
-                <motion.p
-                  className="mb-4 text-sm leading-relaxed text-white/55 text-center px-2"
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.4 }}
-                >
-                  مشروع تحديث النقل الحضري لمدينة خنشلة. تم تطوير وتصميم هذا التطبيق بالكامل بواسطة المطور{" "}
-                  <span className="font-semibold bg-gradient-to-r from-emerald-300 to-cyan-300 bg-clip-text text-transparent">Mouad ZR</span>
-                </motion.p>
-
-                <motion.div
-                  className="inline-flex items-center gap-2 rounded-full border border-emerald-400/30 bg-emerald-500/10 px-4 py-2"
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ delay: 0.45 }}
-                >
-                  <motion.div
-                    className="h-2 w-2 rounded-full bg-emerald-400"
-                    animate={{ opacity: [1, 0.3, 1] }}
-                    transition={{ duration: 1.5, repeat: Infinity }}
-                  />
-                  <span className="text-sm font-medium text-emerald-300">الإصدار 1.0.0</span>
-                  <span className="text-xs text-emerald-400/60">(Stable Demo)</span>
-                </motion.div>
+                ))}
               </div>
             </motion.div>
 
+            {/* ── Organisation ── */}
             <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
+              initial={{ opacity:0, y:16 }}
+              animate={{ opacity:1, y:0 }}
+              transition={{ duration:0.45, delay:0.22 }}
+              className="mb-8 rounded-2xl border p-4"
+              style={{
+                background:"rgba(255,255,255,0.025)",
+                borderColor:"rgba(255,255,255,0.06)",
+                backdropFilter:"blur(10px)",
+              }}
             >
-              <FeatureSwiper />
-            </motion.div>
-
-            <motion.div
-              className="rounded-2xl border border-white/5 p-4 shadow-sm mb-6"
-              style={{ background: "rgba(5,15,30,0.7)", backdropFilter: "blur(16px)" }}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3 }}
-            >
-              <h3 className="mb-4 text-lg font-bold text-white/90">المؤسسة</h3>
-              <div className="space-y-3">
-                <div className="flex items-center gap-3 rounded-xl border border-white/5 bg-white/5 p-4">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-500/10">
-                    <Bus className="h-6 w-6 text-emerald-400" />
-                  </div>
-                  <div>
-                    <p className="font-medium text-white/90">ETUS Khenchela</p>
-                    <p className="text-sm text-white/40">مؤسسة النقل الحضري وشبه الحضري</p>
-                  </div>
+              <div className="flex items-center gap-3">
+                <div
+                  className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-xl"
+                  style={{ background:"rgba(16,185,129,0.12)", border:"1px solid rgba(16,185,129,0.2)" }}
+                >
+                  🚌
                 </div>
-                <div className="rounded-xl bg-white/3 p-4 text-center border border-white/5">
-                  <p className="text-sm text-white/40">ولاية خنشلة - الجزائر</p>
-                  <p className="mt-1 text-xs text-white/25">جميع الحقوق محفوظة 2024 - 2025</p>
+                <div>
+                  <p className="font-semibold text-white/80 text-sm">ETUS Khenchela</p>
+                  <p className="text-xs" style={{ color:"rgba(255,255,255,0.35)" }}>مؤسسة النقل الحضري وشبه الحضري — ولاية خنشلة</p>
                 </div>
               </div>
             </motion.div>
 
+            {/* ── Footer ── */}
             <motion.div
-              className="mb-4 flex flex-col items-center gap-2 py-4"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.5 }}
+              initial={{ opacity:0 }}
+              animate={{ opacity:1 }}
+              transition={{ duration:0.5, delay:0.3 }}
+              className="mb-4 flex flex-col items-center gap-1 py-2"
             >
-              <p className="text-xs text-white/20 tracking-wide">سياسة الخصوصية</p>
-              <motion.a
+              <span className="text-xs" style={{ color:"rgba(255,255,255,0.18)" }}>سياسة الخصوصية</span>
+              <a
                 href="mailto:dev.mouad.zr@gmail.com"
-                className="text-xs text-white/30 transition-all"
-                whileHover={{
-                  color: "rgba(52,211,153,0.9)",
-                  textShadow: "0 0 12px rgba(16,185,129,0.6)",
+                className="text-xs transition-all duration-300"
+                style={{ color:"rgba(255,255,255,0.28)" }}
+                onMouseEnter={e => {
+                  (e.currentTarget as HTMLElement).style.color = "rgba(52,211,153,0.85)"
+                  ;(e.currentTarget as HTMLElement).style.textShadow = "0 0 10px rgba(16,185,129,0.5)"
+                }}
+                onMouseLeave={e => {
+                  (e.currentTarget as HTMLElement).style.color = "rgba(255,255,255,0.28)"
+                  ;(e.currentTarget as HTMLElement).style.textShadow = "none"
                 }}
               >
                 dev.mouad.zr@gmail.com
-              </motion.a>
+              </a>
             </motion.div>
+
           </div>
         </div>
 
