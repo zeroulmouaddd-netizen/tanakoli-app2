@@ -467,63 +467,6 @@ export function OnboardingScreen({ onShowIntro }: OnboardingScreenProps = {}) {
                 )}
               </form>
 
-              {/* ── Test Account panels (for Google Play reviewer) ── */}
-              <div className="mt-6 w-full space-y-3">
-
-                {/* Passenger test */}
-                <div
-                  className="w-full rounded-2xl border p-4"
-                  style={{
-                    background: "rgba(16,185,129,0.06)",
-                    borderColor: "rgba(16,185,129,0.25)",
-                    backdropFilter: "blur(8px)",
-                  }}
-                >
-                  <div className="mb-2 flex items-center gap-2">
-                    <div className="flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500/20">
-                      <Check className="h-3 w-3 text-emerald-400" />
-                    </div>
-                    <p className="text-xs font-semibold text-emerald-300">حساب راكب تجريبي — Passenger Test</p>
-                  </div>
-                  <div className="space-y-1 rounded-xl bg-black/20 px-3 py-2" dir="ltr">
-                    <p className="text-xs text-white/50">
-                      Phone: <span className="font-mono font-bold text-white/80">0555555555</span>
-                    </p>
-                    <p className="text-xs text-white/50">
-                      OTP: <span className="font-mono font-bold text-white/80">123456</span>
-                    </p>
-                  </div>
-                </div>
-
-                {/* Driver test */}
-                <div
-                  className="w-full rounded-2xl border p-4"
-                  style={{
-                    background: "rgba(59,130,246,0.06)",
-                    borderColor: "rgba(59,130,246,0.25)",
-                    backdropFilter: "blur(8px)",
-                  }}
-                >
-                  <div className="mb-2 flex items-center gap-2">
-                    <div className="flex h-5 w-5 items-center justify-center rounded-full bg-blue-500/20">
-                      <Check className="h-3 w-3 text-blue-400" />
-                    </div>
-                    <p className="text-xs font-semibold text-blue-300">حساب سائق تجريبي — Driver Test</p>
-                  </div>
-                  <div className="space-y-1 rounded-xl bg-black/20 px-3 py-2" dir="ltr">
-                    <p className="text-xs text-white/50">
-                      Phone: <span className="font-mono font-bold text-white/80">0666666666</span>
-                    </p>
-                    <p className="text-xs text-white/50">
-                      OTP: <span className="font-mono font-bold text-white/80">123456</span>
-                    </p>
-                  </div>
-                  <p className="mt-2 text-center text-xs text-blue-300/50">
-                    بعد تسجيل الدخول → القائمة الجانبية → وضع السائق
-                  </p>
-                </div>
-
-              </div>
             </div>
           </motion.div>
         )}
@@ -804,27 +747,6 @@ export function OnboardingScreen({ onShowIntro }: OnboardingScreenProps = {}) {
                 <p className="mt-1 text-sm text-white/60">تم إرسال رمز مكوّن من 6 أرقام إلى</p>
                 <p className="mt-1 text-sm font-bold text-emerald-400" dir="ltr">{phone}</p>
               </div>
-
-              {/* Test account OTP hint */}
-              {(formatPhone(phone) === TEST_PHONE_E164 || formatPhone(phone) === TEST_DRIVER_PHONE_E164) && (
-                <div
-                  className="mb-4 flex items-center gap-2 rounded-xl border px-3 py-2"
-                  style={{
-                    background: formatPhone(phone) === TEST_DRIVER_PHONE_E164
-                      ? "rgba(59,130,246,0.08)" : "rgba(16,185,129,0.08)",
-                    borderColor: formatPhone(phone) === TEST_DRIVER_PHONE_E164
-                      ? "rgba(59,130,246,0.25)" : "rgba(16,185,129,0.25)",
-                  }}
-                >
-                  <Check className="h-4 w-4 shrink-0 text-emerald-400" />
-                  <p className="text-xs text-emerald-300">
-                    {formatPhone(phone) === TEST_DRIVER_PHONE_E164
-                      ? "Driver test account"
-                      : "Passenger test account"
-                    }{" "}— use code: <span className="font-mono font-bold">123456</span>
-                  </p>
-                </div>
-              )}
 
               <div className="mb-6 flex justify-center gap-2" dir="ltr">
                 {otp.map((digit, i) => (
