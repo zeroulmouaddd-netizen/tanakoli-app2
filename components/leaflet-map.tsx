@@ -67,183 +67,207 @@ const urbanStations: { position: [number, number]; name: string; nameEn: string;
 // Removed intercity stations - Urban routes only
 
 // Actual organized bus line network for Khenchela - Color coded routes
-// Realistic street routing with multi-segment paths that meander like real transit lines
+// Independent routes with realistic street grid routing (NO central hub convergence)
+// Each line has its own start/end points and follows 90-degree street grid patterns
 const urbanRoutePolylines: { id: string; coords: [number, number][]; color: string; name: string; category: "urban"; arabicName: string; terminalFrom: string; terminalTo: string }[] = [
-  // Suburban Routes
+  // BLUE LINE - Northern route, independent loop through Hammam Essalhine area
   {
     id: "sub-01",
-    name: "Hammam Essalhine to Center",
+    name: "Hammam Essalhine Route",
     arabicName: "خط حمام الصالحين",
     color: "#0066FF", // Solid Blue
     category: "urban",
     terminalFrom: "حمام الصالحين",
-    terminalTo: "محطة ETUSK الرئيسية",
+    terminalTo: "شارع النيل",
     coords: [
-      [35.3900, 7.0800], // Starting point
-      [35.3920, 7.0850], // First turn
-      [35.3950, 7.0920],
-      [35.4000, 7.0980],
-      [35.4050, 7.1050],
-      [35.4120, 7.1150],
-      [35.4200, 7.1250],
-      [35.4280, 7.1350],
-      [35.4350, 7.1420],
-      [35.4377, 7.1458], // ETUSK Main Hub
+      [35.3850, 7.0750], // Start: Hammam Essalhine area
+      [35.3880, 7.0760], // Turn east
+      [35.3920, 7.0765],
+      [35.3950, 7.0780], // Turn south
+      [35.3970, 7.0850],
+      [35.4000, 7.0920], // Turn east
+      [35.4050, 7.0930],
+      [35.4100, 7.0940], // Turn south
+      [35.4130, 7.1000],
+      [35.4150, 7.1070], // Turn east
+      [35.4180, 7.1100],
+      [35.4210, 7.1130], // End: Nile street area
     ]
   },
+  
+  // GREEN LINE - Eastern route through El Hamma independent circuit
   {
     id: "sub-02",
-    name: "El Hamma to Center",
+    name: "El Hamma Route",
     arabicName: "خط الحامة",
     color: "#22BB33", // Solid Green
     category: "urban",
     terminalFrom: "الحمة",
-    terminalTo: "محطة ETUSK الرئيسية",
+    terminalTo: "حي الاستقلال",
     coords: [
-      [35.4650, 7.0900], // Starting point
-      [35.4600, 7.0950],
-      [35.4550, 7.1000],
-      [35.4500, 7.1050],
-      [35.4450, 7.1100],
-      [35.4400, 7.1150],
-      [35.4380, 7.1250],
-      [35.4370, 7.1350],
-      [35.4377, 7.1458], // ETUSK Main Hub
+      [35.4700, 7.0850], // Start: El Hamma area
+      [35.4680, 7.0900], // Turn south
+      [35.4650, 7.0970],
+      [35.4620, 7.1040], // Turn west
+      [35.4580, 7.1080],
+      [35.4530, 7.1100], // Turn south
+      [35.4500, 7.1150],
+      [35.4470, 7.1200], // Turn west
+      [35.4430, 7.1220],
+      [35.4390, 7.1230], // Turn south
+      [35.4360, 7.1280],
+      [35.4330, 7.1340], // End: Independence district
     ]
   },
+  
+  // BLACK LINE - Far eastern route through El Mahmel independent path
   {
     id: "sub-03",
-    name: "El Mahmel to Center",
+    name: "El Mahmel Route",
     arabicName: "خط المحمل",
     color: "#1A1A1A", // Solid Black
     category: "urban",
     terminalFrom: "المحمل",
-    terminalTo: "محطة ETUSK الرئيسية",
+    terminalTo: "شارع الجمهورية",
     coords: [
-      [35.5000, 7.2500], // Starting point
-      [35.4950, 7.2400],
-      [35.4900, 7.2300],
-      [35.4850, 7.2200],
-      [35.4800, 7.2100],
-      [35.4750, 7.2000],
-      [35.4700, 7.1900],
-      [35.4650, 7.1800],
-      [35.4550, 7.1700],
-      [35.4450, 7.1600],
-      [35.4377, 7.1458], // ETUSK Main Hub
+      [35.5100, 7.2600], // Start: El Mahmel (far east)
+      [35.5080, 7.2520], // Turn west
+      [35.5050, 7.2430],
+      [35.5010, 7.2350], // Turn south
+      [35.4980, 7.2270],
+      [35.4950, 7.2180], // Turn west
+      [35.4900, 7.2120],
+      [35.4850, 7.2080], // Turn south
+      [35.4810, 7.2000],
+      [35.4760, 7.1950], // Turn west
+      [35.4700, 7.1920],
+      [35.4650, 7.1900], // Turn south
+      [35.4600, 7.1850],
+      [35.4550, 7.1800], // End: Republic street
     ]
   },
-  // Urban Routes
+  
+  // CYAN LINE - Southern route through Cosider housing independent circuit
   {
     id: "urb-01",
-    name: "Cite 1000 Logts (Cosider) to Center",
+    name: "Cosider Housing Route",
     arabicName: "خط حي 1000 مسكن - كوسيدار",
     color: "#00D4FF", // Solid Cyan
     category: "urban",
     terminalFrom: "حي كوسيدار",
-    terminalTo: "محطة ETUSK الرئيسية",
+    terminalTo: "ساحة السوق",
     coords: [
-      [35.4550, 7.1700], // Starting point
-      [35.4520, 7.1650],
-      [35.4500, 7.1600],
-      [35.4470, 7.1550],
-      [35.4450, 7.1500],
-      [35.4420, 7.1480],
-      [35.4400, 7.1460],
-      [35.4377, 7.1458], // ETUSK Main Hub
+      [35.4650, 7.1850], // Start: Cosider south
+      [35.4620, 7.1880], // Turn west
+      [35.4580, 7.1900],
+      [35.4540, 7.1910], // Turn north
+      [35.4510, 7.1860],
+      [35.4480, 7.1800], // Turn west
+      [35.4440, 7.1780],
+      [35.4400, 7.1760], // Turn north
+      [35.4370, 7.1700],
+      [35.4350, 7.1630], // Turn east
+      [35.4380, 7.1600],
+      [35.4420, 7.1590], // End: Market square
     ]
   },
+  
+  // ORANGE LINE - Western route through New Pole independent path
   {
     id: "urb-02",
-    name: "Nouveau Pole (route El Aizar) to Center",
+    name: "New Pole Route",
     arabicName: "خط القطب الجديد - طريق العيزار",
     color: "#FF9900", // Solid Orange
     category: "urban",
     terminalFrom: "طريق العيزار",
-    terminalTo: "محطة ETUSK الرئيسية",
+    terminalTo: "شارع فرعون",
     coords: [
-      [35.3800, 7.1700], // Starting point
-      [35.3850, 7.1680],
-      [35.3900, 7.1660],
-      [35.3950, 7.1640],
-      [35.4000, 7.1620],
-      [35.4050, 7.1600],
-      [35.4100, 7.1580],
-      [35.4150, 7.1550],
-      [35.4200, 7.1520],
-      [35.4250, 7.1490],
-      [35.4300, 7.1470],
-      [35.4350, 7.1460],
-      [35.4377, 7.1458], // ETUSK Main Hub
+      [35.3700, 7.1650], // Start: New Pole (far west)
+      [35.3730, 7.1670], // Turn east
+      [35.3770, 7.1680],
+      [35.3820, 7.1690], // Turn south
+      [35.3880, 7.1700],
+      [35.3940, 7.1710], // Turn east
+      [35.4000, 7.1720],
+      [35.4050, 7.1730], // Turn south
+      [35.4100, 7.1750],
+      [35.4150, 7.1770], // Turn east
+      [35.4200, 7.1790],
+      [35.4250, 7.1820], // Turn south
+      [35.4300, 7.1850], // End: Pharaoh street
     ]
   },
+  
+  // PURPLE LINE - Northwestern route through Moussa Raddah independent circuit
   {
     id: "urb-03",
-    name: "Cite Moussa Raddah to Center",
+    name: "Moussa Raddah Route",
     arabicName: "خط حي موسى رداح",
     color: "#BB00FF", // Solid Purple
     category: "urban",
     terminalFrom: "سيتي موسى الرداح",
-    terminalTo: "محطة ETUSK الرئيسية",
+    terminalTo: "حي الثورة",
     coords: [
-      [35.4100, 7.0900], // Starting point
-      [35.4120, 7.0950],
-      [35.4140, 7.1000],
-      [35.4160, 7.1050],
-      [35.4180, 7.1100],
-      [35.4200, 7.1150],
-      [35.4240, 7.1200],
-      [35.4280, 7.1250],
-      [35.4320, 7.1300],
-      [35.4350, 7.1380],
-      [35.4365, 7.1420],
-      [35.4377, 7.1458], // ETUSK Main Hub
+      [35.4050, 7.0800], // Start: Moussa Raddah (northwest)
+      [35.4080, 7.0850], // Turn south
+      [35.4120, 7.0920],
+      [35.4150, 7.0980], // Turn east
+      [35.4190, 7.1050],
+      [35.4230, 7.1120], // Turn south
+      [35.4260, 7.1180],
+      [35.4290, 7.1240], // Turn west
+      [35.4310, 7.1300],
+      [35.4320, 7.1360], // Turn south
+      [35.4330, 7.1420],
+      [35.4340, 7.1480], // End: Revolution district
     ]
   },
+  
+  // RED LINE - Eastern route through Ensigna independent path
   {
     id: "urb-04",
-    name: "Ensigna to Center",
+    name: "Ensigna Route",
     arabicName: "خط انسيغة",
     color: "#FF3333", // Solid Red
     category: "urban",
     terminalFrom: "انسيغة",
-    terminalTo: "محطة ETUSK الرئيسية",
+    terminalTo: "ساحة الشهداء",
     coords: [
-      [35.5200, 7.1200], // Starting point
-      [35.5150, 7.1210],
-      [35.5100, 7.1220],
-      [35.5050, 7.1230],
-      [35.5000, 7.1250],
-      [35.4950, 7.1270],
-      [35.4900, 7.1290],
-      [35.4850, 7.1310],
-      [35.4800, 7.1330],
-      [35.4750, 7.1350],
-      [35.4700, 7.1360],
-      [35.4650, 7.1370],
-      [35.4600, 7.1380],
-      [35.4550, 7.1390],
-      [35.4450, 7.1420],
-      [35.4377, 7.1458], // ETUSK Main Hub
+      [35.5300, 7.1250], // Start: Ensigna (far northeast)
+      [35.5270, 7.1300], // Turn south
+      [35.5240, 7.1350],
+      [35.5200, 7.1400], // Turn west
+      [35.5150, 7.1420],
+      [35.5100, 7.1430], // Turn south
+      [35.5050, 7.1440],
+      [35.5000, 7.1450], // Turn west
+      [35.4950, 7.1460],
+      [35.4900, 7.1470], // Turn south
+      [35.4850, 7.1480],
+      [35.4800, 7.1490], // Turn west
+      [35.4750, 7.1500],
+      [35.4700, 7.1510], // End: Martyrs square
     ]
   },
+  
+  // YELLOW LINE - Central route connecting old station to new station (independent)
   {
     id: "urb-05",
-    name: "Ancienne Gare to New Gare A",
+    name: "Station Connector Route",
     arabicName: "خط المحطة القديمة - محطة المسافرين",
     color: "#FFDD00", // Solid Yellow
     category: "urban",
     terminalFrom: "المحطة القديمة",
     terminalTo: "محطة المسافرين (الجديدة)",
     coords: [
-      [35.4200, 7.1200], // Ancienne Gare (starting point)
-      [35.4220, 7.1220],
-      [35.4240, 7.1250],
-      [35.4260, 7.1280],
-      [35.4280, 7.1320],
-      [35.4300, 7.1350],
-      [35.4320, 7.1380],
-      [35.4350, 7.1400], // New Gare A (endpoint)
+      [35.4150, 7.1150], // Start: Old station (southwest area)
+      [35.4180, 7.1180], // Turn east
+      [35.4220, 7.1210],
+      [35.4260, 7.1240], // Turn north
+      [35.4290, 7.1280],
+      [35.4320, 7.1320], // Turn east
+      [35.4350, 7.1360],
+      [35.4370, 7.1400], // End: New passenger station
     ]
   }
 ]
