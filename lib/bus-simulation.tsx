@@ -2,53 +2,95 @@
 
 import { createContext, useContext, useState, useEffect, useCallback, useRef, type ReactNode } from "react"
 
-// Route coordinates for simulation - these define the paths buses follow
+// Route coordinates for simulation - realistic street grid routing
+// Each route is INDEPENDENT with its own start/end (NO central hub convergence)
 const urbanRoutePolylines = [
   {
-    id: "01",
-    name: "خط 01 - الجامعة",
+    id: "sub-01",
+    name: "خط حمام الصالحين",
     coords: [
-      [35.4420, 7.1380], [35.4400, 7.1420], [35.4377, 7.1458],
-      [35.4400, 7.1550], [35.4330, 7.1520], [35.4350, 7.1350],
+      [35.3850, 7.0750], [35.3880, 7.0760], [35.3920, 7.0765],
+      [35.3950, 7.0780], [35.3970, 7.0850], [35.4000, 7.0920],
+      [35.4050, 7.0930], [35.4100, 7.0940], [35.4130, 7.1000],
+      [35.4150, 7.1070], [35.4180, 7.1100], [35.4210, 7.1130],
     ] as [number, number][]
   },
   {
-    id: "02",
-    name: "خط 02 - عين البيضاء",
+    id: "sub-02",
+    name: "خط الحامة",
     coords: [
-      [35.4350, 7.1350], [35.4450, 7.1320], [35.4377, 7.1458],
-      [35.4330, 7.1520], [35.4400, 7.1480],
+      [35.4700, 7.0850], [35.4680, 7.0900], [35.4650, 7.0970],
+      [35.4620, 7.1040], [35.4580, 7.1080], [35.4530, 7.1100],
+      [35.4500, 7.1150], [35.4470, 7.1200], [35.4430, 7.1220],
+      [35.4390, 7.1230], [35.4360, 7.1280], [35.4330, 7.1340],
     ] as [number, number][]
   },
   {
-    id: "03",
-    name: "خط 03 - المدينة الجديدة",
+    id: "sub-03",
+    name: "خط المحمل",
     coords: [
-      [35.4290, 7.1400], [35.4310, 7.1430], [35.4377, 7.1458],
-      [35.4400, 7.1550], [35.4400, 7.1480], [35.4350, 7.1350],
+      [35.5100, 7.2600], [35.5080, 7.2520], [35.5050, 7.2430],
+      [35.5010, 7.2350], [35.4980, 7.2270], [35.4950, 7.2180],
+      [35.4900, 7.2120], [35.4850, 7.2080], [35.4810, 7.2000],
+      [35.4760, 7.1950], [35.4700, 7.1920], [35.4650, 7.1900],
+      [35.4600, 7.1850], [35.4550, 7.1800],
+    ] as [number, number][]
+  },
+  {
+    id: "urb-01",
+    name: "خط حي 1000 مسكن - كوسيدار",
+    coords: [
+      [35.4650, 7.1850], [35.4620, 7.1880], [35.4580, 7.1900],
+      [35.4540, 7.1910], [35.4510, 7.1860], [35.4480, 7.1800],
+      [35.4440, 7.1780], [35.4400, 7.1760], [35.4370, 7.1700],
+      [35.4350, 7.1630], [35.4380, 7.1600], [35.4420, 7.1590],
+    ] as [number, number][]
+  },
+  {
+    id: "urb-02",
+    name: "خط القطب الجديد - طريق العيزار",
+    coords: [
+      [35.3700, 7.1650], [35.3730, 7.1670], [35.3770, 7.1680],
+      [35.3820, 7.1690], [35.3880, 7.1700], [35.3940, 7.1710],
+      [35.4000, 7.1720], [35.4050, 7.1730], [35.4100, 7.1750],
+      [35.4150, 7.1770], [35.4200, 7.1790], [35.4250, 7.1820],
+      [35.4300, 7.1850],
+    ] as [number, number][]
+  },
+  {
+    id: "urb-03",
+    name: "خط حي موسى رداح",
+    coords: [
+      [35.4050, 7.0800], [35.4080, 7.0850], [35.4120, 7.0920],
+      [35.4150, 7.0980], [35.4190, 7.1050], [35.4230, 7.1120],
+      [35.4260, 7.1180], [35.4290, 7.1240], [35.4310, 7.1300],
+      [35.4320, 7.1360], [35.4330, 7.1420], [35.4340, 7.1480],
+    ] as [number, number][]
+  },
+  {
+    id: "urb-04",
+    name: "خط انسيغة",
+    coords: [
+      [35.5300, 7.1250], [35.5270, 7.1300], [35.5240, 7.1350],
+      [35.5200, 7.1400], [35.5150, 7.1420], [35.5100, 7.1430],
+      [35.5050, 7.1440], [35.5000, 7.1450], [35.4950, 7.1460],
+      [35.4900, 7.1470], [35.4850, 7.1480], [35.4800, 7.1490],
+      [35.4750, 7.1500], [35.4700, 7.1510],
+    ] as [number, number][]
+  },
+  {
+    id: "urb-05",
+    name: "خط المحطة القديمة - محطة المسافرين",
+    coords: [
+      [35.4150, 7.1150], [35.4180, 7.1180], [35.4220, 7.1210],
+      [35.4260, 7.1240], [35.4290, 7.1280], [35.4320, 7.1320],
+      [35.4350, 7.1360], [35.4370, 7.1400],
     ] as [number, number][]
   }
 ]
 
-const intercityRoutePolylines = [
-  {
-    id: "K1",
-    name: "K1 - خنشلة - قايس",
-    coords: [
-      [35.4350, 7.1350], [35.4100, 7.1200], [35.3800, 7.0800], [35.3650, 7.0650],
-    ] as [number, number][]
-  },
-  {
-    id: "K2",
-    name: "K2 - خنشلة - الشريعة",
-    coords: [
-      [35.4350, 7.1350], [35.3900, 7.2000], [35.2700, 7.7500], [35.2640, 7.7600],
-    ] as [number, number][]
-  },
-]
-
-// All routes combined for easy lookup
-const allRoutes = [...urbanRoutePolylines, ...intercityRoutePolylines]
+// All routes combined for easy lookup (urban only - no intercity routes)
+const allRoutes = [...urbanRoutePolylines]
 
 // Station positions for proximity detection (200m radius)
 const allStations = [
@@ -212,13 +254,16 @@ function isValidCoordinate(lat: number, lon: number): boolean {
   )
 }
 
-// Bus configuration - 5 simulated buses on different routes
+// Bus configuration - 8 simulated buses on different routes (all 8 new Khenchela lines)
 const BUS_CONFIG = [
-  { id: "sim-001", name: "حافلة 101", lineId: "01", lineName: "خط 01 - الجامعة", category: "urban" as const, speed: 25, initialProgress: 0.05 },
-  { id: "sim-002", name: "حافلة 102", lineId: "02", lineName: "خط 02 - عين البيضاء", category: "urban" as const, speed: 30, initialProgress: 0.25 },
-  { id: "sim-003", name: "حافلة 103", lineId: "03", lineName: "خط 03 - المدينة الجديدة", category: "urban" as const, speed: 22, initialProgress: 0.55 },
-  { id: "sim-004", name: "حافلة K1-01", lineId: "K1", lineName: "K1 - خنشلة - قايس", category: "intercity" as const, speed: 50, initialProgress: 0.15 },
-  { id: "sim-005", name: "حافلة K2-01", lineId: "K2", lineName: "K2 - خنشلة - الشريعة", category: "intercity" as const, speed: 55, initialProgress: 0.35 },
+  { id: "sim-001", name: "حافلة 101", lineId: "sub-01", lineName: "خط حمام الصالحين", category: "urban" as const, speed: 25, initialProgress: 0.05 },
+  { id: "sim-002", name: "حافلة 102", lineId: "sub-02", lineName: "خط الحامة", category: "urban" as const, speed: 30, initialProgress: 0.25 },
+  { id: "sim-003", name: "حافلة 103", lineId: "sub-03", lineName: "خط المحمل", category: "urban" as const, speed: 22, initialProgress: 0.55 },
+  { id: "sim-004", name: "حافلة 104", lineId: "urb-01", lineName: "خط حي 1000 مسكن - كوسيدار", category: "urban" as const, speed: 28, initialProgress: 0.15 },
+  { id: "sim-005", name: "حافلة 105", lineId: "urb-02", lineName: "خط القطب الجديد - طريق العيزار", category: "urban" as const, speed: 26, initialProgress: 0.35 },
+  { id: "sim-006", name: "حافلة 106", lineId: "urb-03", lineName: "خط حي موسى رداح", category: "urban" as const, speed: 24, initialProgress: 0.45 },
+  { id: "sim-007", name: "حافلة 107", lineId: "urb-04", lineName: "خط انسيغة", category: "urban" as const, speed: 32, initialProgress: 0.65 },
+  { id: "sim-008", name: "حافلة 108", lineId: "urb-05", lineName: "خط المحطة القديمة - محطة المسافرين", category: "urban" as const, speed: 20, initialProgress: 0.10 },
 ]
 
 // Create initial buses with proper positions calculated from their routes

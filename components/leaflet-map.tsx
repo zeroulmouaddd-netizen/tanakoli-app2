@@ -47,55 +47,190 @@ const ROUTE_CATEGORIES = {
   urban: { label: "داخل المدينة", labelEn: "Urban", color: "#00A651" },
 }
 
-// All main stations in Khenchela city (urban)
-const urbanStations: { position: [number, number]; name: string; nameEn: string; lines: string[]; isMain: boolean; category: "urban" }[] = [
-  { position: [35.4420, 7.1380], name: "الجامعة", nameEn: "University", lines: ["01"], isMain: true, category: "urban" },
-  { position: [35.4377, 7.1458], name: "وسط المدينة", nameEn: "City Center", lines: ["01", "02", "03"], isMain: true, category: "urban" },
-  { position: [35.4350, 7.1350], name: "محطة خنشلة البرية", nameEn: "Khenchela Bus Station", lines: ["01", "02", "03"], isMain: true, category: "urban" },
-  { position: [35.4330, 7.1520], name: "المستشفى", nameEn: "Hospital", lines: ["01", "02"], isMain: true, category: "urban" },
-  { position: [35.4400, 7.1550], name: "السوق المركزي", nameEn: "Central Market", lines: ["01", "03"], isMain: true, category: "urban" },
-  { position: [35.4400, 7.1480], name: "ملعب أول نوفمبر", nameEn: "Stadium", lines: ["02", "03"], isMain: false, category: "urban" },
-  { position: [35.4450, 7.1320], name: "طريق عين البيضاء", nameEn: "Ain El Beyda Road", lines: ["02"], isMain: false, category: "urban" },
-  { position: [35.4290, 7.1400], name: "المدينة الجديدة", nameEn: "New City", lines: ["03"], isMain: false, category: "urban" },
-  { position: [35.4400, 7.1420], name: "حي 500 مسكن", nameEn: "500 Housing", lines: ["01"], isMain: false, category: "urban" },
-  { position: [35.4310, 7.1430], name: "حي الأمل", nameEn: "El Amel", lines: ["03"], isMain: false, category: "urban" },
+// All main stations in Khenchela city with ETUSK Main Station
+const urbanStations: { position: [number, number]; name: string; nameEn: string; arabicLabel: string; lines: string[]; isMain: boolean; category: "urban" }[] = [
+  // ETUSK Main Hub
+  { position: [35.4377, 7.1458], name: "ETUSK Station", nameEn: "ETUSK Main Station", arabicLabel: "محطة ETUSK الرئيسية", lines: ["sub-01", "sub-02", "sub-03", "urb-01", "urb-02", "urb-03", "urb-04"], isMain: true, category: "urban" },
+  
+  // Terminal Stops
+  { position: [35.3900, 7.0800], name: "Hammam Essalhine", nameEn: "Hammam Essalhine", arabicLabel: "حمام الصالحين", lines: ["sub-01"], isMain: true, category: "urban" },
+  { position: [35.4650, 7.0900], name: "El Hamma", nameEn: "El Hamma", arabicLabel: "الحمة", lines: ["sub-02"], isMain: true, category: "urban" },
+  { position: [35.5000, 7.2500], name: "El Mahmel", nameEn: "El Mahmel", arabicLabel: "المحمل", lines: ["sub-03"], isMain: true, category: "urban" },
+  { position: [35.4550, 7.1700], name: "Cite 1000 Logts", nameEn: "Cosider Housing", arabicLabel: "حي كوسيدار", lines: ["urb-01"], isMain: true, category: "urban" },
+  { position: [35.3800, 7.1700], name: "Nouveau Pole", nameEn: "New Pole (El Aizar)", arabicLabel: "طريق العيزار", lines: ["urb-02"], isMain: true, category: "urban" },
+  { position: [35.4100, 7.0900], name: "Cite Moussa", nameEn: "Moussa Raddah District", arabicLabel: "سيتي موسى الرداح", lines: ["urb-03"], isMain: true, category: "urban" },
+  { position: [35.5200, 7.1200], name: "Ensigna", nameEn: "Ensigna", arabicLabel: "انسيغة", lines: ["urb-04"], isMain: true, category: "urban" },
+  { position: [35.4200, 7.1200], name: "Ancienne Gare", nameEn: "Old Station", arabicLabel: "المحطة القديمة", lines: ["urb-05"], isMain: true, category: "urban" },
+  { position: [35.4350, 7.1400], name: "New Gare A", nameEn: "New Station A", arabicLabel: "المحطة الجديدة أ", lines: ["urb-05"], isMain: true, category: "urban" },
 ]
 
 // Removed intercity stations - Urban routes only
 
-// Urban route polylines - Green category
-const urbanRoutePolylines: { id: string; coords: [number, number][]; color: string; name: string; category: "urban" }[] = [
+// Actual organized bus line network for Khenchela - Color coded routes
+// Each route defined by 3-4 key waypoints that will be snapped to roads via OSRM
+// OSRM will fetch the actual street geometry, ensuring routes follow real roads
+const urbanRoutePolylines: { id: string; waypoints: [number, number][]; color: string; name: string; category: "urban"; arabicName: string; terminalFrom: string; terminalTo: string }[] = [
+  // BLUE LINE - Northern route through Hammam Essalhine area
   {
-    id: "01",
-    name: "خط 01 - الجامعة",
-    color: "#00A651",
+    id: "sub-01",
+    name: "Hammam Essalhine Route",
+    arabicName: "خط حمام الصالحين",
+    color: "#0066FF", // Solid Blue
     category: "urban",
-    coords: [
-      [35.4420, 7.1380], [35.4400, 7.1420], [35.4377, 7.1458],
-      [35.4400, 7.1550], [35.4330, 7.1520], [35.4350, 7.1350],
+    terminalFrom: "حمام الصالحين",
+    terminalTo: "شارع النيل",
+    waypoints: [
+      [35.3850, 7.0750], // Start: Hammam Essalhine area
+      [35.4000, 7.0920], // Mid waypoint
+      [35.4210, 7.1130], // End: Nile street area
     ]
   },
+  
+  // GREEN LINE - Eastern route through El Hamma
   {
-    id: "02",
-    name: "خط 02 - عين البيضاء",
-    color: "#00A651",
+    id: "sub-02",
+    name: "El Hamma Route",
+    arabicName: "خط الحامة",
+    color: "#22BB33", // Solid Green
     category: "urban",
-    coords: [
-      [35.4350, 7.1350], [35.4450, 7.1320], [35.4377, 7.1458],
-      [35.4330, 7.1520], [35.4400, 7.1480],
+    terminalFrom: "الحمة",
+    terminalTo: "حي الاستقلال",
+    waypoints: [
+      [35.4700, 7.0850], // Start: El Hamma area
+      [35.4500, 7.1050], // Mid waypoint
+      [35.4330, 7.1340], // End: Independence district
     ]
   },
+  
+  // BLACK LINE - Far eastern route through El Mahmel
   {
-    id: "03",
-    name: "خط 03 - المدينة الجديدة",
-    color: "#00A651",
+    id: "sub-03",
+    name: "El Mahmel Route",
+    arabicName: "خط المحمل",
+    color: "#1A1A1A", // Solid Black
     category: "urban",
-    coords: [
-      [35.4290, 7.1400], [35.4310, 7.1430], [35.4377, 7.1458],
-      [35.4400, 7.1550], [35.4400, 7.1480], [35.4350, 7.1350],
+    terminalFrom: "المحمل",
+    terminalTo: "شارع الجمهورية",
+    waypoints: [
+      [35.5100, 7.2600], // Start: El Mahmel (far east)
+      [35.4900, 7.2100], // Mid waypoint
+      [35.4550, 7.1800], // End: Republic street
+    ]
+  },
+  
+  // CYAN LINE - Southern route through Cosider housing
+  {
+    id: "urb-01",
+    name: "Cosider Housing Route",
+    arabicName: "خط حي 1000 مسكن - كوسيدار",
+    color: "#00D4FF", // Solid Cyan
+    category: "urban",
+    terminalFrom: "حي كوسيدار",
+    terminalTo: "ساحة السوق",
+    waypoints: [
+      [35.4650, 7.1850], // Start: Cosider south
+      [35.4500, 7.1800], // Mid waypoint
+      [35.4420, 7.1590], // End: Market square
+    ]
+  },
+  
+  // ORANGE LINE - Western route through New Pole
+  {
+    id: "urb-02",
+    name: "New Pole Route",
+    arabicName: "خط القطب الجديد - طريق العيزار",
+    color: "#FF9900", // Solid Orange
+    category: "urban",
+    terminalFrom: "طريق العيزار",
+    terminalTo: "شارع فرعون",
+    waypoints: [
+      [35.3700, 7.1650], // Start: New Pole (far west)
+      [35.4000, 7.1720], // Mid waypoint
+      [35.4300, 7.1850], // End: Pharaoh street
+    ]
+  },
+  
+  // PURPLE LINE - Northwestern route through Moussa Raddah
+  {
+    id: "urb-03",
+    name: "Moussa Raddah Route",
+    arabicName: "خط حي موسى رداح",
+    color: "#BB00FF", // Solid Purple
+    category: "urban",
+    terminalFrom: "سيتي موسى الرداح",
+    terminalTo: "حي الثورة",
+    waypoints: [
+      [35.4050, 7.0800], // Start: Moussa Raddah (northwest)
+      [35.4200, 7.1050], // Mid waypoint
+      [35.4340, 7.1480], // End: Revolution district
+    ]
+  },
+  
+  // RED LINE - Eastern route through Ensigna
+  {
+    id: "urb-04",
+    name: "Ensigna Route",
+    arabicName: "خط انسيغة",
+    color: "#FF3333", // Solid Red
+    category: "urban",
+    terminalFrom: "انسيغة",
+    terminalTo: "ساحة الشهداء",
+    waypoints: [
+      [35.5300, 7.1250], // Start: Ensigna (far northeast)
+      [35.5000, 7.1450], // Mid waypoint
+      [35.4700, 7.1510], // End: Martyrs square
+    ]
+  },
+  
+  // YELLOW LINE - Central route connecting old station to new station
+  {
+    id: "urb-05",
+    name: "Station Connector Route",
+    arabicName: "خط المحطة القديمة - محطة المسافرين",
+    color: "#FFDD00", // Solid Yellow
+    category: "urban",
+    terminalFrom: "المحطة القديمة",
+    terminalTo: "محطة المسافرين (الجديدة)",
+    waypoints: [
+      [35.4150, 7.1150], // Start: Old station (southwest area)
+      [35.4350, 7.1360], // End: New passenger station
     ]
   }
 ]
+
+// OSRM utility function - Fetches actual road geometry for waypoints
+// Returns GeoJSON coordinates that follow real streets via OSRM service
+async function fetchOSRMRoute(waypoints: [number, number][]): Promise<[number, number][] | null> {
+  try {
+    // Format waypoints for OSRM: lon,lat;lon,lat;...
+    const coordinateString = waypoints.map(([lat, lng]) => `${lng},${lat}`).join(';')
+    
+    // Call OSRM service with overview=full to get detailed route
+    const response = await fetch(
+      `https://router.project-osrm.org/route/v1/driving/${coordinateString}?overview=full&geometries=geojson`,
+      { signal: AbortSignal.timeout(5000) }
+    )
+    
+    if (!response.ok) {
+      console.log("[v0] OSRM request failed, falling back to waypoints")
+      return null
+    }
+    
+    const data = await response.json()
+    
+    // Extract coordinates from GeoJSON geometry
+    if (data.routes && data.routes[0] && data.routes[0].geometry && data.routes[0].geometry.coordinates) {
+      const coords = data.routes[0].geometry.coordinates
+      // OSRM returns [lon, lat], we need [lat, lng]
+      return coords.map(([lng, lat]: [number, number]) => [lat, lng])
+    }
+    
+    return null
+  } catch (error) {
+    console.log("[v0] OSRM fetch error, falling back to waypoints:", error)
+    return null
+  }
+}
 
 // All routes (urban only)
 const allRoutes = [...urbanRoutePolylines]
@@ -354,18 +489,20 @@ if (typeof document !== "undefined") {
       .station-marker:hover { transform: scale(1.15); z-index: 85 !important; }
       .station-marker.faded { opacity: 0.3; }
       .urban-station-marker {
-        width: 24px; height: 24px;
-        background: #00A651; border: 2px solid white; border-radius: 50%;
-        box-shadow: 0 2px 6px rgba(0,166,81,0.4);
+        width: 8px; height: 8px;
+        background: #FFFFFF; border: 2px solid currentColor; border-radius: 50%;
+        box-shadow: 0 0 8px currentColor, 0 0 12px rgba(255, 255, 255, 0.4);
         display: flex; align-items: center; justify-content: center;
+        filter: drop-shadow(0 0 4px currentColor);
       }
       .urban-station-marker.main {
-        width: 28px; height: 28px; border-width: 3px;
-        box-shadow: 0 3px 10px rgba(0,166,81,0.5);
+        width: 8px; height: 8px; border-width: 2px;
+        box-shadow: 0 0 8px currentColor, 0 0 12px rgba(255, 255, 255, 0.4);
       }
       .urban-station-marker.minor {
-        width: 18px; height: 18px;
-        background: rgba(0,166,81,0.85);
+        width: 6px; height: 6px; border-width: 1px;
+        background: #FFFFFF;
+        box-shadow: 0 0 6px currentColor, 0 0 10px rgba(255, 255, 255, 0.3);
       }
       .leaflet-popup-content-wrapper { 
         border-radius: 12px; backdrop-filter: blur(8px);
@@ -544,7 +681,12 @@ function RouteController({
             <div className="flex items-center gap-2">
               <Layers className="h-5 w-5" style={{ color: "#22C55E" }} />
               <span className="text-sm font-semibold" style={{ color: textColor }}>
-                {viewMode === "all" ? "كل الخطوط" : `خط ${selectedRoute}`}
+                {viewMode === "all" 
+                  ? "كل الخطوط" 
+                  : selectedRoute 
+                    ? urbanRoutePolylines.find(r => r.id === selectedRoute)?.arabicName || selectedRoute
+                    : "اختر خط"
+                }
               </span>
             </div>
             {isExpanded ? (
@@ -580,10 +722,10 @@ function RouteController({
                     <span className="font-medium">عرض كل الخطوط</span>
                   </button>
 
-                  {/* Urban Routes */}
+                  {/* Suburban & Urban Routes with colored swatches */}
                   <div className="mb-2">
                     <div className="mb-1 px-2 text-[11px] font-semibold" style={{ color: mutedTextColor }}>
-                      داخل المدينة
+                      خطوط النقل
                     </div>
                     {urbanRoutePolylines.map((route) => (
                       <button
@@ -592,20 +734,21 @@ function RouteController({
                         className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm transition-colors"
                         style={{ 
                           backgroundColor: selectedRoute === route.id ? activeBg : "transparent",
-                          color: selectedRoute === route.id ? "#22C55E" : textColor
+                          color: selectedRoute === route.id ? route.color : textColor
                         }}
                         onMouseEnter={(e) => { if (selectedRoute !== route.id) e.currentTarget.style.backgroundColor = hoverBg }}
                         onMouseLeave={(e) => { if (selectedRoute !== route.id) e.currentTarget.style.backgroundColor = "transparent" }}
                       >
                         <div 
-                          className="h-3 w-3 rounded-full"
+                          className="h-3 w-3 rounded-full flex-shrink-0"
                           style={{ 
-                            backgroundColor: ROUTE_CATEGORIES.urban.color,
-                            boxShadow: selectedRoute === route.id ? `0 0 0 2px ${ROUTE_CATEGORIES.urban.color}40` : "none"
+                            backgroundColor: route.color,
+                            border: selectedRoute === route.id ? `2px solid ${route.color}` : "1px solid rgba(0,0,0,0.2)",
+                            boxShadow: selectedRoute === route.id ? `0 0 0 2px ${route.color}40` : "none"
                           }}
                         />
                         <span className={selectedRoute === route.id ? "font-bold" : "font-medium"}>
-                          خط {route.id}
+                          {route.arabicName}
                         </span>
                       </button>
                     ))}
@@ -917,46 +1060,89 @@ const { subStations } = useRouteSubStations(selectedRoute)
     fleetCluster.addTo(map)
     fleetClusterRef.current = fleetCluster
   
-  // Add urban route polylines (Green)
-    urbanRoutePolylines.forEach((route) => {
-      const polyline = L.polyline(route.coords, {
-        color: ROUTE_CATEGORIES.urban.color,
-        weight: 3,
-        opacity: 0.7,
-        dashArray: "8, 6",
-        className: "route-polyline",
+  // Add urban route polylines with OSRM-based snap-to-road routing + dashed animated styling
+    urbanRoutePolylines.forEach(async (route) => {
+      // Fetch real road geometry from OSRM
+      const osrmCoords = await fetchOSRMRoute(route.waypoints)
+      const routeCoords = osrmCoords || route.waypoints // Fallback to waypoints if OSRM fails
+      
+      // Main polyline - Dashed colored line with cyber glow animation
+      const polyline = L.polyline(routeCoords, {
+        color: route.color,
+        weight: 5, // Thick visible weight
+        opacity: 1.0,
+        dashArray: "10, 15", // Explicit dashed pattern
+        lineCap: "round",
+        lineJoin: "round",
+        className: "route-polyline cyber-line",
       }).addTo(map)
+      
+      // Add start marker at first coordinate
+      if (routeCoords.length > 0) {
+        const startMarker = L.marker(routeCoords[0], {
+          icon: L.divIcon({
+            html: `<div style="width: 12px; height: 12px; background-color: white; border: 3px solid ${route.color}; border-radius: 50%; box-shadow: 0 0 8px ${route.color};"></div>`,
+            iconSize: [12, 12],
+            iconAnchor: [6, 6],
+            className: "marker-start",
+          }),
+          zIndexOffset: 250,
+        }).addTo(map)
+      }
+      
+      // Add end marker at last coordinate
+      if (routeCoords.length > 1) {
+        const endMarker = L.marker(routeCoords[routeCoords.length - 1], {
+          icon: L.divIcon({
+            html: `<div style="width: 8px; height: 8px; background-color: white; border: 2px solid ${route.color}; border-radius: 0%; box-shadow: 0 0 6px ${route.color};"></div>`,
+            iconSize: [8, 8],
+            iconAnchor: [4, 4],
+            className: "marker-end",
+          }),
+          zIndexOffset: 250,
+        }).addTo(map)
+      }
       
       polyline.bindPopup(`
         <div class="station-popup">
-          <div class="station-popup-name">${route.name}</div>
-          <div style="font-size:11px;color:#666;">خط حضري</div>
+          <div class="station-popup-name">${route.arabicName}</div>
+          <div style="font-size:11px;color:#666;margin-top:4px;">من: ${route.terminalFrom}</div>
+          <div style="font-size:11px;color:#666;">إلى: ${route.terminalTo}</div>
         </div>
       `)
       
       routePolylinesRef.current.set(route.id, polyline)
     })
 
-    // Function to create line badges HTML
+    // Function to create line badges HTML with colored swatches
     const createLineBadges = (lines: string[]) => {
       return lines.map(line => {
-        return `<span class="station-line-badge urban" data-line="${line}">خط ${line}</span>`
+        const route = urbanRoutePolylines.find(r => r.id === line)
+        const color = route?.color || "#999"
+        const lineName = route?.arabicName || line
+        return `<span class="station-line-badge" style="background-color: ${color}; display: inline-flex; align-items: center; gap: 4px; padding: 3px 8px; border-radius: 4px; color: white; font-size: 11px; font-weight: 600;" data-line="${line}">
+          <span style="width: 6px; height: 6px; background-color: rgba(255,255,255,0.5); border-radius: 50%;"></span>
+          ${lineName}
+        </span>`
       }).join("")
     }
 
-    // Add urban station markers
+    // Add urban station markers with minimalist cyber styling
     urbanStations.forEach((station) => {
-      const markerClass = station.isMain ? "urban-station-marker main" : "urban-station-marker minor"
+      // Get the color from the first line that serves this station
+      const firstLineId = station.lines[0]
+      const lineColor = urbanRoutePolylines.find(r => r.id === firstLineId)?.color || "#0066FF"
+      
+      // Minimalist marker HTML - tiny dot for start, micro square for end
+      const markerType = station.isMain ? "start" : "end"
+      const markerClass = station.isMain ? "marker-start" : "marker-end"
       
       const stationIcon = L.divIcon({
         className: "station-marker",
-        html: `<div class="${markerClass}">
-          ${station.isMain ? `<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="12" cy="12" r="3"/>
-          </svg>` : ""}
+        html: `<div class="${markerClass}" style="border-color: ${lineColor}; color: ${lineColor};">
         </div>`,
-        iconSize: station.isMain ? [28, 28] : [18, 18],
-        iconAnchor: station.isMain ? [14, 14] : [9, 9],
+        iconSize: station.isMain ? [8, 8] : [6, 6],
+        iconAnchor: station.isMain ? [4, 4] : [3, 3],
       })
 
 const marker = L.marker(station.position, { 
@@ -966,7 +1152,7 @@ const marker = L.marker(station.position, {
       .addTo(map)
       .bindPopup(`
         <div class="station-popup">
-          <div class="station-popup-name">${station.name}</div>
+          <div class="station-popup-name">${station.arabicLabel}</div>
           <div style="font-size:11px;color:#666;margin-bottom:4px;">${station.nameEn}</div>
           <div class="station-popup-lines">
             <div class="station-popup-lines-title">الخطوط المارة</div>
@@ -1042,7 +1228,7 @@ L.marker(KHENCHELA_CITY_CENTER, { icon: currentLocationIcon })
   // Helper function to get bus icon - ALWAYS 24px bus icons (no small dots)
   // All buses are displayed as clickable 24px bus icons regardless of zoom level
   const getBusIcon = useCallback((bus: Bus | SimulatedBus) => {
-    const category = bus.category || "urban"
+    const category = ('category' in bus) ? bus.category : "urban"
     const isLive = bus.isLive || false
     const isSimulated = 'routeProgress' in bus
     const isAtStation = isSimulated && (bus as SimulatedBus).status === "at_station"
@@ -1127,7 +1313,9 @@ const marker = L.marker(subStation.coords, {
   }, [])
 
   // Update SIMULATED (moving) bus markers - NOT clustered for smooth movement
+  // DISABLED: Bus markers removed from map display
   useEffect(() => {
+    return // Disable bus marker rendering
     const map = mapRef.current
     if (!map || !mapReady) return
     
@@ -1190,7 +1378,9 @@ const marker = L.marker(subStation.coords, {
   }, [movingBuses, mapReady, isValidCoord, getBusIcon])
 
   // Update STATIC (fleet) bus markers - CLUSTERED to prevent overlap
+  // DISABLED: Bus markers removed from map display
   useEffect(() => {
+    return // Disable bus marker rendering
     const cluster = fleetClusterRef.current
     if (!cluster || !mapReady) return
     
