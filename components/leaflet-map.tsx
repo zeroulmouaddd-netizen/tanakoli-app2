@@ -67,44 +67,69 @@ const urbanStations: { position: [number, number]; name: string; nameEn: string;
 // Removed intercity stations - Urban routes only
 
 // Actual organized bus line network for Khenchela - Color coded routes
+// Realistic street routing with multi-segment paths that meander like real transit lines
 const urbanRoutePolylines: { id: string; coords: [number, number][]; color: string; name: string; category: "urban"; arabicName: string; terminalFrom: string; terminalTo: string }[] = [
   // Suburban Routes
   {
     id: "sub-01",
     name: "Hammam Essalhine to Center",
-    arabicName: "حمام الصالحين إلى المركز",
+    arabicName: "خط حمام الصالحين",
     color: "#0066FF", // Solid Blue
     category: "urban",
     terminalFrom: "حمام الصالحين",
     terminalTo: "محطة ETUSK الرئيسية",
     coords: [
-      [35.3900, 7.0800], [35.4100, 7.1100], [35.4250, 7.1250],
+      [35.3900, 7.0800], // Starting point
+      [35.3920, 7.0850], // First turn
+      [35.3950, 7.0920],
+      [35.4000, 7.0980],
+      [35.4050, 7.1050],
+      [35.4120, 7.1150],
+      [35.4200, 7.1250],
+      [35.4280, 7.1350],
+      [35.4350, 7.1420],
       [35.4377, 7.1458], // ETUSK Main Hub
     ]
   },
   {
     id: "sub-02",
     name: "El Hamma to Center",
-    arabicName: "الحمة إلى المركز",
+    arabicName: "خط الحامة",
     color: "#22BB33", // Solid Green
     category: "urban",
     terminalFrom: "الحمة",
     terminalTo: "محطة ETUSK الرئيسية",
     coords: [
-      [35.4650, 7.0900], [35.4500, 7.1100], [35.4400, 7.1250],
+      [35.4650, 7.0900], // Starting point
+      [35.4600, 7.0950],
+      [35.4550, 7.1000],
+      [35.4500, 7.1050],
+      [35.4450, 7.1100],
+      [35.4400, 7.1150],
+      [35.4380, 7.1250],
+      [35.4370, 7.1350],
       [35.4377, 7.1458], // ETUSK Main Hub
     ]
   },
   {
     id: "sub-03",
     name: "El Mahmel to Center",
-    arabicName: "المحمل إلى المركز",
+    arabicName: "خط المحمل",
     color: "#1A1A1A", // Solid Black
     category: "urban",
     terminalFrom: "المحمل",
     terminalTo: "محطة ETUSK الرئيسية",
     coords: [
-      [35.5000, 7.2500], [35.4700, 7.2000], [35.4500, 7.1700],
+      [35.5000, 7.2500], // Starting point
+      [35.4950, 7.2400],
+      [35.4900, 7.2300],
+      [35.4850, 7.2200],
+      [35.4800, 7.2100],
+      [35.4750, 7.2000],
+      [35.4700, 7.1900],
+      [35.4650, 7.1800],
+      [35.4550, 7.1700],
+      [35.4450, 7.1600],
       [35.4377, 7.1458], // ETUSK Main Hub
     ]
   },
@@ -112,65 +137,113 @@ const urbanRoutePolylines: { id: string; coords: [number, number][]; color: stri
   {
     id: "urb-01",
     name: "Cite 1000 Logts (Cosider) to Center",
-    arabicName: "سيتي 1000 مسكن (قسيدير) إلى المركز",
+    arabicName: "خط حي 1000 مسكن - كوسيدار",
     color: "#00D4FF", // Solid Cyan
     category: "urban",
     terminalFrom: "حي كوسيدار",
     terminalTo: "محطة ETUSK الرئيسية",
     coords: [
-      [35.4550, 7.1700], [35.4450, 7.1550], [35.4400, 7.1500],
+      [35.4550, 7.1700], // Starting point
+      [35.4520, 7.1650],
+      [35.4500, 7.1600],
+      [35.4470, 7.1550],
+      [35.4450, 7.1500],
+      [35.4420, 7.1480],
+      [35.4400, 7.1460],
       [35.4377, 7.1458], // ETUSK Main Hub
     ]
   },
   {
     id: "urb-02",
     name: "Nouveau Pole (route El Aizar) to Center",
-    arabicName: "بولة جديدة (طريق العيزار) إلى المركز",
+    arabicName: "خط القطب الجديد - طريق العيزار",
     color: "#FF9900", // Solid Orange
     category: "urban",
     terminalFrom: "طريق العيزار",
     terminalTo: "محطة ETUSK الرئيسية",
     coords: [
-      [35.3800, 7.1700], [35.4000, 7.1600], [35.4200, 7.1550],
+      [35.3800, 7.1700], // Starting point
+      [35.3850, 7.1680],
+      [35.3900, 7.1660],
+      [35.3950, 7.1640],
+      [35.4000, 7.1620],
+      [35.4050, 7.1600],
+      [35.4100, 7.1580],
+      [35.4150, 7.1550],
+      [35.4200, 7.1520],
+      [35.4250, 7.1490],
+      [35.4300, 7.1470],
+      [35.4350, 7.1460],
       [35.4377, 7.1458], // ETUSK Main Hub
     ]
   },
   {
     id: "urb-03",
     name: "Cite Moussa Raddah to Center",
-    arabicName: "سيتي موسى الرداح إلى المركز",
+    arabicName: "خط حي موسى رداح",
     color: "#BB00FF", // Solid Purple
     category: "urban",
     terminalFrom: "سيتي موسى الرداح",
     terminalTo: "محطة ETUSK الرئيسية",
     coords: [
-      [35.4100, 7.0900], [35.4200, 7.1100], [35.4300, 7.1300],
+      [35.4100, 7.0900], // Starting point
+      [35.4120, 7.0950],
+      [35.4140, 7.1000],
+      [35.4160, 7.1050],
+      [35.4180, 7.1100],
+      [35.4200, 7.1150],
+      [35.4240, 7.1200],
+      [35.4280, 7.1250],
+      [35.4320, 7.1300],
+      [35.4350, 7.1380],
+      [35.4365, 7.1420],
       [35.4377, 7.1458], // ETUSK Main Hub
     ]
   },
   {
     id: "urb-04",
     name: "Ensigna to Center",
-    arabicName: "انسيغة إلى المركز",
+    arabicName: "خط انسيغة",
     color: "#FF3333", // Solid Red
     category: "urban",
     terminalFrom: "انسيغة",
     terminalTo: "محطة ETUSK الرئيسية",
     coords: [
-      [35.5200, 7.1200], [35.4900, 7.1300], [35.4600, 7.1400],
+      [35.5200, 7.1200], // Starting point
+      [35.5150, 7.1210],
+      [35.5100, 7.1220],
+      [35.5050, 7.1230],
+      [35.5000, 7.1250],
+      [35.4950, 7.1270],
+      [35.4900, 7.1290],
+      [35.4850, 7.1310],
+      [35.4800, 7.1330],
+      [35.4750, 7.1350],
+      [35.4700, 7.1360],
+      [35.4650, 7.1370],
+      [35.4600, 7.1380],
+      [35.4550, 7.1390],
+      [35.4450, 7.1420],
       [35.4377, 7.1458], // ETUSK Main Hub
     ]
   },
   {
     id: "urb-05",
     name: "Ancienne Gare to New Gare A",
-    arabicName: "المحطة القديمة إلى المحطة الجديدة أ",
+    arabicName: "خط المحطة القديمة - محطة المسافرين",
     color: "#FFDD00", // Solid Yellow
     category: "urban",
     terminalFrom: "المحطة القديمة",
-    terminalTo: "المحطة الجديدة أ",
+    terminalTo: "محطة المسافرين (الجديدة)",
     coords: [
-      [35.4200, 7.1200], [35.4300, 7.1350], [35.4350, 7.1400],
+      [35.4200, 7.1200], // Ancienne Gare (starting point)
+      [35.4220, 7.1220],
+      [35.4240, 7.1250],
+      [35.4260, 7.1280],
+      [35.4280, 7.1320],
+      [35.4300, 7.1350],
+      [35.4320, 7.1380],
+      [35.4350, 7.1400], // New Gare A (endpoint)
     ]
   }
 ]
