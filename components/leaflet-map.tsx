@@ -1060,31 +1060,48 @@ const { subStations } = useRouteSubStations(selectedRoute)
     fleetCluster.addTo(map)
     fleetClusterRef.current = fleetCluster
   
-  // Add urban route polylines with OSRM-based snap-to-road routing + professional dashed styling
+  // Add urban route polylines with OSRM-based snap-to-road routing + dashed animated styling
     urbanRoutePolylines.forEach(async (route) => {
       // Fetch real road geometry from OSRM
       const osrmCoords = await fetchOSRMRoute(route.waypoints)
       const routeCoords = osrmCoords || route.waypoints // Fallback to waypoints if OSRM fails
       
-      // Background polyline - Solid white/dark border for visual depth
-      const backgroundPolyline = L.polyline(routeCoords, {
-        color: "#FFFFFF",
-        weight: 5,
-        opacity: 0.9,
-        className: "route-polyline-background",
-        pane: "overlayPane",
-      }).addTo(map)
-      
       // Main polyline - Dashed colored line with cyber glow animation
       const polyline = L.polyline(routeCoords, {
         color: route.color,
-        weight: 3,
+        weight: 5, // Thick visible weight
         opacity: 1.0,
-        dashArray: "6, 12", // Crisp dashed pattern for cyber look
+        dashArray: "10, 15", // Explicit dashed pattern
         lineCap: "round",
         lineJoin: "round",
-        className: "route-polyline",
+        className: "route-polyline cyber-line",
       }).addTo(map)
+      
+      // Add start marker at first coordinate
+      if (routeCoords.length > 0) {
+        const startMarker = L.marker(routeCoords[0], {
+          icon: L.divIcon({
+            html: `<div style="width: 12px; height: 12px; background-color: white; border: 3px solid ${route.color}; border-radius: 50%; box-shadow: 0 0 8px ${route.color};"></div>`,
+            iconSize: [12, 12],
+            iconAnchor: [6, 6],
+            className: "marker-start",
+          }),
+          zIndexOffset: 250,
+        }).addTo(map)
+      }
+      
+      // Add end marker at last coordinate
+      if (routeCoords.length > 1) {
+        const endMarker = L.marker(routeCoords[routeCoords.length - 1], {
+          icon: L.divIcon({
+            html: `<div style="width: 8px; height: 8px; background-color: white; border: 2px solid ${route.color}; border-radius: 0%; box-shadow: 0 0 6px ${route.color};"></div>`,
+            iconSize: [8, 8],
+            iconAnchor: [4, 4],
+            className: "marker-end",
+          }),
+          zIndexOffset: 250,
+        }).addTo(map)
+      }
       
       polyline.bindPopup(`
         <div class="station-popup">
