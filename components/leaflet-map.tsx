@@ -1218,7 +1218,9 @@ const marker = L.marker(subStation.coords, {
   }, [])
 
   // Update SIMULATED (moving) bus markers - NOT clustered for smooth movement
+  // DISABLED: Bus markers removed from map display
   useEffect(() => {
+    return // Disable bus marker rendering
     const map = mapRef.current
     if (!map || !mapReady) return
     
@@ -1281,7 +1283,9 @@ const marker = L.marker(subStation.coords, {
   }, [movingBuses, mapReady, isValidCoord, getBusIcon])
 
   // Update STATIC (fleet) bus markers - CLUSTERED to prevent overlap
+  // DISABLED: Bus markers removed from map display
   useEffect(() => {
+    return // Disable bus marker rendering
     const cluster = fleetClusterRef.current
     if (!cluster || !mapReady) return
     
