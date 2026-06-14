@@ -489,18 +489,20 @@ if (typeof document !== "undefined") {
       .station-marker:hover { transform: scale(1.15); z-index: 85 !important; }
       .station-marker.faded { opacity: 0.3; }
       .urban-station-marker {
-        width: 24px; height: 24px;
-        background: #00A651; border: 2px solid white; border-radius: 50%;
-        box-shadow: 0 2px 6px rgba(0,166,81,0.4);
+        width: 8px; height: 8px;
+        background: #FFFFFF; border: 2px solid currentColor; border-radius: 50%;
+        box-shadow: 0 0 8px currentColor, 0 0 12px rgba(255, 255, 255, 0.4);
         display: flex; align-items: center; justify-content: center;
+        filter: drop-shadow(0 0 4px currentColor);
       }
       .urban-station-marker.main {
-        width: 28px; height: 28px; border-width: 3px;
-        box-shadow: 0 3px 10px rgba(0,166,81,0.5);
+        width: 8px; height: 8px; border-width: 2px;
+        box-shadow: 0 0 8px currentColor, 0 0 12px rgba(255, 255, 255, 0.4);
       }
       .urban-station-marker.minor {
-        width: 18px; height: 18px;
-        background: rgba(0,166,81,0.85);
+        width: 6px; height: 6px; border-width: 1px;
+        background: #FFFFFF;
+        box-shadow: 0 0 6px currentColor, 0 0 10px rgba(255, 255, 255, 0.3);
       }
       .leaflet-popup-content-wrapper { 
         border-radius: 12px; backdrop-filter: blur(8px);
@@ -1073,12 +1075,12 @@ const { subStations } = useRouteSubStations(selectedRoute)
         pane: "overlayPane",
       }).addTo(map)
       
-      // Main polyline - Dashed colored line (professional transit styling)
+      // Main polyline - Dashed colored line with cyber glow animation
       const polyline = L.polyline(routeCoords, {
         color: route.color,
         weight: 3,
         opacity: 1.0,
-        dashArray: "10, 15", // Dashed pattern for transit line appearance
+        dashArray: "6, 12", // Crisp dashed pattern for cyber look
         lineCap: "round",
         lineJoin: "round",
         className: "route-polyline",
@@ -1108,19 +1110,22 @@ const { subStations } = useRouteSubStations(selectedRoute)
       }).join("")
     }
 
-    // Add urban station markers
+    // Add urban station markers with minimalist cyber styling
     urbanStations.forEach((station) => {
-      const markerClass = station.isMain ? "urban-station-marker main" : "urban-station-marker minor"
+      // Get the color from the first line that serves this station
+      const firstLineId = station.lines[0]
+      const lineColor = urbanRoutePolylines.find(r => r.id === firstLineId)?.color || "#0066FF"
+      
+      // Minimalist marker HTML - tiny dot for start, micro square for end
+      const markerType = station.isMain ? "start" : "end"
+      const markerClass = station.isMain ? "marker-start" : "marker-end"
       
       const stationIcon = L.divIcon({
         className: "station-marker",
-        html: `<div class="${markerClass}">
-          ${station.isMain ? `<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="12" cy="12" r="3"/>
-          </svg>` : ""}
+        html: `<div class="${markerClass}" style="border-color: ${lineColor}; color: ${lineColor};">
         </div>`,
-        iconSize: station.isMain ? [28, 28] : [18, 18],
-        iconAnchor: station.isMain ? [14, 14] : [9, 9],
+        iconSize: station.isMain ? [8, 8] : [6, 6],
+        iconAnchor: station.isMain ? [4, 4] : [3, 3],
       })
 
 const marker = L.marker(station.position, { 

@@ -447,3 +447,53 @@
 .button-glow {
   animation: button-glow 2.5s ease-in-out infinite;
 }
+
+/* Smart City Cyber Styling - Animated Data Flow Lines */
+@keyframes dashFlow {
+  to {
+    stroke-dashoffset: -20;
+  }
+}
+
+@keyframes lineGlow {
+  0%, 100% {
+    filter: drop-shadow(0 0 3px currentColor);
+  }
+  50% {
+    filter: drop-shadow(0 0 8px currentColor);
+  }
+}
+
+/* Animated transit polylines with cyber glow effect */
+.route-polyline {
+  animation: dashFlow 1s linear infinite, lineGlow 2s ease-in-out infinite;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* Minimalist start marker - Sleek white dot with colored glow */
+.marker-start {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: #FFFFFF;
+  box-shadow: 0 0 8px currentColor, 0 0 12px rgba(255, 255, 255, 0.4);
+  border: 2px solid currentColor;
+  filter: drop-shadow(0 0 4px currentColor);
+}
+
+/* Minimalist end marker - Micro square with subtle pin */
+.marker-end {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 6px;
+  height: 6px;
+  background-color: #FFFFFF;
+  box-shadow: 0 0 6px currentColor, 0 0 10px rgba(255, 255, 255, 0.3);
+  border: 1px solid currentColor;
+  filter: drop-shadow(0 0 3px currentColor);
+}
