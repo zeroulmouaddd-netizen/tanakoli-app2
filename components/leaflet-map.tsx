@@ -47,52 +47,130 @@ const ROUTE_CATEGORIES = {
   urban: { label: "داخل المدينة", labelEn: "Urban", color: "#00A651" },
 }
 
-// All main stations in Khenchela city (urban)
-const urbanStations: { position: [number, number]; name: string; nameEn: string; lines: string[]; isMain: boolean; category: "urban" }[] = [
-  { position: [35.4420, 7.1380], name: "الجامعة", nameEn: "University", lines: ["01"], isMain: true, category: "urban" },
-  { position: [35.4377, 7.1458], name: "وسط المدينة", nameEn: "City Center", lines: ["01", "02", "03"], isMain: true, category: "urban" },
-  { position: [35.4350, 7.1350], name: "محطة خنشلة البرية", nameEn: "Khenchela Bus Station", lines: ["01", "02", "03"], isMain: true, category: "urban" },
-  { position: [35.4330, 7.1520], name: "المستشفى", nameEn: "Hospital", lines: ["01", "02"], isMain: true, category: "urban" },
-  { position: [35.4400, 7.1550], name: "السوق المركزي", nameEn: "Central Market", lines: ["01", "03"], isMain: true, category: "urban" },
-  { position: [35.4400, 7.1480], name: "ملعب أول نوفمبر", nameEn: "Stadium", lines: ["02", "03"], isMain: false, category: "urban" },
-  { position: [35.4450, 7.1320], name: "طريق عين البيضاء", nameEn: "Ain El Beyda Road", lines: ["02"], isMain: false, category: "urban" },
-  { position: [35.4290, 7.1400], name: "المدينة الجديدة", nameEn: "New City", lines: ["03"], isMain: false, category: "urban" },
-  { position: [35.4400, 7.1420], name: "حي 500 مسكن", nameEn: "500 Housing", lines: ["01"], isMain: false, category: "urban" },
-  { position: [35.4310, 7.1430], name: "حي الأمل", nameEn: "El Amel", lines: ["03"], isMain: false, category: "urban" },
+// All main stations in Khenchela city with ETUSK Main Station
+const urbanStations: { position: [number, number]; name: string; nameEn: string; arabicLabel: string; lines: string[]; isMain: boolean; category: "urban" }[] = [
+  // ETUSK Main Hub
+  { position: [35.4377, 7.1458], name: "ETUSK Station", nameEn: "ETUSK Main Station", arabicLabel: "محطة ETUSK الرئيسية", lines: ["sub-01", "sub-02", "sub-03", "urb-01", "urb-02", "urb-03", "urb-04"], isMain: true, category: "urban" },
+  
+  // Terminal Stops
+  { position: [35.3900, 7.0800], name: "Hammam Essalhine", nameEn: "Hammam Essalhine", arabicLabel: "حمام الصالحين", lines: ["sub-01"], isMain: true, category: "urban" },
+  { position: [35.4650, 7.0900], name: "El Hamma", nameEn: "El Hamma", arabicLabel: "الحمة", lines: ["sub-02"], isMain: true, category: "urban" },
+  { position: [35.5000, 7.2500], name: "El Mahmel", nameEn: "El Mahmel", arabicLabel: "المحمل", lines: ["sub-03"], isMain: true, category: "urban" },
+  { position: [35.4550, 7.1700], name: "Cite 1000 Logts", nameEn: "Cosider Housing", arabicLabel: "حي كوسيدار", lines: ["urb-01"], isMain: true, category: "urban" },
+  { position: [35.3800, 7.1700], name: "Nouveau Pole", nameEn: "New Pole (El Aizar)", arabicLabel: "طريق العيزار", lines: ["urb-02"], isMain: true, category: "urban" },
+  { position: [35.4100, 7.0900], name: "Cite Moussa", nameEn: "Moussa Raddah District", arabicLabel: "سيتي موسى الرداح", lines: ["urb-03"], isMain: true, category: "urban" },
+  { position: [35.5200, 7.1200], name: "Ensigna", nameEn: "Ensigna", arabicLabel: "انسيغة", lines: ["urb-04"], isMain: true, category: "urban" },
+  { position: [35.4200, 7.1200], name: "Ancienne Gare", nameEn: "Old Station", arabicLabel: "المحطة القديمة", lines: ["urb-05"], isMain: true, category: "urban" },
+  { position: [35.4350, 7.1400], name: "New Gare A", nameEn: "New Station A", arabicLabel: "المحطة الجديدة أ", lines: ["urb-05"], isMain: true, category: "urban" },
 ]
 
 // Removed intercity stations - Urban routes only
 
-// Urban route polylines - Green category
-const urbanRoutePolylines: { id: string; coords: [number, number][]; color: string; name: string; category: "urban" }[] = [
+// Actual organized bus line network for Khenchela - Color coded routes
+const urbanRoutePolylines: { id: string; coords: [number, number][]; color: string; name: string; category: "urban"; arabicName: string; terminalFrom: string; terminalTo: string }[] = [
+  // Suburban Routes
   {
-    id: "01",
-    name: "خط 01 - الجامعة",
-    color: "#00A651",
+    id: "sub-01",
+    name: "Hammam Essalhine to Center",
+    arabicName: "حمام الصالحين إلى المركز",
+    color: "#0066FF", // Solid Blue
     category: "urban",
+    terminalFrom: "حمام الصالحين",
+    terminalTo: "محطة ETUSK الرئيسية",
     coords: [
-      [35.4420, 7.1380], [35.4400, 7.1420], [35.4377, 7.1458],
-      [35.4400, 7.1550], [35.4330, 7.1520], [35.4350, 7.1350],
+      [35.3900, 7.0800], [35.4100, 7.1100], [35.4250, 7.1250],
+      [35.4377, 7.1458], // ETUSK Main Hub
     ]
   },
   {
-    id: "02",
-    name: "خط 02 - عين البيضاء",
-    color: "#00A651",
+    id: "sub-02",
+    name: "El Hamma to Center",
+    arabicName: "الحمة إلى المركز",
+    color: "#22BB33", // Solid Green
     category: "urban",
+    terminalFrom: "الحمة",
+    terminalTo: "محطة ETUSK الرئيسية",
     coords: [
-      [35.4350, 7.1350], [35.4450, 7.1320], [35.4377, 7.1458],
-      [35.4330, 7.1520], [35.4400, 7.1480],
+      [35.4650, 7.0900], [35.4500, 7.1100], [35.4400, 7.1250],
+      [35.4377, 7.1458], // ETUSK Main Hub
     ]
   },
   {
-    id: "03",
-    name: "خط 03 - المدينة الجديدة",
-    color: "#00A651",
+    id: "sub-03",
+    name: "El Mahmel to Center",
+    arabicName: "المحمل إلى المركز",
+    color: "#1A1A1A", // Solid Black
     category: "urban",
+    terminalFrom: "المحمل",
+    terminalTo: "محطة ETUSK الرئيسية",
     coords: [
-      [35.4290, 7.1400], [35.4310, 7.1430], [35.4377, 7.1458],
-      [35.4400, 7.1550], [35.4400, 7.1480], [35.4350, 7.1350],
+      [35.5000, 7.2500], [35.4700, 7.2000], [35.4500, 7.1700],
+      [35.4377, 7.1458], // ETUSK Main Hub
+    ]
+  },
+  // Urban Routes
+  {
+    id: "urb-01",
+    name: "Cite 1000 Logts (Cosider) to Center",
+    arabicName: "سيتي 1000 مسكن (قسيدير) إلى المركز",
+    color: "#00D4FF", // Solid Cyan
+    category: "urban",
+    terminalFrom: "حي كوسيدار",
+    terminalTo: "محطة ETUSK الرئيسية",
+    coords: [
+      [35.4550, 7.1700], [35.4450, 7.1550], [35.4400, 7.1500],
+      [35.4377, 7.1458], // ETUSK Main Hub
+    ]
+  },
+  {
+    id: "urb-02",
+    name: "Nouveau Pole (route El Aizar) to Center",
+    arabicName: "بولة جديدة (طريق العيزار) إلى المركز",
+    color: "#FF9900", // Solid Orange
+    category: "urban",
+    terminalFrom: "طريق العيزار",
+    terminalTo: "محطة ETUSK الرئيسية",
+    coords: [
+      [35.3800, 7.1700], [35.4000, 7.1600], [35.4200, 7.1550],
+      [35.4377, 7.1458], // ETUSK Main Hub
+    ]
+  },
+  {
+    id: "urb-03",
+    name: "Cite Moussa Raddah to Center",
+    arabicName: "سيتي موسى الرداح إلى المركز",
+    color: "#BB00FF", // Solid Purple
+    category: "urban",
+    terminalFrom: "سيتي موسى الرداح",
+    terminalTo: "محطة ETUSK الرئيسية",
+    coords: [
+      [35.4100, 7.0900], [35.4200, 7.1100], [35.4300, 7.1300],
+      [35.4377, 7.1458], // ETUSK Main Hub
+    ]
+  },
+  {
+    id: "urb-04",
+    name: "Ensigna to Center",
+    arabicName: "انسيغة إلى المركز",
+    color: "#FF3333", // Solid Red
+    category: "urban",
+    terminalFrom: "انسيغة",
+    terminalTo: "محطة ETUSK الرئيسية",
+    coords: [
+      [35.5200, 7.1200], [35.4900, 7.1300], [35.4600, 7.1400],
+      [35.4377, 7.1458], // ETUSK Main Hub
+    ]
+  },
+  {
+    id: "urb-05",
+    name: "Ancienne Gare to New Gare A",
+    arabicName: "المحطة القديمة إلى المحطة الجديدة أ",
+    color: "#FFDD00", // Solid Yellow
+    category: "urban",
+    terminalFrom: "المحطة القديمة",
+    terminalTo: "المحطة الجديدة أ",
+    coords: [
+      [35.4200, 7.1200], [35.4300, 7.1350], [35.4350, 7.1400],
     ]
   }
 ]
@@ -544,7 +622,12 @@ function RouteController({
             <div className="flex items-center gap-2">
               <Layers className="h-5 w-5" style={{ color: "#22C55E" }} />
               <span className="text-sm font-semibold" style={{ color: textColor }}>
-                {viewMode === "all" ? "كل الخطوط" : `خط ${selectedRoute}`}
+                {viewMode === "all" 
+                  ? "كل الخطوط" 
+                  : selectedRoute 
+                    ? urbanRoutePolylines.find(r => r.id === selectedRoute)?.arabicName || selectedRoute
+                    : "اختر خط"
+                }
               </span>
             </div>
             {isExpanded ? (
@@ -580,10 +663,10 @@ function RouteController({
                     <span className="font-medium">عرض كل الخطوط</span>
                   </button>
 
-                  {/* Urban Routes */}
+                  {/* Suburban & Urban Routes with colored swatches */}
                   <div className="mb-2">
                     <div className="mb-1 px-2 text-[11px] font-semibold" style={{ color: mutedTextColor }}>
-                      داخل المدينة
+                      خطوط النقل
                     </div>
                     {urbanRoutePolylines.map((route) => (
                       <button
@@ -592,20 +675,21 @@ function RouteController({
                         className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm transition-colors"
                         style={{ 
                           backgroundColor: selectedRoute === route.id ? activeBg : "transparent",
-                          color: selectedRoute === route.id ? "#22C55E" : textColor
+                          color: selectedRoute === route.id ? route.color : textColor
                         }}
                         onMouseEnter={(e) => { if (selectedRoute !== route.id) e.currentTarget.style.backgroundColor = hoverBg }}
                         onMouseLeave={(e) => { if (selectedRoute !== route.id) e.currentTarget.style.backgroundColor = "transparent" }}
                       >
                         <div 
-                          className="h-3 w-3 rounded-full"
+                          className="h-3 w-3 rounded-full flex-shrink-0"
                           style={{ 
-                            backgroundColor: ROUTE_CATEGORIES.urban.color,
-                            boxShadow: selectedRoute === route.id ? `0 0 0 2px ${ROUTE_CATEGORIES.urban.color}40` : "none"
+                            backgroundColor: route.color,
+                            border: selectedRoute === route.id ? `2px solid ${route.color}` : "1px solid rgba(0,0,0,0.2)",
+                            boxShadow: selectedRoute === route.id ? `0 0 0 2px ${route.color}40` : "none"
                           }}
                         />
                         <span className={selectedRoute === route.id ? "font-bold" : "font-medium"}>
-                          خط {route.id}
+                          {route.arabicName}
                         </span>
                       </button>
                     ))}
@@ -917,30 +1001,37 @@ const { subStations } = useRouteSubStations(selectedRoute)
     fleetCluster.addTo(map)
     fleetClusterRef.current = fleetCluster
   
-  // Add urban route polylines (Green)
+  // Add urban route polylines with actual colors (solid lines, no dotted)
     urbanRoutePolylines.forEach((route) => {
       const polyline = L.polyline(route.coords, {
-        color: ROUTE_CATEGORIES.urban.color,
+        color: route.color, // Use route's specific color instead of default urban color
         weight: 3,
-        opacity: 0.7,
-        dashArray: "8, 6",
+        opacity: 0.8,
+        // No dashArray for solid lines
         className: "route-polyline",
       }).addTo(map)
       
       polyline.bindPopup(`
         <div class="station-popup">
-          <div class="station-popup-name">${route.name}</div>
-          <div style="font-size:11px;color:#666;">خط حضري</div>
+          <div class="station-popup-name">${route.arabicName}</div>
+          <div style="font-size:11px;color:#666;margin-top:4px;">من: ${route.terminalFrom}</div>
+          <div style="font-size:11px;color:#666;">إلى: ${route.terminalTo}</div>
         </div>
       `)
       
       routePolylinesRef.current.set(route.id, polyline)
     })
 
-    // Function to create line badges HTML
+    // Function to create line badges HTML with colored swatches
     const createLineBadges = (lines: string[]) => {
       return lines.map(line => {
-        return `<span class="station-line-badge urban" data-line="${line}">خط ${line}</span>`
+        const route = urbanRoutePolylines.find(r => r.id === line)
+        const color = route?.color || "#999"
+        const lineName = route?.arabicName || line
+        return `<span class="station-line-badge" style="background-color: ${color}; display: inline-flex; align-items: center; gap: 4px; padding: 3px 8px; border-radius: 4px; color: white; font-size: 11px; font-weight: 600;" data-line="${line}">
+          <span style="width: 6px; height: 6px; background-color: rgba(255,255,255,0.5); border-radius: 50%;"></span>
+          ${lineName}
+        </span>`
       }).join("")
     }
 
@@ -966,7 +1057,7 @@ const marker = L.marker(station.position, {
       .addTo(map)
       .bindPopup(`
         <div class="station-popup">
-          <div class="station-popup-name">${station.name}</div>
+          <div class="station-popup-name">${station.arabicLabel}</div>
           <div style="font-size:11px;color:#666;margin-bottom:4px;">${station.nameEn}</div>
           <div class="station-popup-lines">
             <div class="station-popup-lines-title">الخطوط المارة</div>
@@ -1042,7 +1133,7 @@ L.marker(KHENCHELA_CITY_CENTER, { icon: currentLocationIcon })
   // Helper function to get bus icon - ALWAYS 24px bus icons (no small dots)
   // All buses are displayed as clickable 24px bus icons regardless of zoom level
   const getBusIcon = useCallback((bus: Bus | SimulatedBus) => {
-    const category = bus.category || "urban"
+    const category = ('category' in bus) ? bus.category : "urban"
     const isLive = bus.isLive || false
     const isSimulated = 'routeProgress' in bus
     const isAtStation = isSimulated && (bus as SimulatedBus).status === "at_station"
