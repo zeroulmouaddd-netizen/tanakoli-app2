@@ -8,12 +8,13 @@ import "leaflet.markercluster/dist/MarkerCluster.css"
 import "leaflet.markercluster/dist/MarkerCluster.Default.css"
 import { db, rtdb } from "@/lib/firebase"
 import { collection, onSnapshot } from "firebase/firestore"
-import { ref, onValue } from "firebase/database"
+import { ref, onValue, set } from "firebase/database"
 import { motion, AnimatePresence } from "framer-motion"
 import { Layers, ChevronDown, ChevronUp, MapPin, Maximize2, Minimize2, LocateFixed } from "lucide-react"
 import { useTheme } from "@/lib/theme-context"
 import { useRouteSubStations } from "@/hooks/use-routes"
 import { useBusSimulation, type SimulatedBus } from "@/lib/bus-simulation"
+import { useDriverMode } from "@/lib/driver-mode-context"
 
 // Tile layer URLs — single stable OSM endpoint (no subdomain variable)
 const TILE_LAYERS = {
@@ -871,7 +872,9 @@ export default function LeafletMap({ trackingLineId, isFullscreen = false }: Lea
   const subStationMarkersRef = useRef<Map<string, L.Marker>>(new Map())
   const driverMarkerRef = useRef<L.Marker | null>(null) // For real-time driver location
   const userMarkerRef = useRef<L.Marker | null>(null) // For "locate me" blue dot
+  const driverGpsWatchRef = useRef<number | null>(null) // Continuous GPS watch for driver sync
   const { isDark } = useTheme()
+  const { isDriverMode, isLiveTracking } = useDriverMode()
   const [tilesLoaded, setTilesLoaded] = useState(false)
 
   // Locate me state
@@ -1061,7 +1064,50 @@ const { subStations } = useRouteSubStations(selectedRoute)
     }
   }, [])
 
+  // ── Driver live-sync: continuous GPS → blue dot + pink truck + RTDB ──────
+  // When the driver has tracking ON, this watcher runs inside the map so the
+  // truck follows the device GPS frame-by-frame with zero RTDB round-trip lag.
+  useEffect(() => {
+    const canTrack = isDriverMode && isLiveTracking
 
+    if (!canTrack) {
+      // Stop watching when tracking toggled off or driver mode exited
+      if (driverGpsWatchRef.current !== null) {
+        navigator.geolocation?.clearWatch(driverGpsWatchRef.current)
+        driverGpsWatchRef.current = null
+      }
+      return
+    }
+
+    if (!navigator.geolocation || driverGpsWatchRef.current !== null) return
+
+    driverGpsWatchRef.current = navigator.geolocation.watchPosition(
+      (pos) => {
+        const loc = { lat: pos.coords.latitude, lng: pos.coords.longitude }
+        // 1. Move the blue dot
+        setUserLocation(loc)
+        // 2. Move the pink truck locally — instant, no RTDB round-trip
+        setDriverLocation(loc)
+        // 3. Write to RTDB so ALL other users' maps update too
+        try {
+          set(ref(rtdb, "drivers/0775453629/location"), loc)
+        } catch {
+          // non-critical — hook's watchPosition handles RTDB as backup
+        }
+      },
+      (err) => {
+        console.error("[map] Driver GPS sync error:", err.message)
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+    )
+
+    return () => {
+      if (driverGpsWatchRef.current !== null) {
+        navigator.geolocation?.clearWatch(driverGpsWatchRef.current)
+        driverGpsWatchRef.current = null
+      }
+    }
+  }, [isDriverMode, isLiveTracking])
 
   // Initialize map
   useEffect(() => {
