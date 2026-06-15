@@ -25,6 +25,7 @@ export function useDriverLocationTracking(
     return phone
   }, [])
 
+  // Starts the continuous GPS watcher. Idempotent via watchIdRef guard.
   const startWatching = useCallback(() => {
     if (!navigator.geolocation || watchIdRef.current !== null) return
 
@@ -55,8 +56,11 @@ export function useDriverLocationTracking(
     )
   }, [driverPhone, getDriverPath])
 
+  // Requests permission then starts the watcher.
+  // Does NOT close over isDriverMode/isLiveTracking — the useEffect gates those.
+  // Only guards against a concurrent in-flight start (isTrackingRef).
   const startTracking = useCallback(async () => {
-    if (!driverPhone || !isDriverMode || !isLiveTracking || isTrackingRef.current) return
+    if (!driverPhone || isTrackingRef.current) return
 
     isTrackingRef.current = true
 
@@ -74,11 +78,11 @@ export function useDriverLocationTracking(
       },
       { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
     )
-  }, [driverPhone, isDriverMode, isLiveTracking, startWatching])
+  }, [driverPhone, startWatching]) // ← no isDriverMode/isLiveTracking: avoids needless recreation
 
-  // Stop the GPS watcher.
-  // clearLocation=true  → also null out the RTDB entry (driver exited mode entirely)
-  // clearLocation=false → keep last location in RTDB (driver toggled off, but still in driver mode)
+  // Clears the watcher.
+  // clearLocation=true  → null the RTDB entry (driver fully exited)
+  // clearLocation=false → keep last coords in RTDB (toggle OFF — marker stays on map)
   const stopTracking = useCallback(async (clearLocation = true) => {
     isTrackingRef.current = false
 
@@ -97,21 +101,21 @@ export function useDriverLocationTracking(
       }
       lastLocationRef.current = null
     }
-    // When clearLocation=false: last known coords stay in RTDB → marker stays on map
   }, [driverPhone, getDriverPath])
 
   useEffect(() => {
     if (isDriverMode && driverPhone && isLiveTracking) {
       startTracking()
     } else if (isDriverMode && driverPhone && !isLiveTracking) {
-      // Driver is still in driver mode but toggled tracking off — keep last location
-      stopTracking(false)
+      stopTracking(false) // pause — keep last location on map
     } else {
-      // Driver exited mode entirely — clear the marker
-      stopTracking(true)
+      stopTracking(true)  // exit — remove marker
     }
 
     return () => {
+      // Reset isTrackingRef so the next effect run can call startTracking freely.
+      // watchIdRef is also cleared so startWatching can open a new watcher.
+      isTrackingRef.current = false
       if (watchIdRef.current !== null) {
         navigator.geolocation.clearWatch(watchIdRef.current)
         watchIdRef.current = null
