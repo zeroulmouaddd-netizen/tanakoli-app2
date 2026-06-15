@@ -91,12 +91,12 @@ const urbanRoutes: BusRoute[] = [
     frequency: 25,
     category: "urban",
     stops: [
-      { id: "04-s1", name: "انسيغة",          nameEn: "Ansigha",       coords: [35.518,    7.119   ], order: 1 },
-      { id: "04-s2", name: "موقف الحافلات",   nameEn: "Gare Routière", coords: [35.445878, 7.144128], order: 2 },
+      { id: "04-s1", name: "انسيغة",          nameEn: "Ansigha (Tammayurt)", coords: [35.3950, 7.1420], order: 1 },
+      { id: "04-s2", name: "موقف الحافلات",   nameEn: "Gare Routière",       coords: [35.4459, 7.1434], order: 2 },
     ],
     sub_stations: [
-      { id: "sub-04-1", name: "انسيغة",          nameEn: "Ansigha",       coords: [35.518,    7.119   ], order: 1 },
-      { id: "sub-04-2", name: "موقف الحافلات",   nameEn: "Gare Routière", coords: [35.445878, 7.144128], order: 2 },
+      { id: "sub-04-1", name: "انسيغة",          nameEn: "Ansigha (Tammayurt)", coords: [35.3950, 7.1420], order: 1 },
+      { id: "sub-04-2", name: "موقف الحافلات",   nameEn: "Gare Routière",       coords: [35.4459, 7.1434], order: 2 },
     ],
   },
   {
