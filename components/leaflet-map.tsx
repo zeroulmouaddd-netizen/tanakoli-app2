@@ -1248,7 +1248,7 @@ const { subStations } = useRouteSubStations(selectedRoute)
     })
 
     const BUSES_PER_ROUTE = 2
-    const ROUTE_DURATION_MS = 50000 // full lap in 50 s — tuneable
+    const ROUTE_DURATION_MS = 180000 // full lap in 180 s (~3 min) — realistic bus pace
 
     urbanRoutePolylines.forEach(route => {
       for (let b = 0; b < BUSES_PER_ROUTE; b++) {
