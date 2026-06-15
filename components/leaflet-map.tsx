@@ -1094,9 +1094,9 @@ const { subStations } = useRouteSubStations(selectedRoute)
       if (routeCoords.length > 1) {
         const endMarker = L.marker(routeCoords[routeCoords.length - 1], {
           icon: L.divIcon({
-            html: `<div style="width: 8px; height: 8px; background-color: white; border: 2px solid ${route.color}; border-radius: 0%; box-shadow: 0 0 6px ${route.color};"></div>`,
-            iconSize: [8, 8],
-            iconAnchor: [4, 4],
+            html: `<div style="width: 12px; height: 12px; background-color: white; border: 3px solid ${route.color}; border-radius: 50%; box-shadow: 0 0 8px ${route.color};"></div>`,
+            iconSize: [12, 12],
+            iconAnchor: [6, 6],
             className: "marker-end",
           }),
           zIndexOffset: 250,
@@ -1127,57 +1127,7 @@ const { subStations } = useRouteSubStations(selectedRoute)
       }).join("")
     }
 
-    // Add urban station markers with minimalist cyber styling
-    urbanStations.forEach((station) => {
-      // Get the color from the first line that serves this station
-      const firstLineId = station.lines[0]
-      const lineColor = urbanRoutePolylines.find(r => r.id === firstLineId)?.color || "#0066FF"
-      
-      // Minimalist marker HTML - tiny dot for start, micro square for end
-      const markerType = station.isMain ? "start" : "end"
-      const markerClass = station.isMain ? "marker-start" : "marker-end"
-      
-      const stationIcon = L.divIcon({
-        className: "station-marker",
-        html: `<div class="${markerClass}" style="border-color: ${lineColor}; color: ${lineColor};">
-        </div>`,
-        iconSize: station.isMain ? [8, 8] : [6, 6],
-        iconAnchor: station.isMain ? [4, 4] : [3, 3],
-      })
-
-const marker = L.marker(station.position, { 
-      icon: stationIcon,
-      zIndexOffset: 200 // Ensure stations appear above buses
-    })
-      .addTo(map)
-      .bindPopup(`
-        <div class="station-popup">
-          <div class="station-popup-name">${station.arabicLabel}</div>
-          <div style="font-size:11px;color:#666;margin-bottom:4px;">${station.nameEn}</div>
-          <div class="station-popup-lines">
-            <div class="station-popup-lines-title">الخطوط المارة</div>
-            ${createLineBadges(station.lines)}
-          </div>
-        </div>
-      `)
-    
-    stationMarkersRef.current.set(station.name, marker)
-  })
-
-    // Current location marker
-    const currentLocationIcon = L.divIcon({
-      className: "current-location-icon",
-      html: `<div style="position:relative;width:20px;height:20px;">
-        <div style="position:absolute;width:20px;height:20px;background:#FF6B00;border:3px solid white;border-radius:50%;box-shadow:0 2px 8px rgba(255,107,0,0.5);z-index:2;"></div>
-        <div style="position:absolute;width:40px;height:40px;background:rgba(255,107,0,0.2);border-radius:50%;top:-10px;left:-10px;animation:leaflet-pulse 2s infinite;"></div>
-      </div>`,
-      iconSize: [20, 20],
-      iconAnchor: [10, 10],
-    })
-
-L.marker(KHENCHELA_CITY_CENTER, { icon: currentLocationIcon })
-    .addTo(map)
-    .bindPopup('<div class="station-popup"><div class="station-popup-name">موقعك الحالي</div></div>')
+    // Station markers intentionally omitted — only route start/end dots are shown
     
     // Mark map as ready for bus markers
     setMapReady(true)
