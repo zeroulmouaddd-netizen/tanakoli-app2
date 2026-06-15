@@ -49,9 +49,9 @@ const ROUTE_CATEGORIES = {
 
 // All stops across the 7 verified Khenchela bus lines
 const urbanStations: { position: [number, number]; name: string; nameEn: string; arabicLabel: string; lines: string[]; isMain: boolean; category: "urban" }[] = [
-  { position: [35.445878, 7.144128], name: "موقف الحافلات", nameEn: "Gare Routière", arabicLabel: "موقف الحافلات الرئيسي", lines: ["line-02","line-04","line-05","line-06","line-10","line-11"], isMain: true, category: "urban" },
+  { position: [35.445878, 7.144128], name: "موقف الحافلات", nameEn: "Gare Routière", arabicLabel: "موقف الحافلات الرئيسي", lines: ["line-02","line-05","line-06","line-10","line-11"], isMain: true, category: "urban" },
   { position: [35.4075, 7.1380], name: "ث. معمرية طاهر", nameEn: "Lycée Muamria Taher", arabicLabel: "ثانوية معمرية طاهر", lines: ["line-01"], isMain: true, category: "urban" },
-  { position: [35.4279, 7.1431], name: "نزل المالية", nameEn: "Hôtel des Finances", arabicLabel: "نزل المالية", lines: ["line-01"], isMain: true, category: "urban" },
+  { position: [35.4279, 7.1431], name: "نزل المالية", nameEn: "Hôtel des Finances", arabicLabel: "نزل المالية", lines: ["line-01","line-04"], isMain: true, category: "urban" },
   { position: [35.450003, 7.123128], name: "مسجد موسى رداح", nameEn: "Mosquée Moussa Raddah", arabicLabel: "مسجد حي موسى رداح", lines: ["line-02"], isMain: true, category: "urban" },
   { position: [35.3950, 7.1420], name: "انسيغة", nameEn: "Ansigha (Tammayurt)", arabicLabel: "انسيغة - قرب مركز الشرطة", lines: ["line-04"], isMain: true, category: "urban" },
   { position: [35.465,   7.086   ], name: "الحامة - فندق المهدي", nameEn: "Al-Hama / Hôtel El Mahdi", arabicLabel: "الحامة - أمام فندق المهدي", lines: ["line-05"], isMain: true, category: "urban" },
@@ -113,15 +113,15 @@ const urbanRoutePolylines: {
     color: "#00BCD4",
     category: "urban",
     terminalFrom: "انسيغة",
-    terminalTo: "موقف الحافلات",
+    terminalTo: "نزل المالية",
     stops: [
-      { name: "انسيغة",        nameEn: "Ansigha (Tammayurt)",  coords: [35.3950, 7.1420], isTerminal: true },
-      { name: "موقف الحافلات", nameEn: "Gare Routière",        coords: [35.4459, 7.1434], isTerminal: true },
+      { name: "انسيغة",    nameEn: "Ansigha (Tammayurt)", coords: [35.3950, 7.1420], isTerminal: true },
+      { name: "نزل المالية", nameEn: "Hôtel des Finances",  coords: [35.4279, 7.1431], isTerminal: true },
     ],
     waypoints: [
       [35.3950, 7.1420],
-      [35.4200, 7.1430],
-      [35.4459, 7.1434],
+      [35.4150, 7.1425],
+      [35.4279, 7.1431],
     ],
   },
   {
