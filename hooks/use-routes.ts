@@ -44,8 +44,8 @@ function setCache<T>(key: string, data: T): void {
 const urbanRoutes: BusRoute[] = [
   {
     id: "route-01",
-    name: "خط 01 — العيزار",
-    nameEn: "Ligne 01 — Al-Aizar",
+    name: "خط 01 — طريق العيزار",
+    nameEn: "Ligne 01 — Route Al-Aizar",
     lineNumber: "01",
     color: "#FF6B35",
     price: 25,
@@ -53,18 +53,12 @@ const urbanRoutes: BusRoute[] = [
     frequency: 15,
     category: "urban",
     stops: [
-      { id: "01-s1", name: "حي 50 مسكن",       nameEn: "Cité 50 Logements",   coords: [35.465753, 7.058253], order: 1 },
-      { id: "01-s2", name: "ث. معمرية طاهر",   nameEn: "Lycée Muamria Taher", coords: [35.407628, 7.137503], order: 2 },
-      { id: "01-s3", name: "نزل المالية",        nameEn: "Hôtel des Finances",  coords: [35.427628, 7.143878], order: 3 },
-      { id: "01-s4", name: "ملعب شامي",          nameEn: "Stade Chami",         coords: [35.426253, 7.144753], order: 4 },
-      { id: "01-s5", name: "موقف الحافلات",      nameEn: "Gare Routière",       coords: [35.445878, 7.144128], order: 5 },
+      { id: "01-s1", name: "ث. معمرية طاهر", nameEn: "Lycée Muamria Taher", coords: [35.4075, 7.1380], order: 1 },
+      { id: "01-s2", name: "نزل المالية",     nameEn: "Hôtel des Finances",  coords: [35.4279, 7.1431], order: 2 },
     ],
     sub_stations: [
-      { id: "sub-01-1", name: "حي 50 مسكن",       nameEn: "Cité 50 Logements",   coords: [35.465753, 7.058253], order: 1 },
-      { id: "sub-01-2", name: "ث. معمرية طاهر",   nameEn: "Lycée Muamria Taher", coords: [35.407628, 7.137503], order: 2 },
-      { id: "sub-01-3", name: "نزل المالية",        nameEn: "Hôtel des Finances",  coords: [35.427628, 7.143878], order: 3 },
-      { id: "sub-01-4", name: "ملعب شامي",          nameEn: "Stade Chami",         coords: [35.426253, 7.144753], order: 4 },
-      { id: "sub-01-5", name: "موقف الحافلات",      nameEn: "Gare Routière",       coords: [35.445878, 7.144128], order: 5 },
+      { id: "sub-01-1", name: "ث. معمرية طاهر", nameEn: "Lycée Muamria Taher", coords: [35.4075, 7.1380], order: 1 },
+      { id: "sub-01-2", name: "نزل المالية",     nameEn: "Hôtel des Finances",  coords: [35.4279, 7.1431], order: 2 },
     ],
   },
   {
@@ -193,11 +187,9 @@ const urbanRoutes: BusRoute[] = [
 const fallbackRoutes: BusRoute[] = [...urbanRoutes]
 
 const fallbackStations: Station[] = [
-  { id: "station-terminal",   name: "موقف الحافلات",       nameEn: "Gare Routière",            address: "موقف الحافلات الرئيسي - خنشلة",       coords: [35.445878, 7.144128], lines: ["01","02","04","05","06","10","11"], facilities: ["shelter","bench","kiosk","toilet"], isMainStation: true  },
-  { id: "station-50logts",    name: "حي 50 مسكن",          nameEn: "Cité 50 Logements",        address: "حي 50 مسكن - خنشلة",                  coords: [35.465753, 7.058253], lines: ["01"], facilities: ["shelter"],                  isMainStation: false },
-  { id: "station-muamria",    name: "ث. معمرية طاهر",      nameEn: "Lycée Muamria Taher",      address: "ثانوية معمرية طاهر - خنشلة",           coords: [35.407628, 7.137503], lines: ["01"], facilities: ["bench"],                    isMainStation: false },
-  { id: "station-finances",   name: "نزل المالية",          nameEn: "Hôtel des Finances",       address: "نزل المالية - خنشلة",                  coords: [35.427628, 7.143878], lines: ["01"], facilities: ["bench"],                    isMainStation: false },
-  { id: "station-chami",      name: "ملعب شامي",            nameEn: "Stade Chami",              address: "ملعب شامي - خنشلة",                    coords: [35.426253, 7.144753], lines: ["01"], facilities: ["bench"],                    isMainStation: false },
+  { id: "station-terminal",   name: "موقف الحافلات",   nameEn: "Gare Routière",       address: "موقف الحافلات الرئيسي - خنشلة", coords: [35.445878, 7.144128], lines: ["02","04","05","06","10","11"], facilities: ["shelter","bench","kiosk","toilet"], isMainStation: true },
+  { id: "station-muamria",    name: "ث. معمرية طاهر", nameEn: "Lycée Muamria Taher", address: "ثانوية معمرية طاهر - خنشلة",    coords: [35.4075, 7.1380],     lines: ["01"], facilities: ["shelter","bench"], isMainStation: true },
+  { id: "station-finances",   name: "نزل المالية",     nameEn: "Hôtel des Finances",  address: "نزل المالية - خنشلة",            coords: [35.4279, 7.1431],     lines: ["01"], facilities: ["shelter","bench"], isMainStation: true },
   { id: "station-moussa",     name: "مسجد موسى رداح",      nameEn: "Mosquée Moussa Raddah",    address: "مسجد حي موسى رداح - خنشلة",            coords: [35.450003, 7.123128], lines: ["02"], facilities: ["shelter","bench"],           isMainStation: true  },
   { id: "station-ansigha",    name: "انسيغة",               nameEn: "Ansigha",                  address: "انسيغة - قرب مركز الشرطة",             coords: [35.518,    7.119   ], lines: ["04"], facilities: ["shelter"],                  isMainStation: true  },
   { id: "station-alhama",     name: "الحامة - فندق المهدي", nameEn: "Al-Hama / Hôtel El Mahdi", address: "الحامة - أمام فندق المهدي",            coords: [35.465,    7.086   ], lines: ["05"], facilities: ["shelter","bench"],           isMainStation: true  },

@@ -49,11 +49,9 @@ const ROUTE_CATEGORIES = {
 
 // All stops across the 7 verified Khenchela bus lines
 const urbanStations: { position: [number, number]; name: string; nameEn: string; arabicLabel: string; lines: string[]; isMain: boolean; category: "urban" }[] = [
-  { position: [35.445878, 7.144128], name: "موقف الحافلات", nameEn: "Gare Routière", arabicLabel: "موقف الحافلات الرئيسي", lines: ["line-01","line-02","line-04","line-05","line-06","line-10","line-11"], isMain: true, category: "urban" },
-  { position: [35.465753, 7.058253], name: "حي 50 مسكن", nameEn: "Cité 50 Logements", arabicLabel: "حي 50 مسكن", lines: ["line-01"], isMain: false, category: "urban" },
-  { position: [35.407628, 7.137503], name: "ث. معمرية طاهر", nameEn: "Lycée Muamria Taher", arabicLabel: "ثانوية معمرية طاهر", lines: ["line-01"], isMain: false, category: "urban" },
-  { position: [35.427628, 7.143878], name: "نزل المالية", nameEn: "Hôtel des Finances", arabicLabel: "نزل المالية", lines: ["line-01"], isMain: false, category: "urban" },
-  { position: [35.426253, 7.144753], name: "ملعب شامي", nameEn: "Stade Chami", arabicLabel: "ملعب شامي", lines: ["line-01"], isMain: false, category: "urban" },
+  { position: [35.445878, 7.144128], name: "موقف الحافلات", nameEn: "Gare Routière", arabicLabel: "موقف الحافلات الرئيسي", lines: ["line-02","line-04","line-05","line-06","line-10","line-11"], isMain: true, category: "urban" },
+  { position: [35.4075, 7.1380], name: "ث. معمرية طاهر", nameEn: "Lycée Muamria Taher", arabicLabel: "ثانوية معمرية طاهر", lines: ["line-01"], isMain: true, category: "urban" },
+  { position: [35.4279, 7.1431], name: "نزل المالية", nameEn: "Hôtel des Finances", arabicLabel: "نزل المالية", lines: ["line-01"], isMain: true, category: "urban" },
   { position: [35.450003, 7.123128], name: "مسجد موسى رداح", nameEn: "Mosquée Moussa Raddah", arabicLabel: "مسجد حي موسى رداح", lines: ["line-02"], isMain: true, category: "urban" },
   { position: [35.518,   7.119   ], name: "انسيغة", nameEn: "Ansigha", arabicLabel: "انسيغة - قرب مركز الشرطة", lines: ["line-04"], isMain: true, category: "urban" },
   { position: [35.465,   7.086   ], name: "الحامة - فندق المهدي", nameEn: "Al-Hama / Hôtel El Mahdi", arabicLabel: "الحامة - أمام فندق المهدي", lines: ["line-05"], isMain: true, category: "urban" },
@@ -76,25 +74,19 @@ const urbanRoutePolylines: {
 }[] = [
   {
     id: "line-01", lineNumber: "01",
-    name: "Ligne 01 — Al-Aizar",
-    arabicName: "خط 01 — العيزار",
+    name: "Ligne 01 — Route Al-Aizar",
+    arabicName: "خط 01 — طريق العيزار",
     color: "#FF6B35",
     category: "urban",
-    terminalFrom: "حي 50 مسكن",
-    terminalTo: "موقف الحافلات",
+    terminalFrom: "ث. معمرية طاهر",
+    terminalTo: "نزل المالية",
     stops: [
-      { name: "حي 50 مسكن",        nameEn: "Cité 50 Logements",    coords: [35.465753, 7.058253], isTerminal: true  },
-      { name: "ث. معمرية طاهر",    nameEn: "Lycée Muamria Taher",  coords: [35.407628, 7.137503], isTerminal: false },
-      { name: "نزل المالية",        nameEn: "Hôtel des Finances",   coords: [35.427628, 7.143878], isTerminal: false },
-      { name: "ملعب شامي",          nameEn: "Stade Chami",          coords: [35.426253, 7.144753], isTerminal: false },
-      { name: "موقف الحافلات",      nameEn: "Gare Routière",        coords: [35.445878, 7.144128], isTerminal: true  },
+      { name: "ث. معمرية طاهر",  nameEn: "Lycée Muamria Taher", coords: [35.4075, 7.1380], isTerminal: true  },
+      { name: "نزل المالية",      nameEn: "Hôtel des Finances",  coords: [35.4279, 7.1431], isTerminal: true  },
     ],
     waypoints: [
-      [35.465753, 7.058253],
-      [35.407628, 7.137503],
-      [35.427628, 7.143878],
-      [35.426253, 7.144753],
-      [35.445878, 7.144128],
+      [35.4075, 7.1380],
+      [35.4279, 7.1431],
     ],
   },
   {
