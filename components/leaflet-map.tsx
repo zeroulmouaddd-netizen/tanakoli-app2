@@ -1064,50 +1064,27 @@ const { subStations } = useRouteSubStations(selectedRoute)
     }
   }, [])
 
-  // ── Driver live-sync: continuous GPS → blue dot + pink truck + RTDB ──────
-  // When the driver has tracking ON, this watcher runs inside the map so the
-  // truck follows the device GPS frame-by-frame with zero RTDB round-trip lag.
+  // ── DIRECT BINDING: Pink Truck = Blue Dot when isLiveTracking is ON ──────
+  // BYPASS all toggle logic. When tracking is ON, force Pink Truck to follow Blue Dot.
+  // When tracking is OFF, Pink Truck hides (or stays at last known position).
   useEffect(() => {
-    const canTrack = isDriverMode && isLiveTracking
-
-    if (!canTrack) {
-      // Stop watching when tracking toggled off or driver mode exited
-      if (driverGpsWatchRef.current !== null) {
-        navigator.geolocation?.clearWatch(driverGpsWatchRef.current)
-        driverGpsWatchRef.current = null
-      }
+    if (!isLiveTracking) {
+      // Toggle OFF — hide the truck by clearing it
+      setDriverLocation(null)
       return
     }
 
-    if (!navigator.geolocation || driverGpsWatchRef.current !== null) return
-
-    driverGpsWatchRef.current = navigator.geolocation.watchPosition(
-      (pos) => {
-        const loc = { lat: pos.coords.latitude, lng: pos.coords.longitude }
-        // 1. Move the blue dot
-        setUserLocation(loc)
-        // 2. Move the pink truck locally — instant, no RTDB round-trip
-        setDriverLocation(loc)
-        // 3. Write to RTDB so ALL other users' maps update too
-        try {
-          set(ref(rtdb, "drivers/0775453629/location"), loc)
-        } catch {
-          // non-critical — hook's watchPosition handles RTDB as backup
-        }
-      },
-      (err) => {
-        console.error("[map] Driver GPS sync error:", err.message)
-      },
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
-    )
-
-    return () => {
-      if (driverGpsWatchRef.current !== null) {
-        navigator.geolocation?.clearWatch(driverGpsWatchRef.current)
-        driverGpsWatchRef.current = null
+    // Toggle ON — force direct binding: Pink Truck = Blue Dot, always
+    if (userLocation) {
+      setDriverLocation(userLocation)
+      // Write to RTDB so all other users' maps see the updated position
+      try {
+        set(ref(rtdb, "drivers/0775453629/location"), userLocation)
+      } catch (error) {
+        console.error("[map] Failed to update RTDB:", error)
       }
     }
-  }, [isDriverMode, isLiveTracking])
+  }, [userLocation, isLiveTracking])
 
   // Initialize map
   useEffect(() => {
