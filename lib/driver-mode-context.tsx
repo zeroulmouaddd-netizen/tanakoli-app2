@@ -5,9 +5,11 @@ import { db } from "@/lib/firebase"
 import { doc, getDoc } from "firebase/firestore"
 import { useAuth } from "@/lib/auth-context"
 import { isAuthorizedDriverPhone } from "@/lib/driver-config"
+import { useDriverLocationTracking } from "@/hooks/use-driver-location-tracking"
 
 const DRIVER_MODE_KEY = "tanoukli_driver_mode"
 const DRIVER_AUTH_SESSION_KEY = "tanakoli_is_driver"
+const LIVE_TRACKING_KEY = "tanoukli_live_tracking"
 
 // ── Test driver flag — set by onboarding for Play Store reviewer ─────────────
 const TEST_DRIVER_FLAG = "tanakoli_test_driver_mode"
@@ -17,9 +19,11 @@ interface DriverModeContextType {
   isAuthorizedDriver: boolean
   isCheckingRole: boolean
   roleError: string | null
+  isLiveTracking: boolean
   enterDriverMode: () => Promise<boolean>
   exitDriverMode: () => void
   clearRoleError: () => void
+  toggleLiveTracking: () => void
 }
 
 const DriverModeContext = createContext<DriverModeContextType | null>(null)
@@ -41,9 +45,24 @@ function setPersistedDriverMode(value: boolean): void {
     } else {
       localStorage.removeItem(DRIVER_MODE_KEY)
     }
+  } catch {}
+}
+
+function getPersistedLiveTracking(): boolean {
+  if (typeof window === "undefined") return true
+  try {
+    const stored = localStorage.getItem(LIVE_TRACKING_KEY)
+    return stored === null ? true : stored === "true"
   } catch {
-    // Ignore storage errors
+    return true
   }
+}
+
+function setPersistedLiveTracking(value: boolean): void {
+  if (typeof window === "undefined") return
+  try {
+    localStorage.setItem(LIVE_TRACKING_KEY, String(value))
+  } catch {}
 }
 
 export function DriverModeProvider({ children }: { children: ReactNode }) {
@@ -52,6 +71,14 @@ export function DriverModeProvider({ children }: { children: ReactNode }) {
   const [isAuthorizedDriver, setIsAuthorizedDriver] = useState(false)
   const [isCheckingRole, setIsCheckingRole] = useState(false)
   const [roleError, setRoleError] = useState<string | null>(null)
+  const [isLiveTracking, setIsLiveTracking] = useState(true)
+
+  // ── GPS tracking lives here — persists across all navigation ──────────────
+  useDriverLocationTracking(
+    currentUser?.phoneNumber ?? null,
+    isDriverMode,
+    isLiveTracking
+  )
 
   // Compute driver authorization from the phone whitelist, cached in sessionStorage
   useEffect(() => {
@@ -103,6 +130,7 @@ export function DriverModeProvider({ children }: { children: ReactNode }) {
           const userDoc = await getDoc(userDocRef)
           if (userDoc.exists() && userDoc.data()?.role === "driver") {
             setIsDriverMode(true)
+            setIsLiveTracking(getPersistedLiveTracking())
           } else {
             setPersistedDriverMode(false)
           }
@@ -119,6 +147,7 @@ export function DriverModeProvider({ children }: { children: ReactNode }) {
     if (!isAuthLoading && !currentUser) {
       setIsDriverMode(false)
       setIsAuthorizedDriver(false)
+      setIsLiveTracking(true)
       setPersistedDriverMode(false)
       try { sessionStorage.removeItem(DRIVER_AUTH_SESSION_KEY) } catch {}
     }
@@ -134,7 +163,9 @@ export function DriverModeProvider({ children }: { children: ReactNode }) {
     try {
       if (sessionStorage.getItem(TEST_DRIVER_FLAG) === "true") {
         setIsDriverMode(true)
+        setIsLiveTracking(true)
         setPersistedDriverMode(true)
+        setPersistedLiveTracking(true)
         return true
       }
     } catch {}
@@ -145,16 +176,27 @@ export function DriverModeProvider({ children }: { children: ReactNode }) {
     }
 
     setIsDriverMode(true)
+    setIsLiveTracking(true)
     setPersistedDriverMode(true)
+    setPersistedLiveTracking(true)
     return true
   }, [currentUser])
 
   const exitDriverMode = useCallback(() => {
     setIsDriverMode(false)
+    setIsLiveTracking(false)
     setPersistedDriverMode(false)
+    setPersistedLiveTracking(true) // reset to default-on for next session
     setRoleError(null)
-    // Clear test driver flag on explicit exit so the session doesn't linger
     try { sessionStorage.removeItem(TEST_DRIVER_FLAG) } catch {}
+  }, [])
+
+  const toggleLiveTracking = useCallback(() => {
+    setIsLiveTracking(prev => {
+      const next = !prev
+      setPersistedLiveTracking(next)
+      return next
+    })
   }, [])
 
   const clearRoleError = useCallback(() => {
@@ -167,9 +209,11 @@ export function DriverModeProvider({ children }: { children: ReactNode }) {
       isAuthorizedDriver,
       isCheckingRole,
       roleError,
+      isLiveTracking,
       enterDriverMode,
       exitDriverMode,
       clearRoleError,
+      toggleLiveTracking,
     }}>
       {children}
     </DriverModeContext.Provider>

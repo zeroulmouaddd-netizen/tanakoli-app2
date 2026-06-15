@@ -26,7 +26,6 @@ import { collection, query, where, getDocs, getDoc, doc, updateDoc, increment, a
 import { addNotification, LOW_BALANCE_THRESHOLD } from "@/lib/notifications"
 import { useDriverMode } from "@/lib/driver-mode-context"
 import { useAuth } from "@/lib/auth-context"
-import { useDriverLocationTracking } from "@/hooks/use-driver-location-tracking"
 import { BrowserMultiFormatReader } from "@zxing/browser"
 
 const FARE_OPTIONS = [
@@ -109,7 +108,7 @@ function saveDailyStats(stats: DailyStats): void {
 }
 
 export function DriverDashboard() {
-  const { exitDriverMode } = useDriverMode()
+  const { exitDriverMode, isLiveTracking, toggleLiveTracking } = useDriverMode()
   const { currentUser, firestoreUserId } = useAuth()
   const [selectedFare, setSelectedFare] = useState(30)
   const [isScanning, setIsScanning] = useState(false)
@@ -118,8 +117,7 @@ export function DriverDashboard() {
   const [isProcessing, setIsProcessing] = useState(false)
   const [dailyStats, setDailyStats] = useState<DailyStats>({ total: 0, trips: 0, date: getTodayDate() })
   const [showResetConfirm, setShowResetConfirm] = useState(false)
-  const [isLocationTracking, setIsLocationTracking] = useState(false)
-  
+
   // Recharge mode state
   const [scanMode, setScanMode] = useState<ScanMode>("deduction")
   const [showRechargeModal, setShowRechargeModal] = useState(false)
@@ -135,9 +133,6 @@ export function DriverDashboard() {
   // Ref-based flag so the scanLoop closure always reads the current value,
   // not a stale snapshot captured at the time the closure was created.
   const isScanningRef = useRef(false)
-
-  // Initialize location tracking for driver
-  useDriverLocationTracking(currentUser?.phoneNumber || null, true)
 
   // Stop scanner helper (defined early for cleanup)
   const stopScanner = useCallback(() => {
@@ -647,12 +642,28 @@ export function DriverDashboard() {
             </div>
           </div>
           <div className="flex items-center gap-2 sm:gap-3">
-            {/* Location tracking status */}
-            <div className="flex items-center gap-1.5 rounded-lg bg-green-500/20 px-2.5 sm:px-3 py-1.5 sm:py-2">
-              <div className="flex h-2 w-2 rounded-full bg-green-500 animate-pulse" />
-              <span className="text-xs text-green-400 font-medium">تتبع مباشر</span>
-              <span className="text-xs text-green-400/70">Live</span>
-            </div>
+            {/* Live Tracking toggle */}
+            <button
+              onClick={toggleLiveTracking}
+              className={`flex items-center gap-1.5 rounded-lg px-2.5 sm:px-3 py-1.5 sm:py-2 transition-all duration-200 ${
+                isLiveTracking
+                  ? "bg-green-500/20 hover:bg-green-500/30"
+                  : "bg-slate-700/60 hover:bg-slate-700/80"
+              }`}
+              title={isLiveTracking ? "إيقاف التتبع المباشر" : "تشغيل التتبع المباشر"}
+            >
+              <div className={`h-2 w-2 rounded-full flex-shrink-0 ${
+                isLiveTracking ? "bg-green-500 animate-pulse" : "bg-slate-500"
+              }`} />
+              <span className={`text-xs font-medium ${
+                isLiveTracking ? "text-green-400" : "text-slate-400"
+              }`}>
+                {isLiveTracking ? "تتبع مباشر" : "متوقف"}
+              </span>
+              {isLiveTracking && (
+                <span className="text-xs text-green-400/60 hidden sm:inline">Live</span>
+              )}
+            </button>
             <button
               onClick={exitDriverMode}
               className="flex items-center gap-1 sm:gap-2 rounded-lg sm:rounded-xl bg-red-500/20 px-2 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-medium text-red-400 transition-colors hover:bg-red-500/30 flex-shrink-0"

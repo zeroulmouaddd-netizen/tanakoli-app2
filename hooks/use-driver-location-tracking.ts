@@ -9,153 +9,115 @@ interface DriverLocation {
   lng: number
 }
 
-export function useDriverLocationTracking(driverPhone: string | null, isDriverMode: boolean) {
+export function useDriverLocationTracking(
+  driverPhone: string | null,
+  isDriverMode: boolean,
+  isLiveTracking: boolean
+) {
   const watchIdRef = useRef<number | null>(null)
   const isTrackingRef = useRef(false)
   const lastLocationRef = useRef<DriverLocation | null>(null)
-  const locationCheckIntervalRef = useRef<NodeJS.Timeout | null>(null)
 
-  // Convert phone number to doc ID format for Firebase path
   const getDriverPath = useCallback((phone: string) => {
-    // Phone format: +213XXXXXXXXX -> convert to 0XXXXXXXXX for Firebase path
     if (phone.startsWith("+213")) {
       return "0" + phone.slice(4)
     }
     return phone
   }, [])
 
-  // Start location tracking
-  const startTracking = useCallback(async () => {
-    if (!driverPhone || !isDriverMode || isTrackingRef.current) return
-
-    console.log("[v0] Starting driver location tracking")
-    isTrackingRef.current = true
-
-    try {
-      // Check geolocation support
-      if (!navigator.geolocation) {
-        console.error("[v0] Geolocation not supported")
-        return
-      }
-
-      // First, request permission explicitly with getCurrentPosition
-      console.log("[v0] Requesting geolocation permission from user")
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          console.log("[v0] Initial position obtained, now starting continuous tracking")
-          // Initial position obtained, now start watching
-          startWatching()
-        },
-        (error) => {
-          console.error("[v0] Permission denied or geolocation error:", error.message)
-          isTrackingRef.current = false
-        },
-        {
-          enableHighAccuracy: true,
-          timeout: 10000,
-          maximumAge: 0,
-        }
-      )
-    } catch (error) {
-      console.error("[v0] Error starting location tracking:", error)
-      isTrackingRef.current = false
-    }
-  }, [driverPhone, isDriverMode, getDriverPath])
-
-  // Watch position for continuous tracking
   const startWatching = useCallback(() => {
     if (!navigator.geolocation || watchIdRef.current !== null) return
 
     watchIdRef.current = navigator.geolocation.watchPosition(
       async (position) => {
         const { latitude, longitude } = position.coords
+        const newLocation: DriverLocation = { lat: latitude, lng: longitude }
 
-        const newLocation: DriverLocation = {
-          lat: latitude,
-          lng: longitude,
-        }
-
-        // Only update if location changed significantly (>~10m)
         if (
           !lastLocationRef.current ||
           Math.abs(lastLocationRef.current.lat - latitude) > 0.00001 ||
           Math.abs(lastLocationRef.current.lng - longitude) > 0.00001
         ) {
           lastLocationRef.current = newLocation
-
           try {
             const driverPath = getDriverPath(driverPhone!)
             const locationRef = ref(rtdb, `drivers/${driverPath}/location`)
             await set(locationRef, newLocation)
-            console.log("[v0] Location updated:", newLocation)
           } catch (error) {
-            console.error("[v0] Failed to update location in Firebase:", error)
+            console.error("[tracking] Failed to update location:", error)
           }
         }
       },
       (error) => {
-        console.error("[v0] Watch position error:", error.message)
+        console.error("[tracking] Watch position error:", error.message)
       },
-      {
-        enableHighAccuracy: true,
-        timeout: 10000,
-        maximumAge: 0,
-      }
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
     )
-
-    console.log("[v0] Geolocation watch started, watch ID:", watchIdRef.current)
   }, [driverPhone, getDriverPath])
 
-  // Stop location tracking
-  const stopTracking = useCallback(async () => {
-    console.log("[v0] Stopping driver location tracking")
+  const startTracking = useCallback(async () => {
+    if (!driverPhone || !isDriverMode || !isLiveTracking || isTrackingRef.current) return
+
+    isTrackingRef.current = true
+
+    if (!navigator.geolocation) {
+      console.error("[tracking] Geolocation not supported")
+      isTrackingRef.current = false
+      return
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      () => { startWatching() },
+      (error) => {
+        console.error("[tracking] Permission denied:", error.message)
+        isTrackingRef.current = false
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+    )
+  }, [driverPhone, isDriverMode, isLiveTracking, startWatching])
+
+  // Stop the GPS watcher.
+  // clearLocation=true  → also null out the RTDB entry (driver exited mode entirely)
+  // clearLocation=false → keep last location in RTDB (driver toggled off, but still in driver mode)
+  const stopTracking = useCallback(async (clearLocation = true) => {
     isTrackingRef.current = false
 
-    // Clear watch position
     if (watchIdRef.current !== null) {
       navigator.geolocation.clearWatch(watchIdRef.current)
       watchIdRef.current = null
-      console.log("[v0] Watch position cleared")
     }
 
-    // Clear last known location from Firebase
-    if (driverPhone) {
+    if (clearLocation && driverPhone) {
       try {
         const driverPath = getDriverPath(driverPhone)
         const locationRef = ref(rtdb, `drivers/${driverPath}/location`)
         await set(locationRef, null)
-        console.log("[v0] Location cleared from Firebase")
       } catch (error) {
-        console.error("[v0] Failed to clear location from Firebase:", error)
+        console.error("[tracking] Failed to clear location:", error)
       }
+      lastLocationRef.current = null
     }
-
-    lastLocationRef.current = null
+    // When clearLocation=false: last known coords stay in RTDB → marker stays on map
   }, [driverPhone, getDriverPath])
 
-  // Setup/teardown tracking based on driver mode
   useEffect(() => {
-    if (isDriverMode && driverPhone) {
+    if (isDriverMode && driverPhone && isLiveTracking) {
       startTracking()
+    } else if (isDriverMode && driverPhone && !isLiveTracking) {
+      // Driver is still in driver mode but toggled tracking off — keep last location
+      stopTracking(false)
     } else {
-      stopTracking()
+      // Driver exited mode entirely — clear the marker
+      stopTracking(true)
     }
 
     return () => {
       if (watchIdRef.current !== null) {
         navigator.geolocation.clearWatch(watchIdRef.current)
+        watchIdRef.current = null
       }
     }
-  }, [isDriverMode, driverPhone, startTracking, stopTracking])
-
-  // Cleanup interval on unmount
-  useEffect(() => {
-    return () => {
-      if (locationCheckIntervalRef.current) {
-        clearInterval(locationCheckIntervalRef.current)
-      }
-    }
-  }, [])
+  }, [isDriverMode, driverPhone, isLiveTracking, startTracking, stopTracking])
 
   return { startTracking, stopTracking }
 }
