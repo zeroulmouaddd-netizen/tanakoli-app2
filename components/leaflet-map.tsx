@@ -47,155 +47,167 @@ const ROUTE_CATEGORIES = {
   urban: { label: "داخل المدينة", labelEn: "Urban", color: "#00A651" },
 }
 
-// All main stations in Khenchela city with ETUSK Main Station
+// All stops across the 7 verified Khenchela bus lines
 const urbanStations: { position: [number, number]; name: string; nameEn: string; arabicLabel: string; lines: string[]; isMain: boolean; category: "urban" }[] = [
-  // ETUSK Main Hub
-  { position: [35.4377, 7.1458], name: "ETUSK Station", nameEn: "ETUSK Main Station", arabicLabel: "محطة ETUSK الرئيسية", lines: ["sub-01", "sub-02", "sub-03", "urb-01", "urb-02", "urb-03", "urb-04"], isMain: true, category: "urban" },
-  
-  // Terminal Stops
-  { position: [35.3900, 7.0800], name: "Hammam Essalhine", nameEn: "Hammam Essalhine", arabicLabel: "حمام الصالحين", lines: ["sub-01"], isMain: true, category: "urban" },
-  { position: [35.4650, 7.0900], name: "El Hamma", nameEn: "El Hamma", arabicLabel: "الحمة", lines: ["sub-02"], isMain: true, category: "urban" },
-  { position: [35.5000, 7.2500], name: "El Mahmel", nameEn: "El Mahmel", arabicLabel: "المحمل", lines: ["sub-03"], isMain: true, category: "urban" },
-  { position: [35.4550, 7.1700], name: "Cite 1000 Logts", nameEn: "Cosider Housing", arabicLabel: "حي كوسيدار", lines: ["urb-01"], isMain: true, category: "urban" },
-  { position: [35.3800, 7.1700], name: "Nouveau Pole", nameEn: "New Pole (El Aizar)", arabicLabel: "طريق العيزار", lines: ["urb-02"], isMain: true, category: "urban" },
-  { position: [35.4100, 7.0900], name: "Cite Moussa", nameEn: "Moussa Raddah District", arabicLabel: "سيتي موسى الرداح", lines: ["urb-03"], isMain: true, category: "urban" },
-  { position: [35.5200, 7.1200], name: "Ensigna", nameEn: "Ensigna", arabicLabel: "انسيغة", lines: ["urb-04"], isMain: true, category: "urban" },
-  { position: [35.4200, 7.1200], name: "Ancienne Gare", nameEn: "Old Station", arabicLabel: "المحطة القديمة", lines: ["urb-05"], isMain: true, category: "urban" },
-  { position: [35.4350, 7.1400], name: "New Gare A", nameEn: "New Station A", arabicLabel: "المحطة الجديدة أ", lines: ["urb-05"], isMain: true, category: "urban" },
+  { position: [35.445878, 7.144128], name: "موقف الحافلات", nameEn: "Gare Routière", arabicLabel: "موقف الحافلات الرئيسي", lines: ["line-01","line-02","line-04","line-05","line-06","line-10","line-11"], isMain: true, category: "urban" },
+  { position: [35.465753, 7.058253], name: "حي 50 مسكن", nameEn: "Cité 50 Logements", arabicLabel: "حي 50 مسكن", lines: ["line-01"], isMain: false, category: "urban" },
+  { position: [35.407628, 7.137503], name: "ث. معمرية طاهر", nameEn: "Lycée Muamria Taher", arabicLabel: "ثانوية معمرية طاهر", lines: ["line-01"], isMain: false, category: "urban" },
+  { position: [35.427628, 7.143878], name: "نزل المالية", nameEn: "Hôtel des Finances", arabicLabel: "نزل المالية", lines: ["line-01"], isMain: false, category: "urban" },
+  { position: [35.426253, 7.144753], name: "ملعب شامي", nameEn: "Stade Chami", arabicLabel: "ملعب شامي", lines: ["line-01"], isMain: false, category: "urban" },
+  { position: [35.450003, 7.123128], name: "مسجد موسى رداح", nameEn: "Mosquée Moussa Raddah", arabicLabel: "مسجد حي موسى رداح", lines: ["line-02"], isMain: true, category: "urban" },
+  { position: [35.518,   7.119   ], name: "انسيغة", nameEn: "Ansigha", arabicLabel: "انسيغة - قرب مركز الشرطة", lines: ["line-04"], isMain: true, category: "urban" },
+  { position: [35.465,   7.086   ], name: "الحامة - فندق المهدي", nameEn: "Al-Hama / Hôtel El Mahdi", arabicLabel: "الحامة - أمام فندق المهدي", lines: ["line-05"], isMain: true, category: "urban" },
+  { position: [35.5,     7.25    ], name: "المحمل", nameEn: "El Mahmal", arabicLabel: "المحمل", lines: ["line-06"], isMain: true, category: "urban" },
+  { position: [35.4382,  7.1468  ], name: "دار الثقافة", nameEn: "Maison de la Culture", arabicLabel: "دار الثقافة خنشلة", lines: ["line-06"], isMain: false, category: "urban" },
+  { position: [35.424,   7.138   ], name: "المدينة الجديدة", nameEn: "Cité Nouvelle / Al-Hadika", arabicLabel: "المدينة الجديدة - حي الحديقة", lines: ["line-10"], isMain: true, category: "urban" },
+  { position: [35.45,    7.19    ], name: "قرية فرنقال", nameEn: "Village Frnqal", arabicLabel: "قرية فرنقال", lines: ["line-11"], isMain: true, category: "urban" },
+  { position: [35.396003, 7.100503], name: "عمارات طريق فرنقال", nameEn: "Résid. Route Frnqal", arabicLabel: "عمارات طريق فرنقال", lines: ["line-11"], isMain: false, category: "urban" },
+  { position: [35.426753, 7.135503], name: "نزل المدينة", nameEn: "Hôtel 1er Novembre", arabicLabel: "نزل 1 نوفمبر", lines: ["line-11"], isMain: false, category: "urban" },
 ]
 
 // Removed intercity stations - Urban routes only
 
-// Actual organized bus line network for Khenchela - Color coded routes
-// Each route defined by 3-4 key waypoints that will be snapped to roads via OSRM
-// OSRM will fetch the actual street geometry, ensuring routes follow real roads
-const urbanRoutePolylines: { id: string; waypoints: [number, number][]; color: string; name: string; category: "urban"; arabicName: string; terminalFrom: string; terminalTo: string }[] = [
-  // BLUE LINE - Northern route through Hammam Essalhine area
+// 7 verified Khenchela bus lines — GPS coordinates from Google Maps Plus Codes
+// Waypoints are sent to OSRM which snaps them to real road geometry
+const urbanRoutePolylines: {
+  id: string; lineNumber: string; waypoints: [number, number][]; color: string;
+  name: string; category: "urban"; arabicName: string; terminalFrom: string; terminalTo: string;
+  stops: { name: string; nameEn: string; coords: [number, number]; isTerminal: boolean }[]
+}[] = [
   {
-    id: "sub-01",
-    name: "Hammam Essalhine Route",
-    arabicName: "خط حمام الصالحين",
-    color: "#0066FF", // Solid Blue
+    id: "line-01", lineNumber: "01",
+    name: "Ligne 01 — Al-Aizar",
+    arabicName: "خط 01 — العيزار",
+    color: "#FF6B35",
     category: "urban",
-    terminalFrom: "حمام الصالحين",
-    terminalTo: "شارع النيل",
+    terminalFrom: "حي 50 مسكن",
+    terminalTo: "موقف الحافلات",
+    stops: [
+      { name: "حي 50 مسكن",        nameEn: "Cité 50 Logements",    coords: [35.465753, 7.058253], isTerminal: true  },
+      { name: "ث. معمرية طاهر",    nameEn: "Lycée Muamria Taher",  coords: [35.407628, 7.137503], isTerminal: false },
+      { name: "نزل المالية",        nameEn: "Hôtel des Finances",   coords: [35.427628, 7.143878], isTerminal: false },
+      { name: "ملعب شامي",          nameEn: "Stade Chami",          coords: [35.426253, 7.144753], isTerminal: false },
+      { name: "موقف الحافلات",      nameEn: "Gare Routière",        coords: [35.445878, 7.144128], isTerminal: true  },
+    ],
     waypoints: [
-      [35.3850, 7.0750], // Start: Hammam Essalhine area
-      [35.4000, 7.0920], // Mid waypoint
-      [35.4210, 7.1130], // End: Nile street area
-    ]
+      [35.465753, 7.058253],
+      [35.407628, 7.137503],
+      [35.427628, 7.143878],
+      [35.426253, 7.144753],
+      [35.445878, 7.144128],
+    ],
   },
-  
-  // GREEN LINE - Eastern route through El Hamma
   {
-    id: "sub-02",
-    name: "El Hamma Route",
-    arabicName: "خط الحامة",
-    color: "#22BB33", // Solid Green
+    id: "line-02", lineNumber: "02",
+    name: "Ligne 02 — Moussa Raddah",
+    arabicName: "خط 02 — موسى رداح",
+    color: "#9B59B6",
     category: "urban",
-    terminalFrom: "الحمة",
-    terminalTo: "حي الاستقلال",
+    terminalFrom: "مسجد موسى رداح",
+    terminalTo: "موقف الحافلات",
+    stops: [
+      { name: "مسجد موسى رداح",    nameEn: "Mosquée Moussa Raddah", coords: [35.450003, 7.123128], isTerminal: true },
+      { name: "موقف الحافلات",      nameEn: "Gare Routière",         coords: [35.445878, 7.144128], isTerminal: true },
+    ],
     waypoints: [
-      [35.4700, 7.0850], // Start: El Hamma area
-      [35.4500, 7.1050], // Mid waypoint
-      [35.4330, 7.1340], // End: Independence district
-    ]
+      [35.450003, 7.123128],
+      [35.445878, 7.144128],
+    ],
   },
-  
-  // BLACK LINE - Far eastern route through El Mahmel
   {
-    id: "sub-03",
-    name: "El Mahmel Route",
-    arabicName: "خط المحمل",
-    color: "#1A1A1A", // Solid Black
-    category: "urban",
-    terminalFrom: "المحمل",
-    terminalTo: "شارع الجمهورية",
-    waypoints: [
-      [35.5100, 7.2600], // Start: El Mahmel (far east)
-      [35.4900, 7.2100], // Mid waypoint
-      [35.4550, 7.1800], // End: Republic street
-    ]
-  },
-  
-  // CYAN LINE - Southern route through Cosider housing
-  {
-    id: "urb-01",
-    name: "Cosider Housing Route",
-    arabicName: "خط حي 1000 مسكن - كوسيدار",
-    color: "#00D4FF", // Solid Cyan
-    category: "urban",
-    terminalFrom: "حي كوسيدار",
-    terminalTo: "ساحة السوق",
-    waypoints: [
-      [35.4650, 7.1850], // Start: Cosider south
-      [35.4500, 7.1800], // Mid waypoint
-      [35.4420, 7.1590], // End: Market square
-    ]
-  },
-  
-  // ORANGE LINE - Western route through New Pole
-  {
-    id: "urb-02",
-    name: "New Pole Route",
-    arabicName: "خط القطب الجديد - طريق العيزار",
-    color: "#FF9900", // Solid Orange
-    category: "urban",
-    terminalFrom: "طريق العيزار",
-    terminalTo: "شارع فرعون",
-    waypoints: [
-      [35.3700, 7.1650], // Start: New Pole (far west)
-      [35.4000, 7.1720], // Mid waypoint
-      [35.4300, 7.1850], // End: Pharaoh street
-    ]
-  },
-  
-  // PURPLE LINE - Northwestern route through Moussa Raddah
-  {
-    id: "urb-03",
-    name: "Moussa Raddah Route",
-    arabicName: "خط حي موسى رداح",
-    color: "#BB00FF", // Solid Purple
-    category: "urban",
-    terminalFrom: "سيتي موسى الرداح",
-    terminalTo: "حي الثورة",
-    waypoints: [
-      [35.4050, 7.0800], // Start: Moussa Raddah (northwest)
-      [35.4200, 7.1050], // Mid waypoint
-      [35.4340, 7.1480], // End: Revolution district
-    ]
-  },
-  
-  // RED LINE - Eastern route through Ensigna
-  {
-    id: "urb-04",
-    name: "Ensigna Route",
-    arabicName: "خط انسيغة",
-    color: "#FF3333", // Solid Red
+    id: "line-04", lineNumber: "04",
+    name: "Ligne 04 — Ansigha",
+    arabicName: "خط 04 — انسيغة",
+    color: "#00BCD4",
     category: "urban",
     terminalFrom: "انسيغة",
-    terminalTo: "ساحة الشهداء",
+    terminalTo: "موقف الحافلات",
+    stops: [
+      { name: "انسيغة",            nameEn: "Ansigha",       coords: [35.518, 7.119],    isTerminal: true },
+      { name: "موقف الحافلات",      nameEn: "Gare Routière", coords: [35.445878, 7.144128], isTerminal: true },
+    ],
     waypoints: [
-      [35.5300, 7.1250], // Start: Ensigna (far northeast)
-      [35.5000, 7.1450], // Mid waypoint
-      [35.4700, 7.1510], // End: Martyrs square
-    ]
+      [35.518,    7.119   ],
+      [35.4850,   7.1300  ],
+      [35.445878, 7.144128],
+    ],
   },
-  
-  // YELLOW LINE - Central route connecting old station to new station
   {
-    id: "urb-05",
-    name: "Station Connector Route",
-    arabicName: "خط المحطة القديمة - محطة المسافرين",
-    color: "#FFDD00", // Solid Yellow
+    id: "line-05", lineNumber: "05",
+    name: "Ligne 05 — Al-Hama",
+    arabicName: "خط 05 — الحامة",
+    color: "#27AE60",
     category: "urban",
-    terminalFrom: "المحطة القديمة",
-    terminalTo: "محطة المسافرين (الجديدة)",
+    terminalFrom: "الحامة - فندق المهدي",
+    terminalTo: "موقف الحافلات",
+    stops: [
+      { name: "الحامة - فندق المهدي", nameEn: "Al-Hama / Hôtel El Mahdi", coords: [35.465, 7.086], isTerminal: true },
+      { name: "موقف الحافلات",         nameEn: "Gare Routière",            coords: [35.445878, 7.144128], isTerminal: true },
+    ],
     waypoints: [
-      [35.4150, 7.1150], // Start: Old station (southwest area)
-      [35.4350, 7.1360], // End: New passenger station
-    ]
-  }
+      [35.465,    7.086   ],
+      [35.4550,   7.1100  ],
+      [35.445878, 7.144128],
+    ],
+  },
+  {
+    id: "line-06", lineNumber: "06",
+    name: "Ligne 06 — Al-Mahmal",
+    arabicName: "خط 06 — المحمل",
+    color: "#E74C3C",
+    category: "urban",
+    terminalFrom: "المحمل",
+    terminalTo: "دار الثقافة",
+    stops: [
+      { name: "المحمل",          nameEn: "El Mahmal",            coords: [35.5,    7.25    ], isTerminal: true  },
+      { name: "موقف الحافلات",    nameEn: "Gare Routière",        coords: [35.445878, 7.144128], isTerminal: false },
+      { name: "دار الثقافة",      nameEn: "Maison de la Culture", coords: [35.4382, 7.1468  ], isTerminal: true  },
+    ],
+    waypoints: [
+      [35.5,      7.25    ],
+      [35.4750,   7.2000  ],
+      [35.445878, 7.144128],
+      [35.4382,   7.1468  ],
+    ],
+  },
+  {
+    id: "line-10", lineNumber: "10",
+    name: "Ligne 10 — Cité Nouvelle",
+    arabicName: "خط 10 — المدينة الجديدة",
+    color: "#F39C12",
+    category: "urban",
+    terminalFrom: "المدينة الجديدة",
+    terminalTo: "موقف الحافلات",
+    stops: [
+      { name: "المدينة الجديدة", nameEn: "Cité Nouvelle / Al-Hadika", coords: [35.424, 7.138], isTerminal: true },
+      { name: "موقف الحافلات",   nameEn: "Gare Routière",             coords: [35.445878, 7.144128], isTerminal: true },
+    ],
+    waypoints: [
+      [35.424,    7.138   ],
+      [35.445878, 7.144128],
+    ],
+  },
+  {
+    id: "line-11", lineNumber: "11",
+    name: "Ligne 11 — Frnqal",
+    arabicName: "خط 11 — فرنقال",
+    color: "#2980B9",
+    category: "urban",
+    terminalFrom: "قرية فرنقال",
+    terminalTo: "موقف الحافلات",
+    stops: [
+      { name: "قرية فرنقال",         nameEn: "Village Frnqal",          coords: [35.45,    7.19    ], isTerminal: true  },
+      { name: "عمارات طريق فرنقال",  nameEn: "Résid. Route Frnqal",     coords: [35.396003, 7.100503], isTerminal: false },
+      { name: "نزل المدينة",          nameEn: "Hôtel 1er Novembre",      coords: [35.426753, 7.135503], isTerminal: false },
+      { name: "موقف الحافلات",        nameEn: "Gare Routière",           coords: [35.445878, 7.144128], isTerminal: true  },
+    ],
+    waypoints: [
+      [35.45,     7.19    ],
+      [35.396003, 7.100503],
+      [35.426753, 7.135503],
+      [35.445878, 7.144128],
+    ],
+  },
 ]
 
 // OSRM utility function - Fetches actual road geometry for waypoints
@@ -235,20 +247,18 @@ async function fetchOSRMRoute(waypoints: [number, number][]): Promise<[number, n
 // All routes (urban only)
 const allRoutes = [...urbanRoutePolylines]
 
-// Bus Hub Locations for the fleet (URBAN STATIONS ONLY)
-// Buses exist only at urban terminals - No intercity hubs
-// Total: 13 active buses for clean interface
+// Bus Hub Locations for the fleet — anchored to the verified Gare Routière
 const BUS_HUBS = {
   trainStation: { 
-    coords: [35.4123, 7.1456] as [number, number], 
-    name: "محطة القطار خنشلة",
-    nameEn: "Train Station (Khenchela)",
+    coords: [35.445878, 7.144128] as [number, number], 
+    name: "موقف الحافلات الرئيسي",
+    nameEn: "Gare Routière (Main Terminal)",
     count: 8 
   },
   newBusTerminal: { 
-    coords: [35.4080, 7.1320] as [number, number], 
-    name: "المحطة الجديدة",
-    nameEn: "New Bus Terminal",
+    coords: [35.445878, 7.144128] as [number, number], 
+    name: "موقف الحافلات الرئيسي",
+    nameEn: "Gare Routière (Main Terminal)",
     count: 5 
   },
 }
@@ -1185,35 +1195,55 @@ const { subStations } = useRouteSubStations(selectedRoute)
         className: "route-polyline cyber-line",
       }).addTo(map)
       
-      // Add start marker at first coordinate
-      if (routeCoords.length > 0) {
-        const startMarker = L.marker(routeCoords[0], {
+      // Add labeled stop markers for every stop on this route
+      route.stops.forEach((stop, idx) => {
+        const isFirst = idx === 0
+        const isLast  = idx === route.stops.length - 1
+        const isTerminal = stop.isTerminal
+
+        const markerHtml = isTerminal
+          ? `<div style="
+              width:20px;height:20px;background:${route.color};border:3px solid white;
+              border-radius:50%;box-shadow:0 2px 8px rgba(0,0,0,0.35),0 0 0 2px ${route.color}40;
+              display:flex;align-items:center;justify-content:center;
+              font-size:9px;font-weight:800;color:white;font-family:sans-serif;
+              cursor:pointer;
+            ">${route.lineNumber}</div>`
+          : `<div style="
+              width:14px;height:14px;background:white;border:3px solid ${route.color};
+              border-radius:50%;box-shadow:0 2px 5px rgba(0,0,0,0.25);
+              display:flex;align-items:center;justify-content:center;
+              font-size:7px;font-weight:800;color:${route.color};font-family:sans-serif;
+              cursor:pointer;
+            ">${route.lineNumber}</div>`
+
+        const stopMarker = L.marker(stop.coords, {
           icon: L.divIcon({
-            html: `<div style="width: 12px; height: 12px; background-color: white; border: 3px solid ${route.color}; border-radius: 50%; box-shadow: 0 0 8px ${route.color};"></div>`,
-            iconSize: [12, 12],
-            iconAnchor: [6, 6],
-            className: "marker-start",
+            html: markerHtml,
+            iconSize:   isTerminal ? [20, 20] : [14, 14],
+            iconAnchor: isTerminal ? [10, 10] : [7,  7 ],
+            className: isFirst ? "marker-start" : isLast ? "marker-end" : "station-marker",
           }),
-          zIndexOffset: 250,
-        }).addTo(map)
-      }
-      
-      // Add end marker at last coordinate
-      if (routeCoords.length > 1) {
-        const endMarker = L.marker(routeCoords[routeCoords.length - 1], {
-          icon: L.divIcon({
-            html: `<div style="width: 12px; height: 12px; background-color: white; border: 3px solid ${route.color}; border-radius: 50%; box-shadow: 0 0 8px ${route.color};"></div>`,
-            iconSize: [12, 12],
-            iconAnchor: [6, 6],
-            className: "marker-end",
-          }),
-          zIndexOffset: 250,
-        }).addTo(map)
-      }
-      
+          zIndexOffset: isTerminal ? 280 : 260,
+        })
+        .addTo(map)
+        .bindPopup(`
+          <div class="station-popup">
+            <div class="station-popup-name">${stop.name}</div>
+            <div style="font-size:12px;color:#555;margin-bottom:6px;">${stop.nameEn}</div>
+            <div class="station-popup-lines">
+              <span class="station-line-badge" style="background-color:${route.color};">
+                خط ${route.lineNumber}
+              </span>
+            </div>
+          </div>
+        `)
+      })
+
       polyline.bindPopup(`
         <div class="station-popup">
           <div class="station-popup-name">${route.arabicName}</div>
+          <div style="font-size:12px;color:#555;margin-bottom:6px;">${route.name}</div>
           <div style="font-size:11px;color:#666;margin-top:4px;">من: ${route.terminalFrom}</div>
           <div style="font-size:11px;color:#666;">إلى: ${route.terminalTo}</div>
         </div>

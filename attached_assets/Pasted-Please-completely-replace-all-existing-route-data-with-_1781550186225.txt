@@ -1,0 +1,72 @@
+Please completely replace all existing route data with these 
+7 corrected bus lines for Khenchela, Algeria.
+Use the Plus Codes below to get precise GPS coordinates 
+via Google Maps API or any geocoding service.
+
+VERIFIED STOP LOCATIONS (Google Maps Plus Codes):
+- Main Bus Terminal (Gare Routière): C4WV+9M6, Khenchela
+- Shami Stadium (Stade Chami): C4GV+GW9, Khenchela
+- Hotel des Finances (نزل المالية): C4HV+3H7, Khenchela
+- Muamria Taher High School (ثانوية معمرية طاهر): C45Q+322, Khenchela
+- 50-Housing Neighborhood (حي 50 سكن): F385+88R, El Hamma
+- Moussa Raddah Mosque (مسجد حي موسى رداح): F42F+27R, Khenchela
+- Frnqal Road Apartments (عمارات طريق فرنقال): 94W2+C6H, Khenchela
+- Hotel 1 Novembre (نزل المدينة): C4GP+P69, Khenchela
+- Ansigha Police Station area: 35.5180, 7.1190
+- Al-Hama / Al-Mahdi Hotel: 35.4650, 7.0860
+- Al-Mahmal area: 35.5000, 7.2500
+- New City / Al-Hadika: 35.4240, 7.1380
+- Frnqal Village: 35.4500, 7.1900
+- Khenchela Cultural House: 35.4382, 7.1468
+
+THE 7 BUS LINES (stops in exact order):
+
+Line 01 - Al-Aizar (color: #FF6B35):
+1. 50-Housing Neighborhood (حي 50 سكن) [F385+88R]
+2. Muamria Taher High School (ث. معمرية طاهر) [C45Q+322]
+3. Hotel des Finances (نزل المالية) [C4HV+3H7]
+4. Shami Stadium (ملعب شامي) [C4GV+GW9]
+5. Main Bus Terminal (موقف الحافلات) [C4WV+9M6]
+
+Line 02 - Moussa Raddah (color: #9B59B6):
+1. Moussa Raddah Mosque (مسجد موسى رداح) [F42F+27R]
+2. Main Bus Terminal (موقف الحافلات) [C4WV+9M6]
+
+Line 04 - Ansigha (color: #00BCD4):
+1. Ansigha - near police station (انسيغة - مركز الشرطة)
+   [35.5180, 7.1190]
+2. Main Bus Terminal (موقف الحافلات) [C4WV+9M6]
+
+Line 05 - Al-Hama (color: #27AE60):
+1. Al-Hama / Al-Mahdi Hotel (الحامة - فندق المهدي)
+   [35.4650, 7.0860]
+2. Main Bus Terminal (موقف الحافلات) [C4WV+9M6]
+
+Line 06 - Al-Mahmal (color: #E74C3C):
+1. Al-Mahmal (المحمل) [35.5000, 7.2500]
+2. Main Bus Terminal (موقف الحافلات) [C4WV+9M6]
+3. Khenchela Cultural House (دار الثقافة) [35.4382, 7.1468]
+
+Line 10 - New City (color: #F39C12):
+1. New City / Al-Hadika (المدينة الجديدة - حي الحديقة)
+   [35.4240, 7.1380]
+2. Main Bus Terminal (موقف الحافلات) [C4WV+9M6]
+
+Line 11 - Frnqal (color: #2980B9):
+1. Frnqal Village (قرية فرنقال) [35.4500, 7.1900]
+2. Frnqal Road Apartments (عمارات طريق فرنقال) [94W2+C6H]
+3. Hotel 1 Novembre / City Hotel (نزل المدينة) [C4GP+P69]
+4. Main Bus Terminal (موقف الحافلات) [C4WV+9M6]
+
+TECHNICAL REQUIREMENTS:
+- Convert all Plus Codes to lat/lng before use
+- Use OSRM routing API to snap every route to real roads
+- Add intermediate waypoints where needed to 
+  ensure correct road path (not shortcuts)
+- Each line must have its assigned color
+- Stop markers: circle with line color + white label 
+  in Arabic and French
+- Map style: clean light theme similar to Google Maps
+- Remove ALL old route data before implementing new lines
+- Verify the full path of each route, not just 
+  start and end points
