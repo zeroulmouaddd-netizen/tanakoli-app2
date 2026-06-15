@@ -49,12 +49,12 @@ const ROUTE_CATEGORIES = {
 
 // All stops across the 7 verified Khenchela bus lines
 const urbanStations: { position: [number, number]; name: string; nameEn: string; arabicLabel: string; lines: string[]; isMain: boolean; category: "urban" }[] = [
-  { position: [35.445878, 7.144128], name: "موقف الحافلات", nameEn: "Gare Routière", arabicLabel: "موقف الحافلات الرئيسي", lines: ["line-02","line-05","line-06","line-10","line-11"], isMain: true, category: "urban" },
+  { position: [35.445878, 7.144128], name: "موقف الحافلات", nameEn: "Gare Routière", arabicLabel: "موقف الحافلات الرئيسي", lines: ["line-02","line-06","line-10","line-11"], isMain: true, category: "urban" },
   { position: [35.4075, 7.1380], name: "ث. معمرية طاهر", nameEn: "Lycée Muamria Taher", arabicLabel: "ثانوية معمرية طاهر", lines: ["line-01"], isMain: true, category: "urban" },
-  { position: [35.4279, 7.1431], name: "نزل المالية", nameEn: "Hôtel des Finances", arabicLabel: "نزل المالية", lines: ["line-01","line-04"], isMain: true, category: "urban" },
+  { position: [35.4279, 7.1431], name: "نزل المالية", nameEn: "Hôtel des Finances", arabicLabel: "نزل المالية", lines: ["line-01","line-04","line-05"], isMain: true, category: "urban" },
   { position: [35.450003, 7.123128], name: "مسجد موسى رداح", nameEn: "Mosquée Moussa Raddah", arabicLabel: "مسجد حي موسى رداح", lines: ["line-02"], isMain: true, category: "urban" },
   { position: [35.3950, 7.1420], name: "انسيغة", nameEn: "Ansigha (Tammayurt)", arabicLabel: "انسيغة - قرب مركز الشرطة", lines: ["line-04"], isMain: true, category: "urban" },
-  { position: [35.465,   7.086   ], name: "الحامة - فندق المهدي", nameEn: "Al-Hama / Hôtel El Mahdi", arabicLabel: "الحامة - أمام فندق المهدي", lines: ["line-05"], isMain: true, category: "urban" },
+  { position: [35.4659, 7.0581], name: "الحامة", nameEn: "Al-Hama (centre)", arabicLabel: "الحامة - وسط المدينة", lines: ["line-05"], isMain: true, category: "urban" },
   { position: [35.5,     7.25    ], name: "المحمل", nameEn: "El Mahmal", arabicLabel: "المحمل", lines: ["line-06"], isMain: true, category: "urban" },
   { position: [35.4382,  7.1468  ], name: "دار الثقافة", nameEn: "Maison de la Culture", arabicLabel: "دار الثقافة خنشلة", lines: ["line-06"], isMain: false, category: "urban" },
   { position: [35.424,   7.138   ], name: "المدينة الجديدة", nameEn: "Cité Nouvelle / Al-Hadika", arabicLabel: "المدينة الجديدة - حي الحديقة", lines: ["line-10"], isMain: true, category: "urban" },
@@ -126,20 +126,20 @@ const urbanRoutePolylines: {
   },
   {
     id: "line-05", lineNumber: "05",
-    name: "Ligne 05 — Al-Hama",
-    arabicName: "خط 05 — الحامة",
+    name: "Ligne 05 — Al-Hama (RN88)",
+    arabicName: "خط 05 — الحامة (طريق RN88)",
     color: "#27AE60",
     category: "urban",
-    terminalFrom: "الحامة - فندق المهدي",
-    terminalTo: "موقف الحافلات",
+    terminalFrom: "نزل المالية",
+    terminalTo: "الحامة",
     stops: [
-      { name: "الحامة - فندق المهدي", nameEn: "Al-Hama / Hôtel El Mahdi", coords: [35.465, 7.086], isTerminal: true },
-      { name: "موقف الحافلات",         nameEn: "Gare Routière",            coords: [35.445878, 7.144128], isTerminal: true },
+      { name: "نزل المالية", nameEn: "Hôtel des Finances", coords: [35.4279, 7.1431], isTerminal: true  },
+      { name: "الحامة",      nameEn: "Al-Hama (centre)",   coords: [35.4659, 7.0581], isTerminal: true  },
     ],
     waypoints: [
-      [35.465,    7.086   ],
-      [35.4550,   7.1100  ],
-      [35.445878, 7.144128],
+      [35.4279, 7.1431],
+      [35.4380, 7.0950],
+      [35.4659, 7.0581],
     ],
   },
   {

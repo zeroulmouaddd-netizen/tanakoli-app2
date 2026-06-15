@@ -102,7 +102,7 @@ const urbanRoutes: BusRoute[] = [
   {
     id: "route-05",
     name: "خط 05 — الحامة",
-    nameEn: "Ligne 05 — Al-Hama",
+    nameEn: "Ligne 05 — Al-Hama (RN88)",
     lineNumber: "05",
     color: "#27AE60",
     price: 35,
@@ -110,12 +110,12 @@ const urbanRoutes: BusRoute[] = [
     frequency: 20,
     category: "urban",
     stops: [
-      { id: "05-s1", name: "الحامة - فندق المهدي", nameEn: "Al-Hama / Hôtel El Mahdi", coords: [35.465,    7.086   ], order: 1 },
-      { id: "05-s2", name: "موقف الحافلات",         nameEn: "Gare Routière",            coords: [35.445878, 7.144128], order: 2 },
+      { id: "05-s1", name: "نزل المالية", nameEn: "Hôtel des Finances", coords: [35.4279, 7.1431], order: 1 },
+      { id: "05-s2", name: "الحامة",      nameEn: "Al-Hama (centre)",   coords: [35.4659, 7.0581], order: 2 },
     ],
     sub_stations: [
-      { id: "sub-05-1", name: "الحامة - فندق المهدي", nameEn: "Al-Hama / Hôtel El Mahdi", coords: [35.465,    7.086   ], order: 1 },
-      { id: "sub-05-2", name: "موقف الحافلات",         nameEn: "Gare Routière",            coords: [35.445878, 7.144128], order: 2 },
+      { id: "sub-05-1", name: "نزل المالية", nameEn: "Hôtel des Finances", coords: [35.4279, 7.1431], order: 1 },
+      { id: "sub-05-2", name: "الحامة",      nameEn: "Al-Hama (centre)",   coords: [35.4659, 7.0581], order: 2 },
     ],
   },
   {
@@ -187,12 +187,12 @@ const urbanRoutes: BusRoute[] = [
 const fallbackRoutes: BusRoute[] = [...urbanRoutes]
 
 const fallbackStations: Station[] = [
-  { id: "station-terminal",   name: "موقف الحافلات",   nameEn: "Gare Routière",       address: "موقف الحافلات الرئيسي - خنشلة", coords: [35.445878, 7.144128], lines: ["02","05","06","10","11"],    facilities: ["shelter","bench","kiosk","toilet"], isMainStation: true },
-  { id: "station-muamria",    name: "ث. معمرية طاهر", nameEn: "Lycée Muamria Taher", address: "ثانوية معمرية طاهر - خنشلة",    coords: [35.4075, 7.1380],     lines: ["01"],        facilities: ["shelter","bench"], isMainStation: true },
-  { id: "station-finances",   name: "نزل المالية",     nameEn: "Hôtel des Finances",  address: "نزل المالية - خنشلة",            coords: [35.4279, 7.1431],     lines: ["01","04"],   facilities: ["shelter","bench"], isMainStation: true },
+  { id: "station-terminal",   name: "موقف الحافلات",   nameEn: "Gare Routière",       address: "موقف الحافلات الرئيسي - خنشلة", coords: [35.445878, 7.144128], lines: ["02","06","10","11"],       facilities: ["shelter","bench","kiosk","toilet"], isMainStation: true },
+  { id: "station-muamria",    name: "ث. معمرية طاهر", nameEn: "Lycée Muamria Taher", address: "ثانوية معمرية طاهر - خنشلة",    coords: [35.4075, 7.1380],     lines: ["01"],             facilities: ["shelter","bench"], isMainStation: true },
+  { id: "station-finances",   name: "نزل المالية",     nameEn: "Hôtel des Finances",  address: "نزل المالية - خنشلة",            coords: [35.4279, 7.1431],     lines: ["01","04","05"],   facilities: ["shelter","bench"], isMainStation: true },
   { id: "station-moussa",     name: "مسجد موسى رداح",      nameEn: "Mosquée Moussa Raddah",    address: "مسجد حي موسى رداح - خنشلة",            coords: [35.450003, 7.123128], lines: ["02"], facilities: ["shelter","bench"],           isMainStation: true  },
   { id: "station-ansigha",    name: "انسيغة",               nameEn: "Ansigha",                  address: "انسيغة - قرب مركز الشرطة",             coords: [35.518,    7.119   ], lines: ["04"], facilities: ["shelter"],                  isMainStation: true  },
-  { id: "station-alhama",     name: "الحامة - فندق المهدي", nameEn: "Al-Hama / Hôtel El Mahdi", address: "الحامة - أمام فندق المهدي",            coords: [35.465,    7.086   ], lines: ["05"], facilities: ["shelter","bench"],           isMainStation: true  },
+  { id: "station-alhama",     name: "الحامة",               nameEn: "Al-Hama (centre)",         address: "الحامة - وسط المدينة",                 coords: [35.4659,   7.0581  ], lines: ["05"], facilities: ["shelter","bench"],           isMainStation: true  },
   { id: "station-mahmal",     name: "المحمل",               nameEn: "El Mahmal",                address: "المحمل - خنشلة",                       coords: [35.5,      7.25    ], lines: ["06"], facilities: ["shelter"],                  isMainStation: true  },
   { id: "station-culture",    name: "دار الثقافة",          nameEn: "Maison de la Culture",     address: "دار الثقافة خنشلة",                   coords: [35.4382,   7.1468  ], lines: ["06"], facilities: ["bench"],                    isMainStation: false },
   { id: "station-newcity",    name: "المدينة الجديدة",      nameEn: "Cité Nouvelle / Al-Hadika", address: "المدينة الجديدة - حي الحديقة",        coords: [35.424,    7.138   ], lines: ["10"], facilities: ["shelter","bench"],           isMainStation: true  },
