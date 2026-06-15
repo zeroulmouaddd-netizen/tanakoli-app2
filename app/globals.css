@@ -449,60 +449,26 @@
 }
 
 /* Smart City Cyber Styling - Animated Data Flow Lines */
-@keyframes dashFlow {
-  to {
-    stroke-dashoffset: -50;
-  }
-}
+/* route-flow keyframe lives in the JS-injected stylesheet (leaflet-map.tsx) */
 
-@keyframes lineGlow {
-  0%, 100% {
-    filter: drop-shadow(0 0 4px currentColor);
-  }
-  50% {
-    filter: drop-shadow(0 0 10px currentColor);
-  }
-}
-
-/* Cyber line with aggressive animation */
-.cyber-line {
-  animation: dashFlow 2s linear infinite, lineGlow 2s ease-in-out infinite !important;
-  stroke-linecap: round !important;
-  stroke-linejoin: round !important;
-}
-
-/* Animated transit polylines with cyber glow effect */
+/* Animated transit polylines — stroke-dasharray is set here so Leaflet
+   picks it up as an SVG attribute; animation is driven by the injected sheet */
 .route-polyline {
-  animation: dashFlow 2s linear infinite, lineGlow 2s ease-in-out infinite !important;
   stroke-linecap: round !important;
   stroke-linejoin: round !important;
   stroke-dasharray: 10, 15 !important;
 }
 
-/* Minimalist start marker - Sleek white dot with colored glow */
-.marker-start {
+/* Terminal markers — wrapper sizing only; inner div is animated via injected styles */
+.marker-start,
+.marker-end {
   display: flex;
   align-items: center;
   justify-content: center;
   width: 12px;
   height: 12px;
   border-radius: 50%;
-  background-color: #FFFFFF;
-  border: 3px solid;
-  box-shadow: 0 0 8px currentColor;
-  filter: drop-shadow(0 0 4px currentColor);
-}
-
-/* Minimalist end marker - Micro square with subtle pin */
-.marker-end {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 8px;
-  height: 8px;
-  border-radius: 0%;
-  background-color: #FFFFFF;
-  border: 2px solid;
-  box-shadow: 0 0 6px currentColor;
-  filter: drop-shadow(0 0 3px currentColor);
+  background: transparent;
+  border: none;
+  box-shadow: none;
 }

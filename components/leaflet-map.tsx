@@ -563,8 +563,41 @@ if (typeof document !== "undefined") {
         box-shadow: 0 2px 8px rgba(0,0,0,0.2);
       }
       .station-line-badge.urban { background: #00A651; }
+      /* ── Living line flow animation ── */
+      @keyframes route-flow {
+        from { stroke-dashoffset: 0; }
+        to   { stroke-dashoffset: -25; }
+      }
+      /* ── Terminal dot pulse ── */
+      @keyframes terminal-pulse {
+        0%, 100% { transform: scale(0.8); opacity: 0.85; }
+        50%       { transform: scale(1.2); opacity: 1; }
+      }
+      /* Main animated dashed line — targets the SVG <path> directly in Leaflet SVG mode */
+      .cyber-line {
+        stroke-linecap: round !important;
+        stroke-linejoin: round !important;
+        opacity: 0.85 !important;
+        filter: drop-shadow(0 0 5px rgba(255,255,255,0.5)) !important;
+        animation: route-flow 3s linear infinite !important;
+        animation-play-state: running !important;
+        will-change: stroke-dashoffset;
+      }
+      /* Glow halo layer — thick blurred path rendered behind the dashed line */
+      .cyber-glow {
+        stroke-linecap: round !important;
+        stroke-linejoin: round !important;
+        opacity: 0.2 !important;
+        filter: blur(4px) !important;
+      }
+      /* Pulsing start / end terminal dots */
+      .marker-start > div,
+      .marker-end > div {
+        animation: terminal-pulse 1.5s ease-in-out infinite;
+        transform-origin: center;
+      }
       .route-polyline { transition: opacity 0.3s ease, stroke-width 0.3s ease; }
-      .route-polyline-faded { opacity: 0.15 !important; }
+      .route-polyline-faded { opacity: 0.12 !important; }
       .route-polyline-highlighted { opacity: 1 !important; }
       .sub-station-marker {
         width: 12px; height: 12px;
@@ -780,6 +813,7 @@ export default function LeafletMap({ trackingLineId, isFullscreen = false }: Lea
   const fleetClusterRef = useRef<L.MarkerClusterGroup | null>(null) // For static fleet buses - CLUSTERED
   const fleetMarkersRef = useRef<Map<string, L.Marker>>(new Map()) // Track fleet markers in cluster
   const routePolylinesRef = useRef<Map<string, L.Polyline>>(new Map())
+  const routeGlowPolylinesRef = useRef<Map<string, L.Polyline>>(new Map())
   const stationMarkersRef = useRef<Map<string, L.Marker>>(new Map())
   const subStationMarkersRef = useRef<Map<string, L.Marker>>(new Map())
   const driverMarkerRef = useRef<L.Marker | null>(null) // For real-time driver location
@@ -820,20 +854,29 @@ const { subStations } = useRouteSubStations(selectedRoute)
     // Update polyline styles
     routePolylinesRef.current.forEach((polyline, id) => {
       if (routeId === null) {
-        // Show all mode - thin lines, normal opacity
-        polyline.setStyle({ weight: 3, opacity: 0.7 })
+        polyline.setStyle({ weight: 4, opacity: 0.85 })
         polyline.getElement()?.classList.remove("route-polyline-faded", "route-polyline-highlighted")
       } else if (id === routeId) {
-        // Selected route - thick, bright
         polyline.setStyle({ weight: 6, opacity: 1 })
         polyline.getElement()?.classList.remove("route-polyline-faded")
         polyline.getElement()?.classList.add("route-polyline-highlighted")
         polyline.bringToFront()
       } else {
-        // Other routes - faded
-        polyline.setStyle({ weight: 2, opacity: 0.15 })
+        polyline.setStyle({ weight: 2, opacity: 0.12 })
         polyline.getElement()?.classList.add("route-polyline-faded")
         polyline.getElement()?.classList.remove("route-polyline-highlighted")
+      }
+    })
+
+    // Sync glow halo layers
+    routeGlowPolylinesRef.current.forEach((glow, id) => {
+      if (routeId === null) {
+        glow.setStyle({ weight: 14, opacity: 0.18 })
+      } else if (id === routeId) {
+        glow.setStyle({ weight: 20, opacity: 0.28 })
+        glow.bringToFront()
+      } else {
+        glow.setStyle({ weight: 10, opacity: 0.04 })
       }
     })
 
@@ -985,7 +1028,7 @@ const { subStations } = useRouteSubStations(selectedRoute)
       scrollWheelZoom: true,
       minZoom: 10,
       maxZoom: 18,
-      preferCanvas: true,
+      preferCanvas: false, // SVG mode required for CSS stroke-dashoffset animation
     })
 
     mapRef.current = map
@@ -1065,13 +1108,25 @@ const { subStations } = useRouteSubStations(selectedRoute)
       // Fetch real road geometry from OSRM
       const osrmCoords = await fetchOSRMRoute(route.waypoints)
       const routeCoords = osrmCoords || route.waypoints // Fallback to waypoints if OSRM fails
+
+      // Glow halo layer — thick, blurred, same color, drawn FIRST (behind)
+      const glowPolyline = L.polyline(routeCoords, {
+        color: route.color,
+        weight: 14,
+        opacity: 0.18,
+        lineCap: "round",
+        lineJoin: "round",
+        className: "cyber-glow",
+        interactive: false,
+      }).addTo(map)
+      routeGlowPolylinesRef.current.set(route.id, glowPolyline)
       
-      // Main polyline - Dashed colored line with cyber glow animation
+      // Main polyline — dashed, animated, drawn ON TOP of glow
       const polyline = L.polyline(routeCoords, {
         color: route.color,
-        weight: 5, // Thick visible weight
-        opacity: 1.0,
-        dashArray: "10, 15", // Explicit dashed pattern
+        weight: 4,
+        opacity: 0.85,
+        dashArray: "10, 15",
         lineCap: "round",
         lineJoin: "round",
         className: "route-polyline cyber-line",
@@ -1146,6 +1201,7 @@ const { subStations } = useRouteSubStations(selectedRoute)
       }
       fleetMarkersRef.current.clear()
       routePolylinesRef.current.clear()
+      routeGlowPolylinesRef.current.clear()
       stationMarkersRef.current.clear()
       subStationMarkersRef.current.forEach((marker) => marker.remove())
       subStationMarkersRef.current.clear()
