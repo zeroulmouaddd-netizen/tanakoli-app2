@@ -876,6 +876,9 @@ export default function LeafletMap({ trackingLineId, isFullscreen = false }: Lea
   const { isDark } = useTheme()
   const { isDriverMode, isLiveTracking } = useDriverMode()
   const [tilesLoaded, setTilesLoaded] = useState(false)
+  
+  // Last Known Position cache — prevents snap-back to center when tracking stops
+  const lastKnownDriverLocationRef = useRef<DriverLocation | null>(null)
 
   // Locate me state
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null)
@@ -1040,15 +1043,19 @@ const { subStations } = useRouteSubStations(selectedRoute)
           if (snapshot.exists()) {
             const data = snapshot.val()
             if (data && typeof data.lat === "number" && typeof data.lng === "number") {
-              setDriverLocation({
+              const newLocation = {
                 lat: data.lat,
                 lng: data.lng,
-              })
+              }
+              setDriverLocation(newLocation)
+              // CACHE the last known position so we never snap back to center
+              lastKnownDriverLocationRef.current = newLocation
               console.log("[v0] Driver location updated:", data)
             }
           } else {
-            // Driver is offline
-            setDriverLocation(null)
+            // Driver is offline — but DO NOT clear the location
+            // Let lastKnownDriverLocationRef persist instead
+            console.log("[v0] Driver offline — retaining last known position")
           }
         },
         (error) => {
@@ -1065,25 +1072,21 @@ const { subStations } = useRouteSubStations(selectedRoute)
   }, [])
 
   // ── DIRECT BINDING: Pink Truck = Blue Dot when isLiveTracking is ON ──────
-  // BYPASS all toggle logic. When tracking is ON, force Pink Truck to follow Blue Dot.
-  // When tracking is OFF, Pink Truck hides (or stays at last known position).
+  // When tracking is ON, force Pink Truck to follow Blue Dot.
+  // When tracking is OFF, retain the last known position (NO snap-back to center).
   useEffect(() => {
-    if (!isLiveTracking) {
-      // Toggle OFF — hide the truck by clearing it
-      setDriverLocation(null)
-      return
-    }
-
     // Toggle ON — force direct binding: Pink Truck = Blue Dot, always
-    if (userLocation) {
+    if (isLiveTracking && userLocation) {
       setDriverLocation(userLocation)
+      lastKnownDriverLocationRef.current = userLocation
       // Write to RTDB so all other users' maps see the updated position
       try {
         set(ref(rtdb, "drivers/0775453629/location"), userLocation)
       } catch (error) {
-        console.error("[map] Failed to update RTDB:", error)
+        console.error("[v0] Failed to update RTDB:", error)
       }
     }
+    // Toggle OFF — do nothing; keep the last known position cached
   }, [userLocation, isLiveTracking])
 
   // Initialize map
@@ -1583,15 +1586,18 @@ const marker = L.marker(subStation.coords, {
   }, [staticBuses, mapReady, isValidCoord, getBusIcon])
 
   // Update driver location marker (real-time GPS from Driver App)
-  // Shows at Khenchela center by default if no data yet
+  // Persists at last known position — never snaps back to center
   useEffect(() => {
     const map = mapRef.current
     if (!map || !mapReady) return
 
-    // Use real location if available, otherwise use default Khenchela center
-    const displayLocation = driverLocation || {
-      lat: 35.4358,
-      lng: 7.1436,
+    // Use real location if available, otherwise use LAST KNOWN POSITION cache (NOT default center)
+    const displayLocation = driverLocation || lastKnownDriverLocationRef.current
+    
+    // If no position yet, don't render the marker
+    if (!displayLocation) {
+      console.log("[v0] No driver location yet — marker not rendered")
+      return
     }
 
     // Validate coordinates
@@ -1613,7 +1619,7 @@ const marker = L.marker(subStation.coords, {
       iconAnchor: [14, 14],
     })
 
-    const statusText = driverLocation ? "Live Driver - 0775453629" : "Default Location (Awaiting GPS)"
+    const statusText = driverLocation ? "Live Driver - 0775453629" : "Last Known Position - 0775453629"
     const popupContent = `
       <div class="station-popup">
         <div class="station-popup-name">سائق مباشر</div>
