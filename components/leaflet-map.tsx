@@ -877,6 +877,7 @@ export default function LeafletMap({ trackingLineId, isFullscreen = false }: Lea
   const simAnimFrameRef = useRef<number | null>(null)
   const stationMarkersRef = useRef<Map<string, L.Marker>>(new Map())
   const subStationMarkersRef = useRef<Map<string, L.Marker>>(new Map())
+  const fringalStopMarkersRef = useRef<L.Marker[]>([]) // Fringal GPX stop markers (line-11)
   const driverMarkerRef = useRef<L.Marker | null>(null) // For real-time driver location
   const userMarkerRef = useRef<L.Marker | null>(null) // For "locate me" blue dot
   const { isDark } = useTheme()
@@ -912,62 +913,101 @@ const { subStations } = useRouteSubStations(selectedRoute)
     const map = mapRef.current
     if (!map) return
 
-    // Update polyline styles
+    // Helper: does a stored polyline key belong to the requested routeId?
+    // line-11's two GPX tracks are keyed as "line-11-outbound" / "line-11-return"
+    const belongsTo = (id: string, rid: string) =>
+      id === rid ||
+      (rid === "line-11" && (id === "line-11-outbound" || id === "line-11-return"))
+
+    // ── Polyline highlight / fade ─────────────────────────────────────────────
     routePolylinesRef.current.forEach((polyline, id) => {
       if (routeId === null) {
         polyline.setStyle({ weight: 4, opacity: 0.85 })
         polyline.getElement()?.classList.remove("route-polyline-faded", "route-polyline-highlighted")
-      } else if (id === routeId) {
+      } else if (belongsTo(id, routeId)) {
         polyline.setStyle({ weight: 6, opacity: 1 })
         polyline.getElement()?.classList.remove("route-polyline-faded")
         polyline.getElement()?.classList.add("route-polyline-highlighted")
         polyline.bringToFront()
       } else {
-        polyline.setStyle({ weight: 2, opacity: 0.12 })
+        polyline.setStyle({ weight: 2, opacity: 0.08 })
         polyline.getElement()?.classList.add("route-polyline-faded")
         polyline.getElement()?.classList.remove("route-polyline-highlighted")
       }
     })
 
-    // Sync glow halo layers
+    // ── Glow halo layers ──────────────────────────────────────────────────────
     routeGlowPolylinesRef.current.forEach((glow, id) => {
       if (routeId === null) {
         glow.setStyle({ weight: 14, opacity: 0.18 })
-      } else if (id === routeId) {
-        glow.setStyle({ weight: 20, opacity: 0.28 })
+      } else if (belongsTo(id, routeId)) {
+        glow.setStyle({ weight: 22, opacity: 0.32 })
         glow.bringToFront()
       } else {
-        glow.setStyle({ weight: 10, opacity: 0.04 })
+        glow.setStyle({ weight: 10, opacity: 0.03 })
       }
     })
 
-    // Update station marker styles
+    // ── Station markers (urban route stop dots) ───────────────────────────────
     stationMarkersRef.current.forEach((marker, name) => {
-      const markerElement = marker.getElement()
-      if (!markerElement) return
-
+      const el = marker.getElement()
+      if (!el) return
       if (routeId === null) {
-        markerElement.classList.remove("faded")
-        markerElement.style.opacity = "1"
+        el.style.opacity = "1"
       } else {
-        // Check if this station is on the selected route
         const station = urbanStations.find(s => s.name === name)
-        if (station && station.lines.includes(routeId)) {
-          markerElement.classList.remove("faded")
-          markerElement.style.opacity = "1"
-        } else {
-          markerElement.classList.add("faded")
-          markerElement.style.opacity = "0.3"
-        }
+        el.style.opacity = (station && station.lines.includes(routeId)) ? "1" : "0.15"
       }
     })
 
-    // If a route is selected, fit map to that route
+    // ── Fringal GPX stop markers ──────────────────────────────────────────────
+    fringalStopMarkersRef.current.forEach(marker => {
+      const el = marker.getElement()
+      if (!el) return
+      if (routeId === null || routeId === "line-11") {
+        el.style.opacity = "1"
+        el.style.pointerEvents = "auto"
+      } else {
+        el.style.opacity = "0.1"
+        el.style.pointerEvents = "none"
+      }
+    })
+
+    // ── Simulated bus markers — hide buses for non-selected routes ────────────
+    simBusMarkersRef.current.forEach(({ marker, routeId: busRouteId }) => {
+      const el = marker.getElement()
+      if (!el) return
+      if (routeId === null || busRouteId === routeId) {
+        el.style.opacity = "1"
+        el.style.pointerEvents = "auto"
+      } else {
+        el.style.opacity = "0"
+        el.style.pointerEvents = "none"
+      }
+    })
+
+    // ── Fleet bus cluster — hide in Focus Mode ────────────────────────────────
+    if (fleetClusterRef.current) {
+      if (routeId === null) {
+        if (!map.hasLayer(fleetClusterRef.current)) fleetClusterRef.current.addTo(map)
+      } else {
+        if (map.hasLayer(fleetClusterRef.current)) map.removeLayer(fleetClusterRef.current)
+      }
+    }
+
+    // ── Fit map to selected route ─────────────────────────────────────────────
     if (routeId) {
-      const route = allRoutes.find(r => r.id === routeId)
-      if (route) {
-        const bounds = L.latLngBounds(route.waypoints)
-        map.fitBounds(bounds, { padding: [50, 50], maxZoom: 14 })
+      if (routeId === "line-11") {
+        const bounds = L.latLngBounds([
+          ...fringalOutboundCoords,
+          ...fringalReturnCoords,
+        ])
+        map.fitBounds(bounds, { padding: [60, 60], maxZoom: 14 })
+      } else {
+        const route = allRoutes.find(r => r.id === routeId)
+        if (route) {
+          map.fitBounds(L.latLngBounds(route.waypoints), { padding: [50, 50], maxZoom: 14 })
+        }
       }
     }
   }, [])
@@ -1255,22 +1295,22 @@ const { subStations } = useRouteSubStations(selectedRoute)
       routeCoordsRef.current.set(route.id, routeCoords)
     })
 
-    // ── Line 11 (Fringal / فرينغال) — rendered from real GPS tracks ──────────
-    // Two separate polylines: outbound (فرينغال الانطلاق) & return (فرينغال العودة)
-    // Visual style is identical to every other urban route (glow + dashed animated line).
+    // ── Line 11 (Fringal / فرينغال) — real GPS tracks, DP-smoothed ──────────
+    // Two polylines: outbound (فرينغال الانطلاق) & return (فرينغال العودة).
+    // Glows + stop markers are stored in refs so Focus Mode picks them up.
     ;(() => {
       const line11 = urbanRoutePolylines.find(r => r.id === "line-11")!
-      const color = line11.color  // #2980B9
+      const color  = line11.color  // #2980B9
 
       const drawGPXTrack = (
         coords: [number, number][],
         directionName: string,
         directionNameEn: string,
-        waypoints: { name: string; nameEn: string; coords: [number, number]; isTerminal: boolean }[],
+        waypoints: { name: string; nameEn: string; coords: [number, number]; isTerminal: boolean; isStart: boolean }[],
         trackKey: string,
       ) => {
-        // Glow halo layer
-        L.polyline(coords, {
+        // ── Glow halo — stored in ref so Focus Mode can dim it ──────────────
+        const glowPoly = L.polyline(coords, {
           color,
           weight: 14,
           opacity: 0.18,
@@ -1279,8 +1319,9 @@ const { subStations } = useRouteSubStations(selectedRoute)
           className: "cyber-glow",
           interactive: false,
         }).addTo(map)
+        routeGlowPolylinesRef.current.set(trackKey, glowPoly)
 
-        // Main dashed animated line
+        // ── Main dashed animated line ────────────────────────────────────────
         const polyline = L.polyline(coords, {
           color,
           weight: 4,
@@ -1304,36 +1345,73 @@ const { subStations } = useRouteSubStations(selectedRoute)
         routePolylinesRef.current.set(trackKey, polyline)
         routeCoordsRef.current.set(trackKey, coords)
 
-        // Stop markers
+        // ── Stop markers ─────────────────────────────────────────────────────
         waypoints.forEach((stop, idx) => {
-          const isFirst = idx === 0
-          const isLast  = idx === waypoints.length - 1
+          const isFirst    = idx === 0
+          const isLast     = idx === waypoints.length - 1
           const isTerminal = stop.isTerminal
+          const isStart    = stop.isStart
 
-          const markerHtml = isTerminal
-            ? `<div style="
-                width:20px;height:20px;background:${color};border:3px solid white;
-                border-radius:50%;box-shadow:0 2px 8px rgba(0,0,0,0.35),0 0 0 2px ${color}40;
+          let markerHtml: string
+          let iconSize: [number, number]
+          let iconAnchor: [number, number]
+
+          if (isTerminal && isStart) {
+            // ── Distinctive START terminal — play-triangle icon, bright gradient ──
+            markerHtml = `
+              <div style="
+                width:32px;height:32px;
+                background:linear-gradient(135deg,#5DADE2,#1F618D);
+                border:3px solid white;border-radius:50%;
+                box-shadow:0 0 0 4px rgba(41,128,185,0.45),0 4px 18px rgba(0,0,0,0.5);
                 display:flex;align-items:center;justify-content:center;
-                font-size:9px;font-weight:800;color:white;font-family:sans-serif;
-                cursor:pointer;
-              ">11</div>`
-            : `<div style="
+                cursor:pointer;animation:terminal-pulse 1.8s ease-in-out infinite;
+              ">
+                <svg width="12" height="13" viewBox="0 0 12 13" fill="white">
+                  <polygon points="1,0 12,6.5 1,13"/>
+                </svg>
+              </div>`
+            iconSize   = [32, 32]
+            iconAnchor = [16, 16]
+          } else if (isTerminal && !isStart) {
+            // ── Distinctive END terminal — stop-square icon, deep blue ──────────
+            markerHtml = `
+              <div style="
+                width:32px;height:32px;
+                background:linear-gradient(135deg,#1A5276,#2980B9);
+                border:3px solid white;border-radius:50%;
+                box-shadow:0 0 0 4px rgba(41,128,185,0.45),0 4px 18px rgba(0,0,0,0.5);
+                display:flex;align-items:center;justify-content:center;
+                cursor:pointer;animation:terminal-pulse 1.8s ease-in-out infinite;
+              ">
+                <svg width="11" height="11" viewBox="0 0 11 11" fill="white">
+                  <rect x="1" y="1" width="9" height="9" rx="1.5"/>
+                </svg>
+              </div>`
+            iconSize   = [32, 32]
+            iconAnchor = [16, 16]
+          } else {
+            // ── Intermediate stop — small white ring ─────────────────────────────
+            markerHtml = `
+              <div style="
                 width:14px;height:14px;background:white;border:3px solid ${color};
                 border-radius:50%;box-shadow:0 2px 5px rgba(0,0,0,0.25);
                 display:flex;align-items:center;justify-content:center;
                 font-size:7px;font-weight:800;color:${color};font-family:sans-serif;
                 cursor:pointer;
               ">11</div>`
+            iconSize   = [14, 14]
+            iconAnchor = [7,  7]
+          }
 
-          L.marker(stop.coords, {
+          const stopMarker = L.marker(stop.coords, {
             icon: L.divIcon({
               html: markerHtml,
-              iconSize:   isTerminal ? [20, 20] : [14, 14],
-              iconAnchor: isTerminal ? [10, 10] : [7,  7],
+              iconSize,
+              iconAnchor,
               className: isFirst ? "marker-start" : isLast ? "marker-end" : "station-marker",
             }),
-            zIndexOffset: isTerminal ? 280 : 260,
+            zIndexOffset: isTerminal ? 320 : 260,
           })
             .addTo(map)
             .bindPopup(`
@@ -1341,10 +1419,15 @@ const { subStations } = useRouteSubStations(selectedRoute)
                 <div class="station-popup-name">${stop.name}</div>
                 <div style="font-size:12px;color:#555;margin-bottom:6px;">${stop.nameEn}</div>
                 <div class="station-popup-lines">
-                  <span class="station-line-badge" style="background-color:${color};">خط 11</span>
+                  <span class="station-line-badge" style="background-color:${color};">
+                    ${isStart ? "▶ بداية" : isTerminal ? "■ نهاية" : "خط 11"}
+                  </span>
                 </div>
               </div>
             `)
+
+          // Track for Focus Mode visibility control
+          fringalStopMarkersRef.current.push(stopMarker)
         })
       }
 
@@ -1363,7 +1446,7 @@ const { subStations } = useRouteSubStations(selectedRoute)
         "line-11-return",
       )
 
-      // Seed simulation coords for line-11 (use combined outbound for bus movement)
+      // Seed simulation coords for line-11
       routeCoordsRef.current.set("line-11", fringalOutboundCoords)
     })()
     // ─────────────────────────────────────────────────────────────────────────
@@ -1471,6 +1554,8 @@ const { subStations } = useRouteSubStations(selectedRoute)
       routePolylinesRef.current.clear()
       routeGlowPolylinesRef.current.clear()
       stationMarkersRef.current.clear()
+      fringalStopMarkersRef.current.forEach(m => m.remove())
+      fringalStopMarkersRef.current = []
       subStationMarkersRef.current.forEach((marker) => marker.remove())
       subStationMarkersRef.current.clear()
       if (mapRef.current) {
