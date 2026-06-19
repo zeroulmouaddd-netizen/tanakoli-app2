@@ -14,6 +14,12 @@ import { Layers, ChevronDown, ChevronUp, MapPin, Maximize2, Minimize2, LocateFix
 import { useTheme } from "@/lib/theme-context"
 import { useRouteSubStations } from "@/hooks/use-routes"
 import { useBusSimulation, type SimulatedBus } from "@/lib/bus-simulation"
+import {
+  fringalOutboundCoords,
+  fringalReturnCoords,
+  fringalOutboundWaypoints,
+  fringalReturnWaypoints,
+} from "@/lib/data/fringal-gpx-data"
 
 // Tile layer URLs — single stable OSM endpoint (no subdomain variable)
 const TILE_LAYERS = {
@@ -1160,6 +1166,9 @@ const { subStations } = useRouteSubStations(selectedRoute)
   
   // Add urban route polylines with OSRM-based snap-to-road routing + dashed animated styling
     urbanRoutePolylines.forEach(async (route) => {
+      // line-11 (Fringal) is rendered separately below using real GPS tracks
+      if (route.id === "line-11") return
+
       // Fetch real road geometry from OSRM
       const osrmCoords = await fetchOSRMRoute(route.waypoints)
       const routeCoords = osrmCoords || route.waypoints // Fallback to waypoints if OSRM fails
@@ -1245,6 +1254,119 @@ const { subStations } = useRouteSubStations(selectedRoute)
       // Store resolved coords for the rAF simulation loop
       routeCoordsRef.current.set(route.id, routeCoords)
     })
+
+    // ── Line 11 (Fringal / فرينغال) — rendered from real GPS tracks ──────────
+    // Two separate polylines: outbound (فرينغال الانطلاق) & return (فرينغال العودة)
+    // Visual style is identical to every other urban route (glow + dashed animated line).
+    ;(() => {
+      const line11 = urbanRoutePolylines.find(r => r.id === "line-11")!
+      const color = line11.color  // #2980B9
+
+      const drawGPXTrack = (
+        coords: [number, number][],
+        directionName: string,
+        directionNameEn: string,
+        waypoints: { name: string; nameEn: string; coords: [number, number]; isTerminal: boolean }[],
+        trackKey: string,
+      ) => {
+        // Glow halo layer
+        L.polyline(coords, {
+          color,
+          weight: 14,
+          opacity: 0.18,
+          lineCap: "round",
+          lineJoin: "round",
+          className: "cyber-glow",
+          interactive: false,
+        }).addTo(map)
+
+        // Main dashed animated line
+        const polyline = L.polyline(coords, {
+          color,
+          weight: 4,
+          opacity: 0.85,
+          dashArray: "10, 15",
+          lineCap: "round",
+          lineJoin: "round",
+          className: "route-polyline cyber-line",
+        })
+          .addTo(map)
+          .bindPopup(`
+            <div class="station-popup">
+              <div class="station-popup-name">${directionName}</div>
+              <div style="font-size:12px;color:#555;margin-bottom:6px;">${directionNameEn}</div>
+              <div class="station-popup-lines">
+                <span class="station-line-badge" style="background-color:${color};">خط 11</span>
+              </div>
+            </div>
+          `)
+
+        routePolylinesRef.current.set(trackKey, polyline)
+        routeCoordsRef.current.set(trackKey, coords)
+
+        // Stop markers
+        waypoints.forEach((stop, idx) => {
+          const isFirst = idx === 0
+          const isLast  = idx === waypoints.length - 1
+          const isTerminal = stop.isTerminal
+
+          const markerHtml = isTerminal
+            ? `<div style="
+                width:20px;height:20px;background:${color};border:3px solid white;
+                border-radius:50%;box-shadow:0 2px 8px rgba(0,0,0,0.35),0 0 0 2px ${color}40;
+                display:flex;align-items:center;justify-content:center;
+                font-size:9px;font-weight:800;color:white;font-family:sans-serif;
+                cursor:pointer;
+              ">11</div>`
+            : `<div style="
+                width:14px;height:14px;background:white;border:3px solid ${color};
+                border-radius:50%;box-shadow:0 2px 5px rgba(0,0,0,0.25);
+                display:flex;align-items:center;justify-content:center;
+                font-size:7px;font-weight:800;color:${color};font-family:sans-serif;
+                cursor:pointer;
+              ">11</div>`
+
+          L.marker(stop.coords, {
+            icon: L.divIcon({
+              html: markerHtml,
+              iconSize:   isTerminal ? [20, 20] : [14, 14],
+              iconAnchor: isTerminal ? [10, 10] : [7,  7],
+              className: isFirst ? "marker-start" : isLast ? "marker-end" : "station-marker",
+            }),
+            zIndexOffset: isTerminal ? 280 : 260,
+          })
+            .addTo(map)
+            .bindPopup(`
+              <div class="station-popup">
+                <div class="station-popup-name">${stop.name}</div>
+                <div style="font-size:12px;color:#555;margin-bottom:6px;">${stop.nameEn}</div>
+                <div class="station-popup-lines">
+                  <span class="station-line-badge" style="background-color:${color};">خط 11</span>
+                </div>
+              </div>
+            `)
+        })
+      }
+
+      drawGPXTrack(
+        fringalOutboundCoords,
+        "خط 11 — فرينغال الانطلاق",
+        "Ligne 11 — Fringal (Outbound)",
+        fringalOutboundWaypoints,
+        "line-11-outbound",
+      )
+      drawGPXTrack(
+        fringalReturnCoords,
+        "خط 11 — فرينغال العودة",
+        "Ligne 11 — Fringal (Return)",
+        fringalReturnWaypoints,
+        "line-11-return",
+      )
+
+      // Seed simulation coords for line-11 (use combined outbound for bus movement)
+      routeCoordsRef.current.set("line-11", fringalOutboundCoords)
+    })()
+    // ─────────────────────────────────────────────────────────────────────────
 
     // Function to create line badges HTML with colored swatches
     const createLineBadges = (lines: string[]) => {
