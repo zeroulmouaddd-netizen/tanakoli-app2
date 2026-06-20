@@ -1,11 +1,11 @@
 "use client"
 
 /**
- * MapLibre map component with CartoDB Dark Matter tiles.
+ * MapLibre map component with CartoDB Voyager (natural/light) tiles.
  * 
  * Architecture:
  *   - If WebGL is available  → MapLibre GL (production, real browsers)
- *   - If WebGL is unavailable (Replit preview sandbox) → Leaflet + CartoDB Dark Matter tiles
+ *   - If WebGL is unavailable (Replit preview sandbox) → Leaflet + CartoDB Voyager tiles
  *
  * Live driver tracking (0775453629) is present in BOTH renderers.
  */
@@ -30,7 +30,7 @@ import {
 const KHENCHELA_CENTER: [number, number] = [35.43, 7.14]   // [lat, lng]
 const KHENCHELA_LNG_LAT: [number, number] = [7.14, 35.43]  // [lng, lat] for MapLibre
 const DEFAULT_ZOOM = 13
-const CARTO_DARK_URL = "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+const CARTO_VOYAGER_URL = "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
 
 // ── Route / station data ──────────────────────────────────────────────────────
 const urbanStations: {
@@ -142,7 +142,9 @@ function injectMapStyles() {
       box-shadow:0 8px 28px rgba(0,0,0,0.55) !important;
     }
     .maplibregl-popup-tip { border-top-color:rgba(15,23,42,0.97) !important; }
-    .maplibregl-ctrl-attrib { font-size:9px !important; }
+    .maplibregl-ctrl-attrib,
+    .maplibregl-ctrl-bottom-right,
+    .leaflet-control-attribution { display:none !important; }
   `
   document.head.appendChild(s)
 }
@@ -302,12 +304,11 @@ function MapLibreRenderer({ trackingLineId }: MapProps) {
           carto: {
             type: "raster",
             tiles: [
-              "https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png",
-              "https://b.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png",
-              "https://c.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png",
+              "https://a.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png",
+              "https://b.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png",
+              "https://c.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png",
             ],
             tileSize: 256,
-            attribution: "© OpenStreetMap © CARTO",
           },
         },
         layers: [{ id: "carto", type: "raster", source: "carto" }],
@@ -322,7 +323,6 @@ function MapLibreRenderer({ trackingLineId }: MapProps) {
         attributionControl: false,
       })
       mapRef.current = map
-      map.addControl(new maplibregl.AttributionControl({ compact: true }), "bottom-right")
 
       map.on("load", async () => {
         const addRoute = (key: string, color: string, geoCoords: [number, number][]) => {
@@ -489,7 +489,7 @@ function MapLibreRenderer({ trackingLineId }: MapProps) {
 }
 
 // ════════════════════════════════════════════════════════════════════════════════
-// RENDERER B: Leaflet + CartoDB Dark Matter (no WebGL — Replit preview / fallback)
+// RENDERER B: Leaflet + CartoDB Voyager (no WebGL — Replit preview / fallback)
 // ════════════════════════════════════════════════════════════════════════════════
 function LeafletDarkRenderer({ trackingLineId }: MapProps) {
   const containerRef = useRef<HTMLDivElement>(null)
@@ -544,14 +544,11 @@ function LeafletDarkRenderer({ trackingLineId }: MapProps) {
       .setView(KHENCHELA_CENTER, DEFAULT_ZOOM)
     mapRef.current = map
 
-    // CartoDB Dark Matter tiles
-    L.tileLayer(CARTO_DARK_URL, {
-      attribution: "© OpenStreetMap © CARTO",
+    // CartoDB Voyager (natural/light) tiles
+    L.tileLayer(CARTO_VOYAGER_URL, {
       subdomains: "abcd",
       maxZoom: 19,
     }).addTo(map)
-
-    L.control.attribution({ position: "bottomright", prefix: "" }).addTo(map)
 
     // Urban routes
     urbanRoutePolylines.forEach(route => {

@@ -158,8 +158,8 @@ function MiniMapComponent({
   useEffect(() => {
     if (!mapContainer.current) return
 
-    // CartoDB Dark Matter — free, no API key, consistent with the main map
-    const tileUrl = "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+    // CartoDB Voyager — natural/light style, free, no API key
+    const tileUrl = "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
 
     const map = L.map(mapContainer.current, {
       attributionControl: false,
