@@ -1871,7 +1871,7 @@ const marker = L.marker(subStation.coords, {
       />
 
       {/* Locate Me Button - Bottom Right */}
-      <div className="absolute bottom-6 right-4 z-[1000] flex flex-col items-end gap-2">
+      <div className="absolute bottom-3 right-4 z-[1000] flex flex-col items-end gap-2">
         {locateError && (
           <div className="rounded-xl bg-red-500/90 px-3 py-1.5 text-xs font-medium text-white shadow backdrop-blur-sm" dir="rtl">
             {locateError}
