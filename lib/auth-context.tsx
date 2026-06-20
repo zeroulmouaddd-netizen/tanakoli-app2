@@ -27,11 +27,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isAuthLoading, setIsAuthLoading] = useState(true)
 
   useEffect(() => {
+    let settled = false
     const unsubscribe = onAuthStateChanged(auth, (user) => {
+      settled = true
       setCurrentUser(user)
       setIsAuthLoading(false)
     })
-    return () => unsubscribe()
+    const fallback = setTimeout(() => {
+      if (!settled) {
+        setIsAuthLoading(false)
+      }
+    }, 5000)
+    return () => {
+      unsubscribe()
+      clearTimeout(fallback)
+    }
   }, [])
 
   const firestoreUserId = phoneToDocId(currentUser?.phoneNumber)

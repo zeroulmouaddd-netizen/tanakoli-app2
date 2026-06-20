@@ -1,12 +1,10 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
 
 const DURATION = 2600
 
 export function LoadingScreen() {
-  const router = useRouter()
   const [progress, setProgress] = useState(0)
 
   useEffect(() => {
@@ -17,13 +15,11 @@ export function LoadingScreen() {
       setProgress(pct)
       if (pct < 1) {
         raf = requestAnimationFrame(tick)
-      } else {
-        setTimeout(() => router.push("/"), 120)
       }
     }
     raf = requestAnimationFrame(tick)
     return () => cancelAnimationFrame(raf)
-  }, [router])
+  }, [])
 
   return (
     <div
