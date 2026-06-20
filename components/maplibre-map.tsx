@@ -112,11 +112,7 @@ function injectMapStyles() {
       0%,100% { box-shadow:0 0 0 0 rgba(255,255,255,0.35),0 4px 16px rgba(0,0,0,0.5); }
       50%      { box-shadow:0 0 0 6px rgba(255,255,255,0),0 4px 20px rgba(0,0,0,0.6); }
     }
-    @keyframes tk-sim-glow {
-      0%,100% { filter:drop-shadow(0 0 4px currentColor); }
-      50%      { filter:drop-shadow(0 0 9px currentColor); }
-    }
-    .tk-sim-bus { animation:tk-sim-glow 2s ease-in-out infinite; will-change:transform; }
+    .tk-sim-bus { will-change:transform; }
     /* Leaflet fallback popup */
     .tk-popup .leaflet-popup-content-wrapper {
       background:rgba(15,23,42,0.97) !important;
@@ -254,7 +250,7 @@ function MapLibreRenderer({ trackingLineId }: MapProps) {
 
   const stationEls   = useRef<Array<{ el: HTMLElement; lines: string[] }>>([])
   const fringalEls   = useRef<HTMLElement[]>([])
-  const simBuses     = useRef<Array<{ marker: import("maplibre-gl").Marker; routeId: string; offset: number }>>([])
+  const simBuses     = useRef<Array<{ marker: import("maplibre-gl").Marker; routeId: string; offset: number; direction: number }>>([])
   const driverRef    = useRef<import("maplibre-gl").Marker | null>(null)
   const userRef      = useRef<import("maplibre-gl").Marker | null>(null)
   const rafRef       = useRef<number | null>(null)
@@ -394,12 +390,12 @@ function MapLibreRenderer({ trackingLineId }: MapProps) {
           const coords = routeCoords.get(route.id) ?? route.waypoints
           const el = document.createElement("div")
           el.className = "tk-sim-bus"
-          el.style.cssText = `width:22px;height:22px;color:${route.color};`
-          el.innerHTML = `<svg width="22" height="22" viewBox="0 0 22 22" fill="none"><rect x="2" y="4" width="18" height="14" rx="3" fill="${route.color}" stroke="white" stroke-width="1.5"/><rect x="4" y="6" width="5" height="4" rx="1" fill="rgba(255,255,255,0.8)"/><rect x="13" y="6" width="5" height="4" rx="1" fill="rgba(255,255,255,0.8)"/><circle cx="6" cy="16" r="1.5" fill="white"/><circle cx="16" cy="16" r="1.5" fill="white"/></svg>`
+          el.style.cssText = `width:30px;height:30px;`
+          el.innerHTML = `<div style="width:30px;height:30px;border-radius:50%;background:${route.color};border:2.5px solid white;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,0.22),0 1px 3px rgba(0,0,0,0.14);"><svg width="15" height="15" viewBox="0 0 16 16" fill="none"><rect x="1" y="3" width="14" height="9" rx="2" fill="white"/><rect x="2.5" y="4.5" width="3.5" height="2.5" rx="0.5" fill="${route.color}" opacity="0.85"/><rect x="10" y="4.5" width="3.5" height="2.5" rx="0.5" fill="${route.color}" opacity="0.85"/><rect x="1" y="9.5" width="14" height="2" rx="1" fill="white" opacity="0.6"/><circle cx="4.5" cy="13" r="1.2" fill="white"/><circle cx="11.5" cy="13" r="1.2" fill="white"/></svg></div>`
           const offset = idx / urbanRoutePolylines.length
           const { lat, lng } = getSimPos(coords, offset)
           const marker = new maplibregl.Marker({ element: el, rotationAlignment: "map", anchor: "center" }).setLngLat([lng, lat]).addTo(map)
-          simBuses.current.push({ marker, routeId: route.id, offset })
+          simBuses.current.push({ marker, routeId: route.id, offset, direction: 1 })
         })
 
         // rAF loop — sim buses + ant-path dash animation
@@ -407,15 +403,21 @@ function MapLibreRenderer({ trackingLineId }: MapProps) {
           ...urbanRoutePolylines.filter(r => r.id !== "line-11").map(r => r.id),
           "line-11-outbound", "line-11-return",
         ]
+        const BUS_SPEED = 0.009 // fraction of route per second → full traversal ~111s
+        let lastTime = performance.now()
         let lastDashTime = 0
         const tick = (timestamp: number) => {
+          const delta = Math.min((timestamp - lastTime) / 1000, 0.1)
+          lastTime = timestamp
           simBuses.current.forEach(b => {
-            b.offset = (b.offset + 0.000035) % 1
+            b.offset += b.direction * BUS_SPEED * delta
+            if (b.offset >= 1) { b.offset = 1; b.direction = -1 }
+            else if (b.offset <= 0) { b.offset = 0; b.direction = 1 }
             const coords = routeCoords.get(b.routeId) ?? []
             const { lat, lng, heading } = getSimPos(coords, b.offset)
             b.marker.setLngLat([lng, lat]); b.marker.setRotation(heading)
           })
-          if (timestamp - lastDashTime >= 50) {
+          if (timestamp - lastDashTime >= 180) {
             lastDashTime = timestamp
             dashStepRef.current = (dashStepRef.current + 1) % DASH_SEQUENCE.length
             const arr = DASH_SEQUENCE[dashStepRef.current]
@@ -520,7 +522,7 @@ function LeafletDarkRenderer({ trackingLineId }: MapProps) {
   const mapRef       = useRef<L.Map | null>(null)
   const initRef      = useRef(false)
   const driverRef    = useRef<L.Marker | null>(null)
-  const simBusRef    = useRef<Array<{ marker: L.Marker; routeId: string; offset: number }>>([])
+  const simBusRef    = useRef<Array<{ marker: L.Marker; routeId: string; offset: number; direction: number }>>([])
   const rafRef       = useRef<number | null>(null)
   const { isDark }   = useTheme()
 
@@ -630,18 +632,24 @@ function LeafletDarkRenderer({ trackingLineId }: MapProps) {
     // Sim buses
     urbanRoutePolylines.forEach((route, idx) => {
       const coords = routeCoords.get(route.id) ?? route.waypoints
-      const busHtml = `<svg class="tk-sim-bus" width="22" height="22" style="color:${route.color}" viewBox="0 0 22 22" fill="none"><rect x="2" y="4" width="18" height="14" rx="3" fill="${route.color}" stroke="white" stroke-width="1.5"/><rect x="4" y="6" width="5" height="4" rx="1" fill="rgba(255,255,255,0.8)"/><rect x="13" y="6" width="5" height="4" rx="1" fill="rgba(255,255,255,0.8)"/><circle cx="6" cy="16" r="1.5" fill="white"/><circle cx="16" cy="16" r="1.5" fill="white"/></svg>`
-      const icon = L.divIcon({ html: busHtml, className: "", iconSize: [22,22], iconAnchor: [11,11] })
+      const busHtml = `<div class="tk-sim-bus" style="width:30px;height:30px;border-radius:50%;background:${route.color};border:2.5px solid white;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,0.22),0 1px 3px rgba(0,0,0,0.14);"><svg width="15" height="15" viewBox="0 0 16 16" fill="none"><rect x="1" y="3" width="14" height="9" rx="2" fill="white"/><rect x="2.5" y="4.5" width="3.5" height="2.5" rx="0.5" fill="${route.color}" opacity="0.85"/><rect x="10" y="4.5" width="3.5" height="2.5" rx="0.5" fill="${route.color}" opacity="0.85"/><rect x="1" y="9.5" width="14" height="2" rx="1" fill="white" opacity="0.6"/><circle cx="4.5" cy="13" r="1.2" fill="white"/><circle cx="11.5" cy="13" r="1.2" fill="white"/></svg></div>`
+      const icon = L.divIcon({ html: busHtml, className: "", iconSize: [30,30], iconAnchor: [15,15] })
       const offset = idx / urbanRoutePolylines.length
       const { lat, lng } = getSimPos(coords, offset)
       const marker = L.marker([lat, lng], { icon, zIndexOffset: 50 }).addTo(map)
-      simBusRef.current.push({ marker, routeId: route.id, offset })
+      simBusRef.current.push({ marker, routeId: route.id, offset, direction: 1 })
     })
 
-    // rAF sim bus loop
-    const tick = () => {
+    // rAF sim bus loop — delta-time with ping-pong direction
+    const BUS_SPEED = 0.009 // fraction of route per second → full traversal ~111s
+    let lastTime = performance.now()
+    const tick = (timestamp: number) => {
+      const delta = Math.min((timestamp - lastTime) / 1000, 0.1)
+      lastTime = timestamp
       simBusRef.current.forEach(b => {
-        b.offset = (b.offset + 0.000035) % 1
+        b.offset += b.direction * BUS_SPEED * delta
+        if (b.offset >= 1) { b.offset = 1; b.direction = -1 }
+        else if (b.offset <= 0) { b.offset = 0; b.direction = 1 }
         const coords = routeCoords.get(b.routeId) ?? []
         const { lat, lng } = getSimPos(coords, b.offset)
         b.marker.setLatLng([lat, lng])
