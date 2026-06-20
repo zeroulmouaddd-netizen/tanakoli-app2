@@ -237,6 +237,12 @@ function RouteController({
   )
 }
 
+// ── Ant-path dasharray sequence (MapLibre animated dashes) ───────────────────
+const DASH_SEQUENCE: number[][] = [
+  [0,4,3],[0.5,4,2.5],[1,4,2],[1.5,4,1.5],[2,4,1],[2.5,4,0.5],[3,4,0],
+  [0,0.5,3,3.5],[0,1,3,3],[0,1.5,3,2.5],[0,2,3,2],[0,2.5,3,1.5],[0,3,3,1],[0,3.5,3,0.5],
+]
+
 // ════════════════════════════════════════════════════════════════════════════════
 // RENDERER A: MapLibre GL (WebGL available — production / real browsers)
 // ════════════════════════════════════════════════════════════════════════════════
@@ -252,6 +258,7 @@ function MapLibreRenderer({ trackingLineId }: MapProps) {
   const driverRef    = useRef<import("maplibre-gl").Marker | null>(null)
   const userRef      = useRef<import("maplibre-gl").Marker | null>(null)
   const rafRef       = useRef<number | null>(null)
+  const dashStepRef  = useRef(0)
 
   const [selectedRoute, setSelectedRoute] = useState<SelectedRoute>(null)
   const [ready, setReady] = useState(false)
@@ -356,7 +363,7 @@ function MapLibreRenderer({ trackingLineId }: MapProps) {
           route.waypoints.forEach((wp, i) => {
             const el = document.createElement("div")
             el.style.cssText = `width:14px;height:14px;background:${route.color};border:2.5px solid white;border-radius:50%;box-shadow:0 2px 6px rgba(0,0,0,0.4);cursor:pointer;`
-            const m = new maplibregl.Marker({ element: el }).setLngLat([wp[1], wp[0]]).addTo(map)
+            const m = new maplibregl.Marker({ element: el, anchor: "center" }).setLngLat([wp[1], wp[0]]).addTo(map)
             stationEls.current.push({ el, lines: [route.id] })
           })
         }
@@ -369,11 +376,13 @@ function MapLibreRenderer({ trackingLineId }: MapProps) {
           wps.forEach(wp => {
             const el = document.createElement("div")
             if (wp.isTerminal) {
-              el.innerHTML = `<div style="width:30px;height:30px;background:linear-gradient(135deg,#5DADE2,#1F618D);border:3px solid white;border-radius:50%;display:flex;align-items:center;justify-content:center;animation:tk-terminal-pulse 1.8s ease-in-out infinite;">${wp.isStart ? `<svg width="11" height="13" fill="white"><polygon points="1,0 11,6.5 1,13"/></svg>` : `<svg width="10" height="10" fill="white"><rect x="1" y="1" width="8" height="8" rx="1.5"/></svg>`}</div>`
+              el.style.cssText = `width:10px;height:10px;`
+              el.innerHTML = `<div style="width:10px;height:10px;background:${fringalColor};border:2px solid white;border-radius:50%;box-shadow:0 0 0 1.5px ${fringalColor};"></div>`
             } else {
-              el.innerHTML = `<div style="width:12px;height:12px;background:white;border:3px solid ${fringalColor};border-radius:50%;"></div>`
+              el.style.cssText = `width:8px;height:8px;`
+              el.innerHTML = `<div style="width:8px;height:8px;background:white;border:2px solid ${fringalColor};border-radius:50%;"></div>`
             }
-            const m = new maplibregl.Marker({ element: el }).setLngLat([wp.coords[1], wp.coords[0]]).addTo(map)
+            const m = new maplibregl.Marker({ element: el, anchor: "center" }).setLngLat([wp.coords[1], wp.coords[0]]).addTo(map)
             fringalEls.current.push(el)
           })
         }
@@ -385,22 +394,37 @@ function MapLibreRenderer({ trackingLineId }: MapProps) {
           const coords = routeCoords.get(route.id) ?? route.waypoints
           const el = document.createElement("div")
           el.className = "tk-sim-bus"
-          el.style.color = route.color
+          el.style.cssText = `width:22px;height:22px;color:${route.color};`
           el.innerHTML = `<svg width="22" height="22" viewBox="0 0 22 22" fill="none"><rect x="2" y="4" width="18" height="14" rx="3" fill="${route.color}" stroke="white" stroke-width="1.5"/><rect x="4" y="6" width="5" height="4" rx="1" fill="rgba(255,255,255,0.8)"/><rect x="13" y="6" width="5" height="4" rx="1" fill="rgba(255,255,255,0.8)"/><circle cx="6" cy="16" r="1.5" fill="white"/><circle cx="16" cy="16" r="1.5" fill="white"/></svg>`
           const offset = idx / urbanRoutePolylines.length
           const { lat, lng } = getSimPos(coords, offset)
-          const marker = new maplibregl.Marker({ element: el, rotationAlignment: "map" }).setLngLat([lng, lat]).addTo(map)
+          const marker = new maplibregl.Marker({ element: el, rotationAlignment: "map", anchor: "center" }).setLngLat([lng, lat]).addTo(map)
           simBuses.current.push({ marker, routeId: route.id, offset })
         })
 
-        // rAF loop
-        const tick = () => {
+        // rAF loop — sim buses + ant-path dash animation
+        const allRouteKeys = [
+          ...urbanRoutePolylines.filter(r => r.id !== "line-11").map(r => r.id),
+          "line-11-outbound", "line-11-return",
+        ]
+        let lastDashTime = 0
+        const tick = (timestamp: number) => {
           simBuses.current.forEach(b => {
             b.offset = (b.offset + 0.000035) % 1
             const coords = routeCoords.get(b.routeId) ?? []
             const { lat, lng, heading } = getSimPos(coords, b.offset)
             b.marker.setLngLat([lng, lat]); b.marker.setRotation(heading)
           })
+          if (timestamp - lastDashTime >= 50) {
+            lastDashTime = timestamp
+            dashStepRef.current = (dashStepRef.current + 1) % DASH_SEQUENCE.length
+            const arr = DASH_SEQUENCE[dashStepRef.current]
+            allRouteKeys.forEach(key => {
+              if (map.getLayer(`route-${key}`)) {
+                map.setPaintProperty(`route-${key}`, "line-dasharray", arr)
+              }
+            })
+          }
           rafRef.current = requestAnimationFrame(tick)
         }
         rafRef.current = requestAnimationFrame(tick)
@@ -417,7 +441,7 @@ function MapLibreRenderer({ trackingLineId }: MapProps) {
           const el = document.createElement("div")
           el.style.cssText = `width:28px;height:28px;border-radius:50%;border:3px solid white;background:linear-gradient(135deg,#ec4899,#db2777);display:flex;align-items:center;justify-content:center;animation:tk-driver-pulse 2s ease-in-out infinite;cursor:pointer;`
           el.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="white"><path d="M8 4h8l2 6H6L8 4zM4 10v8h1v1a1 1 0 002 0v-1h10v1a1 1 0 002 0v-1h1v-8z"/></svg>`
-          driverRef.current = new maplibregl.Marker({ element: el }).setLngLat([data.lng, data.lat]).addTo(map)
+          driverRef.current = new maplibregl.Marker({ element: el, anchor: "center" }).setLngLat([data.lng, data.lat]).addTo(map)
         } else {
           driverRef.current.setLngLat([data.lng, data.lat])
         }
@@ -455,7 +479,7 @@ function MapLibreRenderer({ trackingLineId }: MapProps) {
       if (!userRef.current) {
         const el = document.createElement("div")
         el.style.cssText = `width:18px;height:18px;background:#3B82F6;border:3px solid white;border-radius:50%;box-shadow:0 0 0 5px rgba(59,130,246,0.3);`
-        userRef.current = new maplibregl.Marker({ element: el }).setLngLat([pos.coords.longitude, pos.coords.latitude]).addTo(mapRef.current!)
+        userRef.current = new maplibregl.Marker({ element: el, anchor: "center" }).setLngLat([pos.coords.longitude, pos.coords.latitude]).addTo(mapRef.current!)
       } else { userRef.current.setLngLat([pos.coords.longitude, pos.coords.latitude]) }
     }, () => setLocating(false))
   }
@@ -580,10 +604,10 @@ function LeafletDarkRenderer({ trackingLineId }: MapProps) {
       routeLayers.current.set(id, line)
 
       wps.forEach(wp => {
-        const size = wp.isTerminal ? 30 : 12
+        const size = wp.isTerminal ? 10 : 8
         const html = wp.isTerminal
-          ? `<div style="width:${size}px;height:${size}px;background:linear-gradient(135deg,#5DADE2,#1F618D);border:3px solid white;border-radius:50%;display:flex;align-items:center;justify-content:center;animation:tk-terminal-pulse 1.8s ease-in-out infinite;">${wp.isStart ? `<svg width="10" height="12" fill="white"><polygon points="1,0 10,6 1,12"/></svg>` : `<svg width="9" height="9" fill="white"><rect x="1" y="1" width="7" height="7" rx="1.5"/></svg>`}</div>`
-          : `<div style="width:${size}px;height:${size}px;background:white;border:3px solid ${fringalColor};border-radius:50%;"></div>`
+          ? `<div style="width:${size}px;height:${size}px;background:${fringalColor};border:2px solid white;border-radius:50%;box-shadow:0 0 0 1.5px ${fringalColor};"></div>`
+          : `<div style="width:${size}px;height:${size}px;background:white;border:2px solid ${fringalColor};border-radius:50%;"></div>`
         const icon = L.divIcon({ html, className: "", iconSize: [size, size], iconAnchor: [size/2, size/2] })
         const m = L.marker(wp.coords, { icon }).addTo(map)
         fringalRefs.current.push(m)
