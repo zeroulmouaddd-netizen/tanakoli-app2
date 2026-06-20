@@ -1,0 +1,1 @@
+- [MapLibre WebGL fallback](maplibre-webgl-fallback.md) — hybrid renderer: MapLibre GL when WebGL available, Leaflet+CartoDB Dark Matter when not (Replit preview has no GPU).

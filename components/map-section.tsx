@@ -9,7 +9,7 @@ import { Navigation, X, Maximize2, Minimize2 } from "lucide-react"
 import { signalMapReady } from "./app-wrapper"
 
 const LeafletMap = dynamic(
-  () => import("./leaflet-map"),
+  () => import("./maplibre-map"),
   { ssr: false }
 )
 
