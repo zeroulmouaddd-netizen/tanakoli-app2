@@ -242,7 +242,7 @@ const DASH_SEQUENCE: number[][] = [
 // ════════════════════════════════════════════════════════════════════════════════
 // RENDERER A: MapLibre GL (WebGL available — production / real browsers)
 // ════════════════════════════════════════════════════════════════════════════════
-function MapLibreRenderer({ trackingLineId }: MapProps) {
+function MapLibreRenderer({ trackingLineId, isFullscreen }: MapProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const mapRef       = useRef<import("maplibre-gl").Map | null>(null)
   const initRef      = useRef(false)
@@ -385,38 +385,13 @@ function MapLibreRenderer({ trackingLineId }: MapProps) {
         addFringal(fringalOutboundCoords, fringalOutboundWaypoints, "line-11-outbound")
         addFringal(fringalReturnCoords,   fringalReturnWaypoints,   "line-11-return")
 
-        // Sim buses
-        urbanRoutePolylines.forEach((route, idx) => {
-          const coords = routeCoords.get(route.id) ?? route.waypoints
-          const el = document.createElement("div")
-          el.className = "tk-sim-bus"
-          el.style.cssText = `width:30px;height:30px;`
-          el.innerHTML = `<div style="width:30px;height:30px;border-radius:50%;background:${route.color};border:2.5px solid white;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,0.22),0 1px 3px rgba(0,0,0,0.14);"><svg width="15" height="15" viewBox="0 0 16 16" fill="none"><rect x="1" y="3" width="14" height="9" rx="2" fill="white"/><rect x="2.5" y="4.5" width="3.5" height="2.5" rx="0.5" fill="${route.color}" opacity="0.85"/><rect x="10" y="4.5" width="3.5" height="2.5" rx="0.5" fill="${route.color}" opacity="0.85"/><rect x="1" y="9.5" width="14" height="2" rx="1" fill="white" opacity="0.6"/><circle cx="4.5" cy="13" r="1.2" fill="white"/><circle cx="11.5" cy="13" r="1.2" fill="white"/></svg></div>`
-          const offset = idx / urbanRoutePolylines.length
-          const { lat, lng } = getSimPos(coords, offset)
-          const marker = new maplibregl.Marker({ element: el, rotationAlignment: "map", anchor: "center" }).setLngLat([lng, lat]).addTo(map)
-          simBuses.current.push({ marker, routeId: route.id, offset, direction: 1 })
-        })
-
-        // rAF loop — sim buses + ant-path dash animation
+        // rAF loop — ant-path dash animation only
         const allRouteKeys = [
           ...urbanRoutePolylines.filter(r => r.id !== "line-11").map(r => r.id),
           "line-11-outbound", "line-11-return",
         ]
-        const BUS_SPEED = 0.009 // fraction of route per second → full traversal ~111s
-        let lastTime = performance.now()
         let lastDashTime = 0
         const tick = (timestamp: number) => {
-          const delta = Math.min((timestamp - lastTime) / 1000, 0.1)
-          lastTime = timestamp
-          simBuses.current.forEach(b => {
-            b.offset += b.direction * BUS_SPEED * delta
-            if (b.offset >= 1) { b.offset = 1; b.direction = -1 }
-            else if (b.offset <= 0) { b.offset = 0; b.direction = 1 }
-            const coords = routeCoords.get(b.routeId) ?? []
-            const { lat, lng, heading } = getSimPos(coords, b.offset)
-            b.marker.setLngLat([lng, lat]); b.marker.setRotation(heading)
-          })
           if (timestamp - lastDashTime >= 180) {
             lastDashTime = timestamp
             dashStepRef.current = (dashStepRef.current + 1) % DASH_SEQUENCE.length
@@ -493,7 +468,7 @@ function MapLibreRenderer({ trackingLineId }: MapProps) {
       {ready && (
         <motion.button initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.4 }}
           onClick={locateMe}
-          className="absolute bottom-10 right-4 z-[500] flex h-10 w-10 items-center justify-center rounded-xl bg-card/90 backdrop-blur-sm border border-border/50 shadow-lg hover:bg-card transition-colors"
+          className={`absolute ${isFullscreen ? "bottom-20" : "bottom-4"} right-4 z-[500] flex h-10 w-10 items-center justify-center rounded-xl bg-card/90 backdrop-blur-sm border border-border/50 shadow-lg hover:bg-card transition-colors`}
           aria-label="حدد موقعي">
           <LocateFixed className={`h-5 w-5 ${locating ? "animate-pulse text-primary" : "text-foreground"}`} />
         </motion.button>
@@ -517,7 +492,7 @@ function MapLibreRenderer({ trackingLineId }: MapProps) {
 // ════════════════════════════════════════════════════════════════════════════════
 // RENDERER B: Leaflet + CartoDB Voyager (no WebGL — Replit preview / fallback)
 // ════════════════════════════════════════════════════════════════════════════════
-function LeafletDarkRenderer({ trackingLineId }: MapProps) {
+function LeafletDarkRenderer({ trackingLineId, isFullscreen }: MapProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const mapRef       = useRef<L.Map | null>(null)
   const initRef      = useRef(false)
@@ -629,35 +604,6 @@ function LeafletDarkRenderer({ trackingLineId }: MapProps) {
       stationRefs.current.push({ marker: m, lines: s.lines })
     })
 
-    // Sim buses
-    urbanRoutePolylines.forEach((route, idx) => {
-      const coords = routeCoords.get(route.id) ?? route.waypoints
-      const busHtml = `<div class="tk-sim-bus" style="width:30px;height:30px;border-radius:50%;background:${route.color};border:2.5px solid white;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,0.22),0 1px 3px rgba(0,0,0,0.14);"><svg width="15" height="15" viewBox="0 0 16 16" fill="none"><rect x="1" y="3" width="14" height="9" rx="2" fill="white"/><rect x="2.5" y="4.5" width="3.5" height="2.5" rx="0.5" fill="${route.color}" opacity="0.85"/><rect x="10" y="4.5" width="3.5" height="2.5" rx="0.5" fill="${route.color}" opacity="0.85"/><rect x="1" y="9.5" width="14" height="2" rx="1" fill="white" opacity="0.6"/><circle cx="4.5" cy="13" r="1.2" fill="white"/><circle cx="11.5" cy="13" r="1.2" fill="white"/></svg></div>`
-      const icon = L.divIcon({ html: busHtml, className: "", iconSize: [30,30], iconAnchor: [15,15] })
-      const offset = idx / urbanRoutePolylines.length
-      const { lat, lng } = getSimPos(coords, offset)
-      const marker = L.marker([lat, lng], { icon, zIndexOffset: 50 }).addTo(map)
-      simBusRef.current.push({ marker, routeId: route.id, offset, direction: 1 })
-    })
-
-    // rAF sim bus loop — delta-time with ping-pong direction
-    const BUS_SPEED = 0.009 // fraction of route per second → full traversal ~111s
-    let lastTime = performance.now()
-    const tick = (timestamp: number) => {
-      const delta = Math.min((timestamp - lastTime) / 1000, 0.1)
-      lastTime = timestamp
-      simBusRef.current.forEach(b => {
-        b.offset += b.direction * BUS_SPEED * delta
-        if (b.offset >= 1) { b.offset = 1; b.direction = -1 }
-        else if (b.offset <= 0) { b.offset = 0; b.direction = 1 }
-        const coords = routeCoords.get(b.routeId) ?? []
-        const { lat, lng } = getSimPos(coords, b.offset)
-        b.marker.setLatLng([lat, lng])
-      })
-      rafRef.current = requestAnimationFrame(tick)
-    }
-    rafRef.current = requestAnimationFrame(tick)
-
     // ── Live driver tracking ── 0775453629 ────────────────────────────────────
     const driverDbRef = rtdbRef(rtdb, "drivers/0775453629/location")
     const unsubDriver = onValue(driverDbRef, snap => {
@@ -711,7 +657,7 @@ function LeafletDarkRenderer({ trackingLineId }: MapProps) {
       {ready && (
         <motion.button initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.3 }}
           onClick={locateMe}
-          className="absolute bottom-10 right-4 z-[500] flex h-10 w-10 items-center justify-center rounded-xl bg-card/90 backdrop-blur-sm border border-border/50 shadow-lg hover:bg-card transition-colors"
+          className={`absolute ${isFullscreen ? "bottom-20" : "bottom-4"} right-4 z-[500] flex h-10 w-10 items-center justify-center rounded-xl bg-card/90 backdrop-blur-sm border border-border/50 shadow-lg hover:bg-card transition-colors`}
           aria-label="حدد موقعي">
           <LocateFixed className={`h-5 w-5 ${locating ? "animate-pulse text-primary" : "text-foreground"}`} />
         </motion.button>
