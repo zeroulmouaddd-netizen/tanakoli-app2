@@ -461,8 +461,8 @@ function MapLibreRenderer({ trackingLineId }: MapProps) {
   }
 
   return (
-    <div className="relative h-full w-full">
-      <div ref={containerRef} className="absolute inset-0" />
+    <div style={{ position: "relative", width: "100%", height: "100%" }}>
+      <div ref={containerRef} style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }} />
       {ready && <RouteController selectedRoute={selectedRoute} onRouteSelect={setSelectedRoute} isDark={isDark} />}
       {ready && (
         <motion.button initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.4 }}
@@ -676,8 +676,8 @@ function LeafletDarkRenderer({ trackingLineId }: MapProps) {
   }
 
   return (
-    <div className="relative h-full w-full">
-      <div ref={containerRef} className="absolute inset-0" />
+    <div style={{ position: "relative", width: "100%", height: "100%" }}>
+      <div ref={containerRef} style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }} />
       {ready && <RouteController selectedRoute={selectedRoute} onRouteSelect={setSelectedRoute} isDark={isDark} />}
       {ready && (
         <motion.button initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.3 }}

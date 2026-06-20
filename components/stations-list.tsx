@@ -158,7 +158,8 @@ function MiniMapComponent({
   useEffect(() => {
     if (!mapContainer.current) return
 
-    const tileUrl = "https://tile.openstreetmap.org/{z}/{x}/{y}.png"
+    // CartoDB Dark Matter — free, no API key, consistent with the main map
+    const tileUrl = "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
 
     const map = L.map(mapContainer.current, {
       attributionControl: false,
@@ -171,16 +172,16 @@ function MiniMapComponent({
       keyboard: false,
     }).setView(landmark.coordinates, 15)
 
-    L.tileLayer(tileUrl, { maxZoom: 19 }).addTo(map)
+    L.tileLayer(tileUrl, { maxZoom: 19, subdomains: "abcd" }).addTo(map)
 
-    // Landmark marker — green circle with white border
+    // Landmark marker — bright green circle with white border (visible on dark tiles)
     L.circleMarker(landmark.coordinates, {
-      radius: 9,
-      fillColor: "#00A651",
+      radius: 10,
+      fillColor: "#22C55E",
       color: "white",
-      weight: 2.5,
+      weight: 3,
       opacity: 1,
-      fillOpacity: 0.95,
+      fillOpacity: 1,
     }).addTo(map)
 
     mapRef.current = map
@@ -206,10 +207,10 @@ function MiniMapComponent({
 
     if (!userPosition) return
 
-    // Blue dot — user location
+    // Blue dot — user location (bright on dark tiles)
     userMarkerRef.current = L.circleMarker(userPosition, {
       radius: 8,
-      fillColor: "#3B82F6",
+      fillColor: "#60A5FA",
       color: "white",
       weight: 2.5,
       opacity: 1,
@@ -217,11 +218,11 @@ function MiniMapComponent({
     }).addTo(map)
 
     if (routeCoords && routeCoords.length > 1) {
-      // Real road route — solid green polyline
+      // Real road route — bright green polyline (visible on dark tiles)
       routeLineRef.current = L.polyline(routeCoords, {
-        color: "#00A651",
+        color: "#22C55E",
         weight: 4,
-        opacity: 0.85,
+        opacity: 0.9,
         lineJoin: "round",
         lineCap: "round",
       }).addTo(map)

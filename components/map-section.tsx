@@ -44,44 +44,45 @@ export function MapSection() {
       <motion.div
         className={`relative w-full overflow-hidden transition-all duration-300 ${
           isFullscreen 
-            ? "fixed inset-0 z-[9998] h-screen rounded-none" 
-            : "h-48 sm:h-64 md:h-80 lg:h-96 rounded-b-2xl sm:rounded-b-3xl"
+            ? "fixed inset-0 z-[9998] rounded-none" 
+            : "rounded-b-2xl sm:rounded-b-3xl"
         }`}
+        style={isFullscreen ? { height: "100dvh" } : { height: "clamp(192px, 30vw, 384px)" }}
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4, ease: "easeOut" }}
       >
-        {/* Map container with fade-in */}
-        <motion.div
-          className="h-full w-full"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: isMapReady ? 1 : 0 }}
-          transition={{ duration: 0.3 }}
-        >
+        {/* Map container — always rendered so Leaflet/MapLibre can measure dimensions */}
+        <div style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }}>
           <LeafletMap 
             key={mapId} 
             trackingLineId={trackingState.busLineId}
             isFullscreen={isFullscreen}
           />
-        </motion.div>
-        
-        {/* Loading overlay */}
-        {!isMapReady && (
-          <motion.div
-            className="absolute inset-0 flex items-center justify-center bg-primary/5"
-            initial={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-          >
-            <div className="flex flex-col items-center gap-2">
-              <motion.div
-                className="h-10 w-10 rounded-full border-3 border-primary/30 border-t-primary"
-                animate={{ rotate: 360 }}
-                transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-              />
-              <span className="text-xs text-muted-foreground">جاري تحميل الخريطة...</span>
-            </div>
-          </motion.div>
-        )}
+        </div>
+
+        {/* Loading overlay — sits above the map, fades out when ready */}
+        <AnimatePresence>
+          {!isMapReady && (
+            <motion.div
+              key="loading"
+              className="absolute inset-0 flex items-center justify-center"
+              style={{ background: "hsl(var(--background))", zIndex: 10 }}
+              initial={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.3 }}
+            >
+              <div className="flex flex-col items-center gap-2">
+                <motion.div
+                  className="h-10 w-10 rounded-full border-3 border-primary/30 border-t-primary"
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                />
+                <span className="text-xs text-muted-foreground">جاري تحميل الخريطة...</span>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
         
         {/* Fullscreen Toggle Button */}
         <motion.button
