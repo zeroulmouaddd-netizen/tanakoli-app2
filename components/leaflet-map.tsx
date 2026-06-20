@@ -1474,59 +1474,6 @@ const { subStations } = useRouteSubStations(selectedRoute)
       }
     })
 
-    const BUSES_PER_ROUTE = 2
-    const ROUTE_DURATION_MS = 180000 // full lap in 180 s (~3 min) — realistic bus pace
-
-    urbanRoutePolylines.forEach(route => {
-      for (let b = 0; b < BUSES_PER_ROUTE; b++) {
-        const progressOffset = b / BUSES_PER_ROUTE // bus 0 → 0.0, bus 1 → 0.5
-        const initial = route.waypoints[0]
-        const busMarker = L.marker(initial, {
-          icon: L.divIcon({
-            className: "sim-bus-wrap",
-            html: `<div class="sim-bus-inner" style="color:${route.color};">
-              <svg width="18" height="20" viewBox="0 0 18 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <!-- Direction arrow at nose -->
-                <polygon points="9,0 5,5 13,5" fill="currentColor" opacity="0.95"/>
-                <!-- Body -->
-                <rect x="2" y="5" width="14" height="11" rx="2" fill="currentColor" opacity="0.9"/>
-                <!-- Windows -->
-                <rect x="3.5" y="7" width="4" height="3" rx="0.8" fill="white" opacity="0.8"/>
-                <rect x="10.5" y="7" width="4" height="3" rx="0.8" fill="white" opacity="0.8"/>
-                <!-- Underline / skirt -->
-                <rect x="2" y="14.5" width="14" height="1.5" rx="0.5" fill="white" opacity="0.3"/>
-                <!-- Wheels -->
-                <circle cx="5" cy="18.5" r="1.5" fill="white" opacity="0.75"/>
-                <circle cx="13" cy="18.5" r="1.5" fill="white" opacity="0.75"/>
-              </svg>
-            </div>`,
-            iconSize: [18, 20],
-            iconAnchor: [9, 10],
-          }),
-          zIndexOffset: 400,
-          interactive: false,
-        }).addTo(map)
-        simBusMarkersRef.current.push({ marker: busMarker, routeId: route.id, progressOffset })
-      }
-    })
-
-    // rAF loop — reads routeCoordsRef (updated as OSRM resolves), no React state
-    const simStartTime = Date.now()
-    const tickSimBuses = () => {
-      const elapsed = Date.now() - simStartTime
-      simBusMarkersRef.current.forEach(({ marker, routeId, progressOffset }) => {
-        const coords = routeCoordsRef.current.get(routeId)
-        if (!coords || coords.length < 2) return
-        const progress = ((elapsed / ROUTE_DURATION_MS) + progressOffset) % 1
-        const { lat, lng, heading } = getSimBusPosAndHeading(coords, progress)
-        marker.setLatLng([lat, lng])
-        const inner = marker.getElement()?.querySelector('.sim-bus-inner') as HTMLElement | null
-        if (inner) inner.style.transform = `rotate(${heading}deg)`
-      })
-      simAnimFrameRef.current = requestAnimationFrame(tickSimBuses)
-    }
-    simAnimFrameRef.current = requestAnimationFrame(tickSimBuses)
-
     // Mark map as ready for bus markers
     setMapReady(true)
   
