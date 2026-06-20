@@ -20,6 +20,12 @@ import {
   fringalOutboundWaypoints,
   fringalReturnWaypoints,
 } from "@/lib/data/fringal-gpx-data"
+import {
+  hammaOutboundCoords,
+  hammaReturnCoords,
+  hammaOutboundWaypoints,
+  hammaReturnWaypoints,
+} from "@/lib/data/hamma-gpx-data"
 
 // Tile layer URLs — single stable OSM endpoint (no subdomain variable)
 const TILE_LAYERS = {
@@ -878,6 +884,7 @@ export default function LeafletMap({ trackingLineId, isFullscreen = false }: Lea
   const stationMarkersRef = useRef<Map<string, L.Marker>>(new Map())
   const subStationMarkersRef = useRef<Map<string, L.Marker>>(new Map())
   const fringalStopMarkersRef = useRef<L.Marker[]>([]) // Fringal GPX stop markers (line-11)
+  const hammaStopMarkersRef   = useRef<L.Marker[]>([]) // Hamma GPX stop markers (line-05)
   const driverMarkerRef = useRef<L.Marker | null>(null) // For real-time driver location
   const userMarkerRef = useRef<L.Marker | null>(null) // For "locate me" blue dot
   const { isDark } = useTheme()
@@ -915,9 +922,11 @@ const { subStations } = useRouteSubStations(selectedRoute)
 
     // Helper: does a stored polyline key belong to the requested routeId?
     // line-11's two GPX tracks are keyed as "line-11-outbound" / "line-11-return"
+    // line-05's two GPX tracks are keyed as "line-05-outbound" / "line-05-return"
     const belongsTo = (id: string, rid: string) =>
       id === rid ||
-      (rid === "line-11" && (id === "line-11-outbound" || id === "line-11-return"))
+      (rid === "line-11" && (id === "line-11-outbound" || id === "line-11-return")) ||
+      (rid === "line-05" && (id === "line-05-outbound" || id === "line-05-return"))
 
     // ── Polyline highlight / fade ─────────────────────────────────────────────
     routePolylinesRef.current.forEach((polyline, id) => {
@@ -965,6 +974,19 @@ const { subStations } = useRouteSubStations(selectedRoute)
       const el = marker.getElement()
       if (!el) return
       if (routeId === null || routeId === "line-11") {
+        el.style.opacity = "1"
+        el.style.pointerEvents = "auto"
+      } else {
+        el.style.opacity = "0.1"
+        el.style.pointerEvents = "none"
+      }
+    })
+
+    // ── Hamma GPX stop markers ────────────────────────────────────────────────
+    hammaStopMarkersRef.current.forEach(marker => {
+      const el = marker.getElement()
+      if (!el) return
+      if (routeId === null || routeId === "line-05") {
         el.style.opacity = "1"
         el.style.pointerEvents = "auto"
       } else {
@@ -1206,8 +1228,9 @@ const { subStations } = useRouteSubStations(selectedRoute)
   
   // Add urban route polylines with OSRM-based snap-to-road routing + dashed animated styling
     urbanRoutePolylines.forEach(async (route) => {
-      // line-11 (Fringal) is rendered separately below using real GPS tracks
+      // line-11 (Fringal) and line-05 (Hamma) are rendered separately below using real GPS tracks
       if (route.id === "line-11") return
+      if (route.id === "line-05") return
 
       // Fetch real road geometry from OSRM
       const osrmCoords = await fetchOSRMRoute(route.waypoints)
@@ -1449,6 +1472,153 @@ const { subStations } = useRouteSubStations(selectedRoute)
       // Seed simulation coords for line-11
       routeCoordsRef.current.set("line-11", fringalOutboundCoords)
     })()
+
+    // ── Line 05 (Hamma / الحامة) — real GPS tracks, OSRM-routed ─────────────
+    // Two polylines: outbound (الحامة الانطلاق) & return (الحامة العودة).
+    // Glows + stop markers are stored in refs so Focus Mode picks them up.
+    ;(() => {
+      const line05 = urbanRoutePolylines.find(r => r.id === "line-05")!
+      const color  = line05.color  // #27AE60
+
+      const drawHammaTrack = (
+        coords: [number, number][],
+        directionName: string,
+        directionNameEn: string,
+        waypoints: { name: string; nameEn: string; coords: [number, number]; isTerminal: boolean; isStart: boolean }[],
+        trackKey: string,
+      ) => {
+        const glowPoly = L.polyline(coords, {
+          color,
+          weight: 14,
+          opacity: 0.18,
+          lineCap: "round",
+          lineJoin: "round",
+          className: "cyber-glow",
+          interactive: false,
+        }).addTo(map)
+        routeGlowPolylinesRef.current.set(trackKey, glowPoly)
+
+        const polyline = L.polyline(coords, {
+          color,
+          weight: 4,
+          opacity: 0.85,
+          dashArray: "10, 15",
+          lineCap: "round",
+          lineJoin: "round",
+          className: "route-polyline cyber-line",
+        })
+          .addTo(map)
+          .bindPopup(`
+            <div class="station-popup">
+              <div class="station-popup-name">${directionName}</div>
+              <div style="font-size:12px;color:#555;margin-bottom:6px;">${directionNameEn}</div>
+              <div class="station-popup-lines">
+                <span class="station-line-badge" style="background-color:${color};">خط 05</span>
+              </div>
+            </div>
+          `)
+
+        routePolylinesRef.current.set(trackKey, polyline)
+        routeCoordsRef.current.set(trackKey, coords)
+
+        waypoints.forEach((stop, idx) => {
+          const isFirst    = idx === 0
+          const isLast     = idx === waypoints.length - 1
+          const isTerminal = stop.isTerminal
+          const isStart    = stop.isStart
+
+          let markerHtml: string
+          let iconSize: [number, number]
+          let iconAnchor: [number, number]
+
+          if (isTerminal && isStart) {
+            markerHtml = `
+              <div style="
+                width:32px;height:32px;
+                background:linear-gradient(135deg,#58D68D,#1E8449);
+                border:3px solid white;border-radius:50%;
+                box-shadow:0 0 0 4px rgba(39,174,96,0.45),0 4px 18px rgba(0,0,0,0.5);
+                display:flex;align-items:center;justify-content:center;
+                cursor:pointer;animation:terminal-pulse 1.8s ease-in-out infinite;
+              ">
+                <svg width="12" height="13" viewBox="0 0 12 13" fill="white">
+                  <polygon points="1,0 12,6.5 1,13"/>
+                </svg>
+              </div>`
+            iconSize   = [32, 32]
+            iconAnchor = [16, 16]
+          } else if (isTerminal && !isStart) {
+            markerHtml = `
+              <div style="
+                width:32px;height:32px;
+                background:linear-gradient(135deg,#1A5276,#1E8449);
+                border:3px solid white;border-radius:50%;
+                box-shadow:0 0 0 4px rgba(39,174,96,0.45),0 4px 18px rgba(0,0,0,0.5);
+                display:flex;align-items:center;justify-content:center;
+                cursor:pointer;animation:terminal-pulse 1.8s ease-in-out infinite;
+              ">
+                <svg width="11" height="11" viewBox="0 0 11 11" fill="white">
+                  <rect x="1" y="1" width="9" height="9" rx="1.5"/>
+                </svg>
+              </div>`
+            iconSize   = [32, 32]
+            iconAnchor = [16, 16]
+          } else {
+            markerHtml = `
+              <div style="
+                width:14px;height:14px;background:white;border:3px solid ${color};
+                border-radius:50%;box-shadow:0 2px 5px rgba(0,0,0,0.25);
+                display:flex;align-items:center;justify-content:center;
+                font-size:7px;font-weight:800;color:${color};font-family:sans-serif;
+                cursor:pointer;
+              ">05</div>`
+            iconSize   = [14, 14]
+            iconAnchor = [7,  7]
+          }
+
+          const stopMarker = L.marker(stop.coords, {
+            icon: L.divIcon({
+              html: markerHtml,
+              iconSize,
+              iconAnchor,
+              className: isFirst ? "marker-start" : isLast ? "marker-end" : "station-marker",
+            }),
+            zIndexOffset: isTerminal ? 320 : 260,
+          })
+            .addTo(map)
+            .bindPopup(`
+              <div class="station-popup">
+                <div class="station-popup-name">${stop.name}</div>
+                <div style="font-size:12px;color:#555;margin-bottom:6px;">${stop.nameEn}</div>
+                <div class="station-popup-lines">
+                  <span class="station-line-badge" style="background-color:${color};">
+                    ${isStart ? "▶ بداية" : isTerminal ? "■ نهاية" : "خط 05"}
+                  </span>
+                </div>
+              </div>
+            `)
+
+          hammaStopMarkersRef.current.push(stopMarker)
+        })
+      }
+
+      drawHammaTrack(
+        hammaOutboundCoords,
+        "خط 05 — الحامة الانطلاق",
+        "Ligne 05 — Hamma (Outbound)",
+        hammaOutboundWaypoints,
+        "line-05-outbound",
+      )
+      drawHammaTrack(
+        hammaReturnCoords,
+        "خط 05 — الحامة العودة",
+        "Ligne 05 — Hamma (Return)",
+        hammaReturnWaypoints,
+        "line-05-return",
+      )
+
+      routeCoordsRef.current.set("line-05", hammaOutboundCoords)
+    })()
     // ─────────────────────────────────────────────────────────────────────────
 
     // Function to create line badges HTML with colored swatches
@@ -1503,6 +1673,8 @@ const { subStations } = useRouteSubStations(selectedRoute)
       stationMarkersRef.current.clear()
       fringalStopMarkersRef.current.forEach(m => m.remove())
       fringalStopMarkersRef.current = []
+      hammaStopMarkersRef.current.forEach(m => m.remove())
+      hammaStopMarkersRef.current = []
       subStationMarkersRef.current.forEach((marker) => marker.remove())
       subStationMarkersRef.current.clear()
       if (mapRef.current) {

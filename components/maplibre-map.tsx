@@ -25,6 +25,12 @@ import {
   fringalOutboundWaypoints,
   fringalReturnWaypoints,
 } from "@/lib/data/fringal-gpx-data"
+import {
+  hammaOutboundCoords,
+  hammaReturnCoords,
+  hammaOutboundWaypoints,
+  hammaReturnWaypoints,
+} from "@/lib/data/hamma-gpx-data"
 
 // ── Shared constants ──────────────────────────────────────────────────────────
 const KHENCHELA_CENTER: [number, number] = [35.43, 7.14]   // [lat, lng]
@@ -250,6 +256,7 @@ function MapLibreRenderer({ trackingLineId, isFullscreen }: MapProps) {
 
   const stationEls   = useRef<Array<{ el: HTMLElement; lines: string[] }>>([])
   const fringalEls   = useRef<HTMLElement[]>([])
+  const hammaEls     = useRef<HTMLElement[]>([])
   const simBuses     = useRef<Array<{ marker: import("maplibre-gl").Marker; routeId: string; offset: number; direction: number }>>([])
   const driverRef    = useRef<import("maplibre-gl").Marker | null>(null)
   const userRef      = useRef<import("maplibre-gl").Marker | null>(null)
@@ -262,17 +269,21 @@ function MapLibreRenderer({ trackingLineId, isFullscreen }: MapProps) {
 
   const routeCoords = new Map<string, [number, number][]>()
   urbanRoutePolylines.forEach(r => {
-    routeCoords.set(r.id, r.id === "line-11" ? fringalOutboundCoords : r.waypoints)
+    if (r.id === "line-11") routeCoords.set(r.id, fringalOutboundCoords)
+    else if (r.id === "line-05") routeCoords.set(r.id, hammaOutboundCoords)
+    else routeCoords.set(r.id, r.waypoints)
   })
 
   // Focus mode
   const applyFocus = (routeId: SelectedRoute) => {
     const map = mapRef.current
     if (!map || !map.isStyleLoaded()) return
-    const isFringal = (key: string) => key === "line-11-outbound" || key === "line-11-return"
 
     urbanRoutePolylines.forEach(r => {
-      const keys = r.id === "line-11" ? ["line-11-outbound", "line-11-return"] : [r.id]
+      let keys: string[]
+      if (r.id === "line-11") keys = ["line-11-outbound", "line-11-return"]
+      else if (r.id === "line-05") keys = ["line-05-outbound", "line-05-return"]
+      else keys = [r.id]
       keys.forEach(key => {
         if (!map.getLayer(`route-${key}`)) return
         const active = routeId === null || r.id === routeId
@@ -287,6 +298,9 @@ function MapLibreRenderer({ trackingLineId, isFullscreen }: MapProps) {
     })
     fringalEls.current.forEach(el => {
       el.style.opacity = routeId === null || routeId === "line-11" ? "1" : "0.1"
+    })
+    hammaEls.current.forEach(el => {
+      el.style.opacity = routeId === null || routeId === "line-05" ? "1" : "0.1"
     })
     simBuses.current.forEach(({ marker, routeId: br }) => {
       marker.getElement().style.opacity = routeId === null || br === routeId ? "1" : "0"
@@ -344,6 +358,7 @@ function MapLibreRenderer({ trackingLineId, isFullscreen }: MapProps) {
         // Urban routes (OSRM optional)
         for (const route of urbanRoutePolylines) {
           if (route.id === "line-11") continue
+          if (route.id === "line-05") continue
           let coords: [number, number][] = route.waypoints.map(([lat, lng]) => [lng, lat])
           try {
             const seg = route.waypoints.map(([lat, lng]) => `${lng},${lat}`).join(";")
@@ -385,10 +400,32 @@ function MapLibreRenderer({ trackingLineId, isFullscreen }: MapProps) {
         addFringal(fringalOutboundCoords, fringalOutboundWaypoints, "line-11-outbound")
         addFringal(fringalReturnCoords,   fringalReturnWaypoints,   "line-11-return")
 
+        // Hamma routes (خط 05 — الحامة-خنشلة)
+        const hammaColor = "#27AE60"
+        const addHamma = (coords: [number, number][], wps: typeof hammaOutboundWaypoints, key: "line-05-outbound" | "line-05-return") => {
+          const geoCoords = coords.map(([lat, lng]) => [lng, lat] as [number, number])
+          addRoute(key, hammaColor, geoCoords)
+          wps.forEach(wp => {
+            const el = document.createElement("div")
+            if (wp.isTerminal) {
+              el.style.cssText = `width:10px;height:10px;`
+              el.innerHTML = `<div style="width:10px;height:10px;background:${hammaColor};border:2px solid white;border-radius:50%;box-shadow:0 0 0 1.5px ${hammaColor};"></div>`
+            } else {
+              el.style.cssText = `width:8px;height:8px;`
+              el.innerHTML = `<div style="width:8px;height:8px;background:white;border:2px solid ${hammaColor};border-radius:50%;"></div>`
+            }
+            new maplibregl.Marker({ element: el, anchor: "center" }).setLngLat([wp.coords[1], wp.coords[0]]).addTo(map)
+            hammaEls.current.push(el)
+          })
+        }
+        addHamma(hammaOutboundCoords, hammaOutboundWaypoints, "line-05-outbound")
+        addHamma(hammaReturnCoords,   hammaReturnWaypoints,   "line-05-return")
+
         // rAF loop — ant-path dash animation only
         const allRouteKeys = [
-          ...urbanRoutePolylines.filter(r => r.id !== "line-11").map(r => r.id),
+          ...urbanRoutePolylines.filter(r => r.id !== "line-11" && r.id !== "line-05").map(r => r.id),
           "line-11-outbound", "line-11-return",
+          "line-05-outbound", "line-05-return",
         ]
         let lastDashTime = 0
         const tick = (timestamp: number) => {
@@ -435,7 +472,7 @@ function MapLibreRenderer({ trackingLineId, isFullscreen }: MapProps) {
       if (rafRef.current) cancelAnimationFrame(rafRef.current)
       driverRef.current?.remove()
       userRef.current?.remove()
-      stationEls.current = []; fringalEls.current = []
+      stationEls.current = []; fringalEls.current = []; hammaEls.current = []
       simBuses.current.forEach(b => b.marker.remove()); simBuses.current = []
       mapRef.current?.remove(); mapRef.current = null; initRef.current = false
     }
@@ -509,20 +546,27 @@ function LeafletDarkRenderer({ trackingLineId, isFullscreen }: MapProps) {
   const routeGlows  = useRef<Map<string, L.Polyline>>(new Map())
   const stationRefs = useRef<Array<{ marker: L.Marker; lines: string[] }>>([])
   const fringalRefs = useRef<L.Marker[]>([])
+  const hammaRefs   = useRef<L.Marker[]>([])
   const userRef     = useRef<L.Marker | null>(null)
 
   const routeCoords = new Map<string, [number, number][]>()
   urbanRoutePolylines.forEach(r => {
-    routeCoords.set(r.id, r.id === "line-11" ? fringalOutboundCoords : r.waypoints)
+    if (r.id === "line-11") routeCoords.set(r.id, fringalOutboundCoords)
+    else if (r.id === "line-05") routeCoords.set(r.id, hammaOutboundCoords)
+    else routeCoords.set(r.id, r.waypoints)
   })
 
   const applyFocus = (routeId: SelectedRoute) => {
     routeLayers.current.forEach((poly, id) => {
-      const active = routeId === null || id === routeId || (routeId === "line-11" && (id === "line-11-outbound" || id === "line-11-return"))
+      const active = routeId === null || id === routeId
+        || (routeId === "line-11" && (id === "line-11-outbound" || id === "line-11-return"))
+        || (routeId === "line-05" && (id === "line-05-outbound" || id === "line-05-return"))
       poly.setStyle({ opacity: active ? (routeId ? 1 : 0.85) : 0.06, weight: active ? (routeId ? 6 : 4) : 2 })
     })
     routeGlows.current.forEach((g, id) => {
-      const active = routeId === null || id === routeId || (routeId === "line-11" && (id === "line-11-outbound" || id === "line-11-return"))
+      const active = routeId === null || id === routeId
+        || (routeId === "line-11" && (id === "line-11-outbound" || id === "line-11-return"))
+        || (routeId === "line-05" && (id === "line-05-outbound" || id === "line-05-return"))
       g.setStyle({ opacity: active ? (routeId ? 0.35 : 0.18) : 0.02 })
     })
     stationRefs.current.forEach(({ marker, lines }) => {
@@ -530,6 +574,9 @@ function LeafletDarkRenderer({ trackingLineId, isFullscreen }: MapProps) {
     })
     fringalRefs.current.forEach(m => {
       m.getElement()?.style && (m.getElement()!.style.opacity = routeId === null || routeId === "line-11" ? "1" : "0.1")
+    })
+    hammaRefs.current.forEach(m => {
+      m.getElement()?.style && (m.getElement()!.style.opacity = routeId === null || routeId === "line-05" ? "1" : "0.1")
     })
     simBusRef.current.forEach(({ marker, routeId: br }) => {
       marker.getElement()?.style && (marker.getElement()!.style.opacity = routeId === null || br === routeId ? "1" : "0")
@@ -553,6 +600,7 @@ function LeafletDarkRenderer({ trackingLineId, isFullscreen }: MapProps) {
 
     // Urban routes
     urbanRoutePolylines.forEach(route => {
+      if (route.id === "line-11" || route.id === "line-05") return
       const coords = routeCoords.get(route.id) ?? route.waypoints
       const glow = L.polyline(coords, { color: route.color, weight: 16, opacity: 0.18 }).addTo(map)
       const line = L.polyline(coords, { color: route.color, weight: 4, opacity: 0.85, dashArray: "8, 10" }).addTo(map)
@@ -593,6 +641,30 @@ function LeafletDarkRenderer({ trackingLineId, isFullscreen }: MapProps) {
     addFringalTrack(fringalOutboundCoords, fringalOutboundWaypoints, "line-11-outbound")
     addFringalTrack(fringalReturnCoords,   fringalReturnWaypoints,   "line-11-return")
 
+    // Hamma routes (خط 05 — الحامة-خنشلة)
+    const hammaColor = "#27AE60"
+    const addHammaTrack = (
+      coords: [number, number][],
+      wps: typeof hammaOutboundWaypoints,
+      id: string,
+    ) => {
+      const glow = L.polyline(coords, { color: hammaColor, weight: 18, opacity: 0.18 }).addTo(map)
+      const line = L.polyline(coords, { color: hammaColor, weight: 4, opacity: 0.85, dashArray: "8, 10" }).addTo(map)
+      routeGlows.current.set(id, glow)
+      routeLayers.current.set(id, line)
+      wps.forEach(wp => {
+        const size = wp.isTerminal ? 10 : 8
+        const html = wp.isTerminal
+          ? `<div style="width:${size}px;height:${size}px;background:${hammaColor};border:2px solid white;border-radius:50%;box-shadow:0 0 0 1.5px ${hammaColor};"></div>`
+          : `<div style="width:${size}px;height:${size}px;background:white;border:2px solid ${hammaColor};border-radius:50%;"></div>`
+        const icon = L.divIcon({ html, className: "", iconSize: [size, size], iconAnchor: [size/2, size/2] })
+        const m = L.marker(wp.coords, { icon }).addTo(map)
+        hammaRefs.current.push(m)
+      })
+    }
+    addHammaTrack(hammaOutboundCoords, hammaOutboundWaypoints, "line-05-outbound")
+    addHammaTrack(hammaReturnCoords,   hammaReturnWaypoints,   "line-05-return")
+
     // Station markers
     urbanStations.forEach(s => {
       const size = s.isMain ? 16 : 10
@@ -626,7 +698,7 @@ function LeafletDarkRenderer({ trackingLineId, isFullscreen }: MapProps) {
       map.remove()
       mapRef.current = null
       initRef.current = false
-      stationRefs.current = []; fringalRefs.current = []
+      stationRefs.current = []; fringalRefs.current = []; hammaRefs.current = []
       simBusRef.current = []
     }
   }, [])
