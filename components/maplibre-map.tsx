@@ -102,6 +102,36 @@ interface MapProps {
   isFullscreen?: boolean
 }
 
+// ── Chevron point computation (shared by MapLibre rAF loop) ──────────────────
+type ChevFC = { type:"FeatureCollection"; features:Array<{ type:"Feature"; geometry:{ type:"Point"; coordinates:[number,number] }; properties:{ bearing:number } }> }
+function computeChevPoints(coords:[number,number][], phase:number, spacingDeg = 0.007): ChevFC {
+  const features: ChevFC["features"] = []
+  if (coords.length < 2) return { type:"FeatureCollection", features }
+  const lens: number[] = []; let total = 0
+  for (let i = 0; i < coords.length-1; i++) {
+    const d = Math.hypot(coords[i+1][0]-coords[i][0], coords[i+1][1]-coords[i][1])
+    lens.push(d); total += d
+  }
+  if (total === 0) return { type:"FeatureCollection", features }
+  const startOff = (phase * spacingDeg) % spacingDeg
+  for (let dist = startOff; dist < total; dist += spacingDeg) {
+    let acc = 0
+    for (let i = 0; i < lens.length; i++) {
+      if (acc + lens[i] >= dist || i === lens.length-1) {
+        const t = lens[i] > 0 ? Math.min(1,(dist-acc)/lens[i]) : 0
+        const lng = coords[i][0] + t*(coords[i+1][0]-coords[i][0])
+        const lat = coords[i][1] + t*(coords[i+1][1]-coords[i][1])
+        // icon is drawn pointing right; convert route direction to MapLibre bearing (CW from north)
+        const bearing = Math.atan2(coords[i+1][0]-coords[i][0], coords[i+1][1]-coords[i][1])*180/Math.PI - 90
+        features.push({ type:"Feature", geometry:{ type:"Point", coordinates:[lng,lat] }, properties:{ bearing } })
+        break
+      }
+      acc += lens[i]
+    }
+  }
+  return { type:"FeatureCollection", features }
+}
+
 // ── Shared CSS injector ───────────────────────────────────────────────────────
 function injectMapStyles() {
   if (typeof document === "undefined") return
@@ -119,6 +149,13 @@ function injectMapStyles() {
       50%      { box-shadow:0 0 0 6px rgba(255,255,255,0),0 4px 20px rgba(0,0,0,0.6); }
     }
     .tk-sim-bus { will-change:transform; }
+    /* Stop label visibility — toggled by map zoom */
+    .tk-stop-label { font-size:11px;font-weight:600;color:#1e293b;background:rgba(255,255,255,0.92);
+      padding:2px 6px;border-radius:5px;white-space:nowrap;pointer-events:none;
+      position:absolute;left:14px;top:50%;transform:translateY(-50%);
+      display:none;box-shadow:0 1px 4px rgba(0,0,0,0.18); }
+    .tk-stop-wrapper { position:relative;display:flex;align-items:center;cursor:pointer; }
+    .tk-labels-on .tk-stop-label { display:block; }
     /* Leaflet fallback popup */
     .tk-popup .leaflet-popup-content-wrapper {
       background:rgba(15,23,42,0.97) !important;
@@ -249,13 +286,14 @@ function MapLibreRenderer({ trackingLineId, isFullscreen }: MapProps) {
   const initRef      = useRef(false)
   const { isDark }   = useTheme()
 
-  const stationEls   = useRef<Array<{ el: HTMLElement; lines: string[] }>>([])
-  const fringalEls   = useRef<HTMLElement[]>([])
-  const hammaEls     = useRef<HTMLElement[]>([])
-  const simBuses     = useRef<Array<{ marker: import("maplibre-gl").Marker; routeId: string; offset: number; direction: number }>>([])
-  const driverRef    = useRef<import("maplibre-gl").Marker | null>(null)
-  const userRef      = useRef<import("maplibre-gl").Marker | null>(null)
-  const rafRef       = useRef<number | null>(null)
+  const stationEls       = useRef<Array<{ el: HTMLElement; lines: string[] }>>([])
+  const fringalEls       = useRef<HTMLElement[]>([])
+  const hammaEls         = useRef<HTMLElement[]>([])
+  const simBuses         = useRef<Array<{ marker: import("maplibre-gl").Marker; routeId: string; offset: number; direction: number }>>([])
+  const driverRef        = useRef<import("maplibre-gl").Marker | null>(null)
+  const userRef          = useRef<import("maplibre-gl").Marker | null>(null)
+  const rafRef           = useRef<number | null>(null)
+  const chevronCoordsRef = useRef<Map<string, [number,number][]>>(new Map())
 
   const [selectedRoute, setSelectedRoute] = useState<SelectedRoute>(null)
   const [ready, setReady] = useState(false)
@@ -291,8 +329,8 @@ function MapLibreRenderer({ trackingLineId, isFullscreen }: MapProps) {
           map.setPaintProperty(`route-${key}`,   "line-opacity", active ? 1 : 0.04)
           map.setPaintProperty(`route-${key}`,   "line-width",   focused ? 7 : 5)
         }
-        if (map.getLayer(`arrows-${key}`))
-          map.setLayoutProperty(`arrows-${key}`, "visibility",   active ? "visible" : "none")
+        if (map.getLayer(`chev-${key}`))
+          map.setLayoutProperty(`chev-${key}`, "visibility", active ? "visible" : "none")
       })
     })
 
@@ -383,18 +421,19 @@ function MapLibreRenderer({ trackingLineId, isFullscreen }: MapProps) {
           map.addLayer({ id: `route-${key}`, type: "line", source: `src-${key}`,
             layout: { "line-cap": "round", "line-join": "round" },
             paint: { "line-color": color, "line-width": 5, "line-opacity": 1 } })
-          // Layer 4 — directional chevron arrows
-          map.addLayer({ id: `arrows-${key}`, type: "symbol", source: `src-${key}`,
-            layout: {
-              "symbol-placement": "line",
-              "symbol-spacing": 90,
+          // Layer 4 — animated chevrons (points updated each rAF frame)
+          map.addSource(`chev-src-${key}`, { type:"geojson", data:{ type:"FeatureCollection", features:[] } })
+          map.addLayer({ id:`chev-${key}`, type:"symbol", source:`chev-src-${key}`,
+            layout:{
               "icon-image": "chevron-arrow",
-              "icon-size": 0.85,
+              "icon-size": 0.78,
+              "icon-rotate": ["get","bearing"],
               "icon-rotation-alignment": "map",
               "icon-allow-overlap": true,
               "icon-ignore-placement": true,
             },
           })
+          chevronCoordsRef.current.set(key, geoCoords)
         }
 
         // Urban routes (OSRM optional)
@@ -411,15 +450,25 @@ function MapLibreRenderer({ trackingLineId, isFullscreen }: MapProps) {
             }
           } catch { /* use waypoints */ }
           addRoute(route.id, route.color, coords)
-
-          // Stop markers
-          route.waypoints.forEach((wp, i) => {
-            const el = document.createElement("div")
-            el.style.cssText = `width:14px;height:14px;background:${route.color};border:2.5px solid white;border-radius:50%;box-shadow:0 2px 6px rgba(0,0,0,0.4);cursor:pointer;`
-            const m = new maplibregl.Marker({ element: el, anchor: "center" }).setLngLat([wp[1], wp[0]]).addTo(map)
-            stationEls.current.push({ el, lines: [route.id] })
-          })
         }
+
+        // ── Urban bus stop markers (single pass — avoids duplicates at interchange stations) ──
+        urbanStations.forEach(s => {
+          const sz = s.isMain ? 12 : 8
+          const bw = s.isMain ? 3 : 2.5
+          const firstLineColor = urbanRoutePolylines.find(r => s.lines.includes(r.id))?.color ?? "#64748b"
+          const wrapper = document.createElement("div")
+          wrapper.className = "tk-stop-wrapper"
+          wrapper.style.cssText = `width:${sz}px;height:${sz}px;`
+          const dot = document.createElement("div")
+          dot.style.cssText = `width:${sz}px;height:${sz}px;background:white;border:${bw}px solid ${firstLineColor};border-radius:50%;box-shadow:0 1px 5px rgba(0,0,0,0.3);flex-shrink:0;`
+          const label = document.createElement("span")
+          label.className = "tk-stop-label"
+          label.textContent = s.name
+          wrapper.appendChild(dot); wrapper.appendChild(label)
+          new maplibregl.Marker({ element: wrapper, anchor: "center" }).setLngLat([s.position[1], s.position[0]]).addTo(map)
+          stationEls.current.push({ el: wrapper, lines: s.lines })
+        })
 
         // Fringal routes
         const fringalColor = "#2980B9"
@@ -427,16 +476,18 @@ function MapLibreRenderer({ trackingLineId, isFullscreen }: MapProps) {
           const geoCoords = coords.map(([lat, lng]) => [lng, lat] as [number, number])
           addRoute(key, fringalColor, geoCoords)
           wps.forEach(wp => {
-            const el = document.createElement("div")
-            if (wp.isTerminal) {
-              el.style.cssText = `width:10px;height:10px;`
-              el.innerHTML = `<div style="width:10px;height:10px;background:${fringalColor};border:2px solid white;border-radius:50%;box-shadow:0 0 0 1.5px ${fringalColor};"></div>`
-            } else {
-              el.style.cssText = `width:8px;height:8px;`
-              el.innerHTML = `<div style="width:8px;height:8px;background:white;border:2px solid ${fringalColor};border-radius:50%;"></div>`
-            }
-            const m = new maplibregl.Marker({ element: el, anchor: "center" }).setLngLat([wp.coords[1], wp.coords[0]]).addTo(map)
-            fringalEls.current.push(el)
+            const size = wp.isTerminal ? 12 : 8
+            const wrapper = document.createElement("div")
+            wrapper.className = "tk-stop-wrapper"
+            wrapper.style.cssText = `width:${size}px;height:${size}px;`
+            const dot = document.createElement("div")
+            dot.style.cssText = `width:${size}px;height:${size}px;background:white;border:${wp.isTerminal?3:2.5}px solid ${fringalColor};border-radius:50%;box-shadow:0 1px 4px rgba(0,0,0,0.28);flex-shrink:0;`
+            const label = document.createElement("span")
+            label.className = "tk-stop-label"
+            label.textContent = wp.name ?? ""
+            wrapper.appendChild(dot); wrapper.appendChild(label)
+            new maplibregl.Marker({ element: wrapper, anchor: "center" }).setLngLat([wp.coords[1], wp.coords[0]]).addTo(map)
+            fringalEls.current.push(wrapper)
           })
         }
         addFringal(fringalOutboundCoords, fringalOutboundWaypoints, "line-11-outbound")
@@ -448,20 +499,44 @@ function MapLibreRenderer({ trackingLineId, isFullscreen }: MapProps) {
           const geoCoords = coords.map(([lat, lng]) => [lng, lat] as [number, number])
           addRoute(key, hammaColor, geoCoords)
           wps.forEach(wp => {
-            const el = document.createElement("div")
-            if (wp.isTerminal) {
-              el.style.cssText = `width:10px;height:10px;`
-              el.innerHTML = `<div style="width:10px;height:10px;background:${hammaColor};border:2px solid white;border-radius:50%;box-shadow:0 0 0 1.5px ${hammaColor};"></div>`
-            } else {
-              el.style.cssText = `width:8px;height:8px;`
-              el.innerHTML = `<div style="width:8px;height:8px;background:white;border:2px solid ${hammaColor};border-radius:50%;"></div>`
-            }
-            new maplibregl.Marker({ element: el, anchor: "center" }).setLngLat([wp.coords[1], wp.coords[0]]).addTo(map)
-            hammaEls.current.push(el)
+            const size = wp.isTerminal ? 12 : 8
+            const wrapper = document.createElement("div")
+            wrapper.className = "tk-stop-wrapper"
+            wrapper.style.cssText = `width:${size}px;height:${size}px;`
+            const dot = document.createElement("div")
+            dot.style.cssText = `width:${size}px;height:${size}px;background:white;border:${wp.isTerminal?3:2.5}px solid ${hammaColor};border-radius:50%;box-shadow:0 1px 4px rgba(0,0,0,0.28);flex-shrink:0;`
+            const label = document.createElement("span")
+            label.className = "tk-stop-label"
+            label.textContent = wp.name ?? ""
+            wrapper.appendChild(dot); wrapper.appendChild(label)
+            new maplibregl.Marker({ element: wrapper, anchor: "center" }).setLngLat([wp.coords[1], wp.coords[0]]).addTo(map)
+            hammaEls.current.push(wrapper)
           })
         }
         addHamma(hammaOutboundCoords, hammaOutboundWaypoints, "line-05-outbound")
         addHamma(hammaReturnCoords,   hammaReturnWaypoints,   "line-05-return")
+
+        // ── Zoom-based label visibility ─────────────────────────────────────
+        const updateLabels = () => {
+          const show = map.getZoom() >= 14
+          containerRef.current?.classList.toggle("tk-labels-on", show)
+        }
+        map.on("zoom", updateLabels)
+        updateLabels()
+
+        // ── Chevron rAF animation loop ───────────────────────────────────────
+        let chevPhase = 0; let lastTs = 0
+        const animChev = (ts: number) => {
+          const dt = Math.min((lastTs ? ts - lastTs : 16), 100) / 1000
+          lastTs = ts
+          chevPhase = (chevPhase + 0.14 * dt) % 1
+          chevronCoordsRef.current.forEach((coords, key) => {
+            const src = map.getSource(`chev-src-${key}`) as import("maplibre-gl").GeoJSONSource | undefined
+            src?.setData(computeChevPoints(coords, chevPhase) as unknown as import("maplibre-gl").GeoJSONSourceSpecification["data"])
+          })
+          rafRef.current = requestAnimationFrame(animChev)
+        }
+        rafRef.current = requestAnimationFrame(animChev)
 
         setReady(true)
       })
@@ -636,13 +711,7 @@ function LeafletDarkRenderer({ trackingLineId, isFullscreen }: MapProps) {
       routeCasings.current.set(route.id, casing)
       routeLayers.current.set(route.id, line)
 
-      route.waypoints.forEach(wp => {
-        const el = document.createElement("div")
-        el.style.cssText = `width:13px;height:13px;background:${route.color};border:2.5px solid white;border-radius:50%;box-shadow:0 2px 5px rgba(0,0,0,0.4);`
-        const icon = L.divIcon({ html: el.outerHTML, className: "", iconSize: [13,13], iconAnchor: [6.5, 6.5] })
-        const marker = L.marker(wp, { icon }).addTo(map)
-        stationRefs.current.push({ marker, lines: [route.id] })
-      })
+      // (station markers rendered in the single urbanStations pass below)
     })
 
     // Fringal routes
@@ -660,11 +729,10 @@ function LeafletDarkRenderer({ trackingLineId, isFullscreen }: MapProps) {
       routeLayers.current.set(id, line)
 
       wps.forEach(wp => {
-        const size = wp.isTerminal ? 10 : 8
-        const html = wp.isTerminal
-          ? `<div style="width:${size}px;height:${size}px;background:${fringalColor};border:2px solid white;border-radius:50%;box-shadow:0 0 0 1.5px ${fringalColor};"></div>`
-          : `<div style="width:${size}px;height:${size}px;background:white;border:2px solid ${fringalColor};border-radius:50%;"></div>`
-        const icon = L.divIcon({ html, className: "", iconSize: [size, size], iconAnchor: [size/2, size/2] })
+        const sz = wp.isTerminal ? 12 : 8
+        const bw = wp.isTerminal ? 3 : 2.5
+        const html = `<div class="tk-stop-wrapper" style="width:${sz}px;height:${sz}px;"><div style="width:${sz}px;height:${sz}px;background:white;border:${bw}px solid ${fringalColor};border-radius:50%;box-shadow:0 1px 4px rgba(0,0,0,0.25);"></div><span class="tk-stop-label">${wp.name ?? ""}</span></div>`
+        const icon = L.divIcon({ html, className: "", iconSize: [sz, sz], iconAnchor: [sz/2, sz/2] })
         const m = L.marker(wp.coords, { icon }).addTo(map)
         fringalRefs.current.push(m)
       })
@@ -686,11 +754,10 @@ function LeafletDarkRenderer({ trackingLineId, isFullscreen }: MapProps) {
       routeCasings.current.set(id, casing)
       routeLayers.current.set(id, line)
       wps.forEach(wp => {
-        const size = wp.isTerminal ? 10 : 8
-        const html = wp.isTerminal
-          ? `<div style="width:${size}px;height:${size}px;background:${hammaColor};border:2px solid white;border-radius:50%;box-shadow:0 0 0 1.5px ${hammaColor};"></div>`
-          : `<div style="width:${size}px;height:${size}px;background:white;border:2px solid ${hammaColor};border-radius:50%;"></div>`
-        const icon = L.divIcon({ html, className: "", iconSize: [size, size], iconAnchor: [size/2, size/2] })
+        const sz = wp.isTerminal ? 12 : 8
+        const bw = wp.isTerminal ? 3 : 2.5
+        const html = `<div class="tk-stop-wrapper" style="width:${sz}px;height:${sz}px;"><div style="width:${sz}px;height:${sz}px;background:white;border:${bw}px solid ${hammaColor};border-radius:50%;box-shadow:0 1px 4px rgba(0,0,0,0.25);"></div><span class="tk-stop-label">${wp.name ?? ""}</span></div>`
+        const icon = L.divIcon({ html, className: "", iconSize: [sz, sz], iconAnchor: [sz/2, sz/2] })
         const m = L.marker(wp.coords, { icon }).addTo(map)
         hammaRefs.current.push(m)
       })
@@ -698,16 +765,78 @@ function LeafletDarkRenderer({ trackingLineId, isFullscreen }: MapProps) {
     addHammaTrack(hammaOutboundCoords, hammaOutboundWaypoints, "line-05-outbound")
     addHammaTrack(hammaReturnCoords,   hammaReturnWaypoints,   "line-05-return")
 
-    // Station markers
+    // ── Station markers (single pass — premium white circle + colored border) ──
     urbanStations.forEach(s => {
-      const size = s.isMain ? 16 : 10
-      const el = document.createElement("div")
-      el.style.cssText = `width:${size}px;height:${size}px;background:#22C55E;border:${s.isMain?3:2}px solid white;border-radius:50%;box-shadow:0 2px 5px rgba(0,0,0,0.4);`
-      const icon = L.divIcon({ html: el.outerHTML, className: "", iconSize: [size,size], iconAnchor: [size/2,size/2] })
+      const sz = s.isMain ? 12 : 8
+      const bw = s.isMain ? 3 : 2.5
+      const firstLineColor = urbanRoutePolylines.find(r => s.lines.includes(r.id))?.color ?? "#64748b"
+      const html = `<div class="tk-stop-wrapper" style="width:${sz}px;height:${sz}px;"><div style="width:${sz}px;height:${sz}px;background:white;border:${bw}px solid ${firstLineColor};border-radius:50%;box-shadow:0 1px 4px rgba(0,0,0,0.25);"></div><span class="tk-stop-label">${s.name}</span></div>`
+      const icon = L.divIcon({ html, className: "", iconSize: [sz, sz], iconAnchor: [sz/2, sz/2] })
       const popup = `<div class="tk-pname">${s.name}</div><div class="tk-psub">${s.nameEn}</div>`
       const m = L.marker(s.position, { icon }).bindPopup(popup, { className: "tk-popup" }).addTo(map)
       stationRefs.current.push({ marker: m, lines: s.lines })
     })
+
+    // ── Zoom-based label visibility ────────────────────────────────────────────
+    const updateLeafletLabels = () => {
+      const show = map.getZoom() >= 14
+      containerRef.current?.classList.toggle("tk-labels-on", show)
+    }
+    map.on("zoomend", updateLeafletLabels)
+    updateLeafletLabels()
+
+    // ── Leaflet chevron animation — 4 moving chevron DIVs per route ────────────
+    type ChevEntry = { marker: L.Marker; routeId: string; phase: number }
+    const chevMarkers: ChevEntry[] = []
+    const chevronHtml = (color: string) =>
+      `<div style="width:14px;height:14px;display:flex;align-items:center;justify-content:center;opacity:0.9;">
+        <svg viewBox="0 0 12 12" width="12" height="12">
+          <path d="M3 1 L9 6 L3 11 L3 8.5 L6.5 6 L3 3.5Z" fill="${color}" stroke="white" stroke-width="0.8"/>
+        </svg>
+      </div>`
+    const allLeafletRoutes: Array<{ id: string; coords: [number, number][]; color: string }> = [
+      ...urbanRoutePolylines
+        .filter(r => r.id !== "line-11" && r.id !== "line-05")
+        .map(r => ({ id: r.id, coords: routeCoords.get(r.id) ?? r.waypoints, color: r.color })),
+      { id: "line-11-outbound", coords: fringalOutboundCoords, color: "#2980B9" },
+      { id: "line-11-return",   coords: fringalReturnCoords,   color: "#2980B9" },
+      { id: "line-05-outbound", coords: hammaOutboundCoords,   color: "#27AE60" },
+      { id: "line-05-return",   coords: hammaReturnCoords,     color: "#27AE60" },
+    ]
+    allLeafletRoutes.forEach(route => {
+      for (let i = 0; i < 4; i++) {
+        const phase0 = i / 4
+        const icon = L.divIcon({ html: chevronHtml(route.color), className: "", iconSize: [14, 14], iconAnchor: [7, 7] })
+        const pos = getSimPos(route.coords, phase0)
+        const m = L.marker([pos.lat, pos.lng], { icon, interactive: false, zIndexOffset: -10 }).addTo(map)
+        chevMarkers.push({ marker: m, routeId: route.id, phase: phase0 })
+      }
+    })
+
+    const CHEV_SPEED = 0.12
+    let lastChevTs = 0
+    const animLeafletChev = (ts: number) => {
+      const dt = Math.min((lastChevTs ? ts - lastChevTs : 16), 100) / 1000
+      lastChevTs = ts
+      chevMarkers.forEach(entry => {
+        entry.phase = (entry.phase + CHEV_SPEED * dt) % 1
+        const route = allLeafletRoutes.find(r => r.id === entry.routeId)
+        if (!route) return
+        const pos = getSimPos(route.coords, entry.phase)
+        const heading = pos.heading
+        const el = entry.marker.getElement()
+        if (el) {
+          const svg = el.querySelector("path")
+          if (svg) {
+            const parent = svg.parentElement as SVGElement | null
+            if (parent) parent.style.transform = `rotate(${heading}deg)`
+          }
+        }
+        entry.marker.setLatLng([pos.lat, pos.lng])
+      })
+      rafRef.current = requestAnimationFrame(animLeafletChev)
+    }
+    rafRef.current = requestAnimationFrame(animLeafletChev)
 
     // ── Live driver tracking ── 0775453629 ────────────────────────────────────
     const driverDbRef = rtdbRef(rtdb, "drivers/0775453629/location")
@@ -728,6 +857,7 @@ function LeafletDarkRenderer({ trackingLineId, isFullscreen }: MapProps) {
     return () => {
       unsubDriver()
       if (rafRef.current) cancelAnimationFrame(rafRef.current)
+      chevMarkers.forEach(e => e.marker.remove())
       map.remove()
       mapRef.current = null
       initRef.current = false
