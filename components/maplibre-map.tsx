@@ -311,6 +311,7 @@ function MapLibreRenderer({ trackingLineId, isFullscreen }: MapProps) {
   const userRef          = useRef<import("maplibre-gl").Marker | null>(null)
   const rafRef           = useRef<number | null>(null)
   const chevronCoordsRef = useRef<Map<string, [number,number][]>>(new Map())
+  const focusRetryRef    = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const [selectedRoute, setSelectedRoute] = useState<SelectedRoute>(null)
   const [ready, setReady] = useState(false)
@@ -330,9 +331,11 @@ function MapLibreRenderer({ trackingLineId, isFullscreen }: MapProps) {
     const map = mapRef.current
     if (!map) return
     if (!map.isStyleLoaded()) {
-      setTimeout(() => applyFocus(routeId), 100)
+      if (focusRetryRef.current) clearTimeout(focusRetryRef.current)
+      focusRetryRef.current = setTimeout(() => applyFocus(routeId), 100)
       return
     }
+    if (focusRetryRef.current) { clearTimeout(focusRetryRef.current); focusRetryRef.current = null }
 
     urbanRoutePolylines.forEach(r => {
       let keys: string[]
@@ -648,8 +651,11 @@ function MapLibreRenderer({ trackingLineId, isFullscreen }: MapProps) {
   }, [])
 
   useEffect(() => {
-    const t = setTimeout(() => applyFocus(selectedRoute), 80)
-    return () => clearTimeout(t)
+    if (focusRetryRef.current) { clearTimeout(focusRetryRef.current); focusRetryRef.current = null }
+    applyFocus(selectedRoute)
+    return () => {
+      if (focusRetryRef.current) { clearTimeout(focusRetryRef.current); focusRetryRef.current = null }
+    }
   }, [selectedRoute])
 
   const locateMe = () => {

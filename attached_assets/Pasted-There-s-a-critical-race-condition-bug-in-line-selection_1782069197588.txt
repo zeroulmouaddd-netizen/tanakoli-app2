@@ -1,0 +1,49 @@
+There's a critical race-condition bug in line selection, not just slowness:
+
+OBSERVED BEHAVIOR:
+1. I select Line A → nothing visibly happens immediately.
+2. I quickly select Line B, then Line C.
+3. After a noticeable delay, the map switches to Line A (the FIRST one 
+   I picked) — even though I never clicked it last.
+4. It stays on Line A for a while, then — without me clicking anything — 
+   it switches to Line B.
+5. Selections are being applied late and out of order, as if every click 
+   queues an update that fires on its own delayed timer, and earlier 
+   selections aren't being cancelled when a newer one comes in.
+
+LIKELY ROOT CAUSE (please verify in code):
+- Each line selection probably triggers an async operation (data fetch, 
+  setTimeout, debounce, or layer-toggling effect) that is not cancelled 
+  when the user selects a different line before the previous operation 
+  finishes.
+- This is a classic stale-closure / missing-cleanup race condition — 
+  multiple selection requests are "in flight" simultaneously and they 
+  resolve/apply in their own order instead of only the latest one 
+  mattering.
+
+REQUIRED FIX:
+1. Find the line selection handler and any async work it triggers 
+   (data loading, layer visibility updates, useEffect with the selected 
+   line as a dependency, debounce/setTimeout calls).
+2. Ensure only the LATEST selection ever takes effect:
+   - If using setTimeout/debounce: clear the previous timeout before 
+     setting a new one.
+   - If using async fetch: use an AbortController, or a request ID/ref 
+     check, so a stale response is ignored if a newer selection has 
+     already been made.
+   - If using a useEffect: make sure the cleanup function cancels/ignores 
+     any in-progress work from the previous run.
+3. The map should update to show only the most recently selected line 
+   IMMEDIATELY (no delay, no flicker through previously selected lines).
+4. Test by rapidly clicking through 3-4 different lines in a row — the 
+   map should end up showing only the last one clicked, with no delayed 
+   jumps to earlier selections.
+
+IMPORTANT — DO NOT PUSH TO GITHUB:
+Do not commit, push, or sync any of these changes to GitHub. Keep all 
+changes local within this Replit workspace only. I will handle git 
+operations myself when I'm ready.
+
+After fixing, confirm: rapid line switching is instant and always 
+reflects only the last line I selected, with no delayed or out-of-order 
+jumps.
