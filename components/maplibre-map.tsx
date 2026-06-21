@@ -239,11 +239,6 @@ function RouteController({
   )
 }
 
-// ── Ant-path dasharray sequence (MapLibre animated dashes) ───────────────────
-const DASH_SEQUENCE: number[][] = [
-  [0,4,3],[0.5,4,2.5],[1,4,2],[1.5,4,1.5],[2,4,1],[2.5,4,0.5],[3,4,0],
-  [0,0.5,3,3.5],[0,1,3,3],[0,1.5,3,2.5],[0,2,3,2],[0,2.5,3,1.5],[0,3,3,1],[0,3.5,3,0.5],
-]
 
 // ════════════════════════════════════════════════════════════════════════════════
 // RENDERER A: MapLibre GL (WebGL available — production / real browsers)
@@ -261,7 +256,6 @@ function MapLibreRenderer({ trackingLineId, isFullscreen }: MapProps) {
   const driverRef    = useRef<import("maplibre-gl").Marker | null>(null)
   const userRef      = useRef<import("maplibre-gl").Marker | null>(null)
   const rafRef       = useRef<number | null>(null)
-  const dashStepRef  = useRef(0)
 
   const [selectedRoute, setSelectedRoute] = useState<SelectedRoute>(null)
   const [ready, setReady] = useState(false)
@@ -285,11 +279,20 @@ function MapLibreRenderer({ trackingLineId, isFullscreen }: MapProps) {
       else if (r.id === "line-05") keys = ["line-05-outbound", "line-05-return"]
       else keys = [r.id]
       keys.forEach(key => {
-        if (!map.getLayer(`route-${key}`)) return
-        const active = routeId === null || r.id === routeId
-        map.setPaintProperty(`route-${key}`, "line-opacity", active ? (routeId ? 1 : 0.85) : 0.05)
-        map.setPaintProperty(`route-${key}`, "line-width",   active ? (routeId ? 6 : 4) : 2)
-        map.setPaintProperty(`glow-${key}`,  "line-opacity", active ? (routeId ? 0.32 : 0.18) : 0.02)
+        const active  = routeId === null || r.id === routeId
+        const focused = routeId !== null && r.id === routeId
+        if (map.getLayer(`glow-${key}`))
+          map.setPaintProperty(`glow-${key}`,    "line-opacity", active ? (focused ? 0.30 : 0.15) : 0.02)
+        if (map.getLayer(`casing-${key}`)) {
+          map.setPaintProperty(`casing-${key}`,  "line-opacity", active ? (focused ? 0.95 : 0.82) : 0.04)
+          map.setPaintProperty(`casing-${key}`,  "line-width",   focused ? 10 : 8)
+        }
+        if (map.getLayer(`route-${key}`)) {
+          map.setPaintProperty(`route-${key}`,   "line-opacity", active ? 1 : 0.04)
+          map.setPaintProperty(`route-${key}`,   "line-width",   focused ? 7 : 5)
+        }
+        if (map.getLayer(`arrows-${key}`))
+          map.setLayoutProperty(`arrows-${key}`, "visibility",   active ? "visible" : "none")
       })
     })
 
@@ -342,17 +345,55 @@ function MapLibreRenderer({ trackingLineId, isFullscreen }: MapProps) {
       mapRef.current = map
 
       map.on("load", async () => {
+        // ── Chevron arrow sprite (drawn once, shared by all symbol layers) ─────
+        const arrowSz = 24
+        const arrowCanvas = document.createElement("canvas")
+        arrowCanvas.width = arrowSz; arrowCanvas.height = arrowSz
+        const actx = arrowCanvas.getContext("2d")!
+        actx.clearRect(0, 0, arrowSz, arrowSz)
+        actx.fillStyle = "rgba(255,255,255,0.88)"
+        // Right-pointing chevron — MapLibre rotates it along the line
+        actx.beginPath()
+        actx.moveTo(7,  4)
+        actx.lineTo(18, 12)
+        actx.lineTo(7,  20)
+        actx.lineTo(7,  16)
+        actx.lineTo(13, 12)
+        actx.lineTo(7,  8)
+        actx.closePath()
+        actx.fill()
+        map.addImage("chevron-arrow", arrowCanvas)
+
+        // ── Premium 3-layer route renderer ────────────────────────────────────
         const addRoute = (key: string, color: string, geoCoords: [number, number][]) => {
           map.addSource(`src-${key}`, {
             type: "geojson",
             data: { type: "Feature", geometry: { type: "LineString", coordinates: geoCoords }, properties: {} },
           })
+          // Layer 1 — ambient glow
           map.addLayer({ id: `glow-${key}`, type: "line", source: `src-${key}`,
             layout: { "line-cap": "round", "line-join": "round" },
-            paint: { "line-color": color, "line-width": 16, "line-opacity": 0.18, "line-blur": 6 } })
+            paint: { "line-color": color, "line-width": 20, "line-opacity": 0.15, "line-blur": 8 } })
+          // Layer 2 — white casing (border effect)
+          map.addLayer({ id: `casing-${key}`, type: "line", source: `src-${key}`,
+            layout: { "line-cap": "round", "line-join": "round" },
+            paint: { "line-color": "#ffffff", "line-width": 8, "line-opacity": 0.82 } })
+          // Layer 3 — colored inner line
           map.addLayer({ id: `route-${key}`, type: "line", source: `src-${key}`,
             layout: { "line-cap": "round", "line-join": "round" },
-            paint: { "line-color": color, "line-width": 4, "line-opacity": 0.85, "line-dasharray": [2, 3] } })
+            paint: { "line-color": color, "line-width": 5, "line-opacity": 1 } })
+          // Layer 4 — directional chevron arrows
+          map.addLayer({ id: `arrows-${key}`, type: "symbol", source: `src-${key}`,
+            layout: {
+              "symbol-placement": "line",
+              "symbol-spacing": 90,
+              "icon-image": "chevron-arrow",
+              "icon-size": 0.85,
+              "icon-rotation-alignment": "map",
+              "icon-allow-overlap": true,
+              "icon-ignore-placement": true,
+            },
+          })
         }
 
         // Urban routes (OSRM optional)
@@ -420,28 +461,6 @@ function MapLibreRenderer({ trackingLineId, isFullscreen }: MapProps) {
         }
         addHamma(hammaOutboundCoords, hammaOutboundWaypoints, "line-05-outbound")
         addHamma(hammaReturnCoords,   hammaReturnWaypoints,   "line-05-return")
-
-        // rAF loop — ant-path dash animation only
-        const allRouteKeys = [
-          ...urbanRoutePolylines.filter(r => r.id !== "line-11" && r.id !== "line-05").map(r => r.id),
-          "line-11-outbound", "line-11-return",
-          "line-05-outbound", "line-05-return",
-        ]
-        let lastDashTime = 0
-        const tick = (timestamp: number) => {
-          if (timestamp - lastDashTime >= 180) {
-            lastDashTime = timestamp
-            dashStepRef.current = (dashStepRef.current + 1) % DASH_SEQUENCE.length
-            const arr = DASH_SEQUENCE[dashStepRef.current]
-            allRouteKeys.forEach(key => {
-              if (map.getLayer(`route-${key}`)) {
-                map.setPaintProperty(`route-${key}`, "line-dasharray", arr)
-              }
-            })
-          }
-          rafRef.current = requestAnimationFrame(tick)
-        }
-        rafRef.current = requestAnimationFrame(tick)
 
         setReady(true)
       })
@@ -542,8 +561,9 @@ function LeafletDarkRenderer({ trackingLineId, isFullscreen }: MapProps) {
   const [ready, setReady] = useState(false)
   const [locating, setLocating] = useState(false)
 
-  const routeLayers = useRef<Map<string, L.Polyline>>(new Map())
-  const routeGlows  = useRef<Map<string, L.Polyline>>(new Map())
+  const routeLayers   = useRef<Map<string, L.Polyline>>(new Map())
+  const routeGlows    = useRef<Map<string, L.Polyline>>(new Map())
+  const routeCasings  = useRef<Map<string, L.Polyline>>(new Map())
   const stationRefs = useRef<Array<{ marker: L.Marker; lines: string[] }>>([])
   const fringalRefs = useRef<L.Marker[]>([])
   const hammaRefs   = useRef<L.Marker[]>([])
@@ -557,17 +577,23 @@ function LeafletDarkRenderer({ trackingLineId, isFullscreen }: MapProps) {
   })
 
   const applyFocus = (routeId: SelectedRoute) => {
-    routeLayers.current.forEach((poly, id) => {
-      const active = routeId === null || id === routeId
+    const isActive = (id: string) =>
+      routeId === null || id === routeId
         || (routeId === "line-11" && (id === "line-11-outbound" || id === "line-11-return"))
         || (routeId === "line-05" && (id === "line-05-outbound" || id === "line-05-return"))
-      poly.setStyle({ opacity: active ? (routeId ? 1 : 0.85) : 0.06, weight: active ? (routeId ? 6 : 4) : 2 })
+    const focused = (id: string) => routeId !== null && isActive(id)
+
+    routeLayers.current.forEach((poly, id) => {
+      const a = isActive(id); const f = focused(id)
+      poly.setStyle({ opacity: a ? 1 : 0.05, weight: f ? 7 : 5 })
+    })
+    routeCasings.current.forEach((casing, id) => {
+      const a = isActive(id); const f = focused(id)
+      casing.setStyle({ opacity: a ? (f ? 0.95 : 0.82) : 0.04, weight: f ? 10 : 8 })
     })
     routeGlows.current.forEach((g, id) => {
-      const active = routeId === null || id === routeId
-        || (routeId === "line-11" && (id === "line-11-outbound" || id === "line-11-return"))
-        || (routeId === "line-05" && (id === "line-05-outbound" || id === "line-05-return"))
-      g.setStyle({ opacity: active ? (routeId ? 0.35 : 0.18) : 0.02 })
+      const a = isActive(id); const f = focused(id)
+      g.setStyle({ opacity: a ? (f ? 0.32 : 0.15) : 0.02 })
     })
     stationRefs.current.forEach(({ marker, lines }) => {
       marker.getElement()?.style && (marker.getElement()!.style.opacity = routeId === null || lines.some(l => l === routeId) ? "1" : "0.1")
@@ -602,9 +628,11 @@ function LeafletDarkRenderer({ trackingLineId, isFullscreen }: MapProps) {
     urbanRoutePolylines.forEach(route => {
       if (route.id === "line-11" || route.id === "line-05") return
       const coords = routeCoords.get(route.id) ?? route.waypoints
-      const glow = L.polyline(coords, { color: route.color, weight: 16, opacity: 0.18 }).addTo(map)
-      const line = L.polyline(coords, { color: route.color, weight: 4, opacity: 0.85, dashArray: "8, 10" }).addTo(map)
+      const glow   = L.polyline(coords, { color: route.color, weight: 20, opacity: 0.15 }).addTo(map)
+      const casing = L.polyline(coords, { color: "#ffffff",   weight: 8,  opacity: 0.82, lineCap: "round", lineJoin: "round" }).addTo(map)
+      const line   = L.polyline(coords, { color: route.color, weight: 5,  opacity: 1,    lineCap: "round", lineJoin: "round" }).addTo(map)
       routeGlows.current.set(route.id, glow)
+      routeCasings.current.set(route.id, casing)
       routeLayers.current.set(route.id, line)
 
       route.waypoints.forEach(wp => {
@@ -623,9 +651,11 @@ function LeafletDarkRenderer({ trackingLineId, isFullscreen }: MapProps) {
       wps: typeof fringalOutboundWaypoints,
       id: string,
     ) => {
-      const glow = L.polyline(coords, { color: fringalColor, weight: 18, opacity: 0.18 }).addTo(map)
-      const line = L.polyline(coords, { color: fringalColor, weight: 4, opacity: 0.85, dashArray: "8, 10" }).addTo(map)
+      const glow   = L.polyline(coords, { color: fringalColor, weight: 20, opacity: 0.15 }).addTo(map)
+      const casing = L.polyline(coords, { color: "#ffffff",    weight: 8,  opacity: 0.82, lineCap: "round", lineJoin: "round" }).addTo(map)
+      const line   = L.polyline(coords, { color: fringalColor, weight: 5,  opacity: 1,    lineCap: "round", lineJoin: "round" }).addTo(map)
       routeGlows.current.set(id, glow)
+      routeCasings.current.set(id, casing)
       routeLayers.current.set(id, line)
 
       wps.forEach(wp => {
@@ -648,9 +678,11 @@ function LeafletDarkRenderer({ trackingLineId, isFullscreen }: MapProps) {
       wps: typeof hammaOutboundWaypoints,
       id: string,
     ) => {
-      const glow = L.polyline(coords, { color: hammaColor, weight: 18, opacity: 0.18 }).addTo(map)
-      const line = L.polyline(coords, { color: hammaColor, weight: 4, opacity: 0.85, dashArray: "8, 10" }).addTo(map)
+      const glow   = L.polyline(coords, { color: hammaColor, weight: 20, opacity: 0.15 }).addTo(map)
+      const casing = L.polyline(coords, { color: "#ffffff",  weight: 8,  opacity: 0.82, lineCap: "round", lineJoin: "round" }).addTo(map)
+      const line   = L.polyline(coords, { color: hammaColor, weight: 5,  opacity: 1,    lineCap: "round", lineJoin: "round" }).addTo(map)
       routeGlows.current.set(id, glow)
+      routeCasings.current.set(id, casing)
       routeLayers.current.set(id, line)
       wps.forEach(wp => {
         const size = wp.isTerminal ? 10 : 8
