@@ -1,0 +1,41 @@
+I want you to completely rebuild the line/route selection logic from 
+scratch instead of patching it further. The current patched version 
+(focusRetryRef + cancelled timeouts) still has the bug outside of 
+Preview, so let's start clean.
+
+STRICT SCOPE — read carefully:
+- ONLY touch the code responsible for: (a) handling a line selection 
+  event, and (b) showing the selected line + hiding all other lines on 
+  the map.
+- Do NOT touch, refactor, or "improve" anything else — not the RTL text 
+  fix, not styling, not other map layers/sources, not unrelated 
+  components, not any other feature. If you think something else needs 
+  changing, STOP and ask me first instead of changing it.
+
+BEFORE rebuilding:
+1. First search the codebase for any duplicate or legacy version of the 
+   line-selection logic (e.g. an old component, a second handler, dead 
+   code) — since the bug appears outside Preview but not inside it, 
+   there may be more than one code path handling this. Tell me what you 
+   find before changing anything.
+
+REBUILD REQUIREMENTS:
+1. Write fresh, simple logic: when a line is selected, show only that 
+   line's route + stations, hide every other line's route + stations. 
+   No setTimeout retries, no race-condition-prone patterns — find a 
+   reliable way to know the map style is ready (e.g. listen for the 
+   map's 'load'/'style.load' event once, not poll/retry with timers) 
+   before applying visibility.
+2. Keep it simple and synchronous where possible — avoid stacking timers 
+   or refs unless truly necessary.
+3. Make sure switching rapidly between lines always ends up showing only 
+   the last one selected, with no flicker or delayed jump to a previous 
+   selection.
+4. Test in both the Replit Preview AND tell me how to test on the actual 
+   deployed/live URL, since that's where the bug was reproducing before.
+
+DO NOT push, commit, or sync anything to GitHub. Keep all changes local 
+to this Replit workspace only.
+
+After rebuilding, summarize exactly what code was replaced and confirm 
+nothing else in the app was touched.

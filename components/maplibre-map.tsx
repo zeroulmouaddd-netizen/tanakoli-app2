@@ -311,7 +311,8 @@ function MapLibreRenderer({ trackingLineId, isFullscreen }: MapProps) {
   const userRef          = useRef<import("maplibre-gl").Marker | null>(null)
   const rafRef           = useRef<number | null>(null)
   const chevronCoordsRef = useRef<Map<string, [number,number][]>>(new Map())
-  const focusRetryRef    = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const pendingRouteRef  = useRef<SelectedRoute>(null)
+  const mapReadyRef      = useRef(false)
 
   const [selectedRoute, setSelectedRoute] = useState<SelectedRoute>(null)
   const [ready, setReady] = useState(false)
@@ -325,17 +326,12 @@ function MapLibreRenderer({ trackingLineId, isFullscreen }: MapProps) {
   })
 
   // Focus mode — visibility-only toggling via setLayoutProperty + setFilter.
-  // No setPaintProperty calls here: each one triggers a full MapLibre style
-  // recompile which causes the UI freeze on rapid route selection.
+  // Purely synchronous: if the map isn't ready yet, applyFocus is a no-op.
+  // The map.on('load') handler calls applyFocus(pendingRouteRef.current)
+  // after the style loads, so any selection made before load is not lost.
   const applyFocus = (routeId: SelectedRoute) => {
     const map = mapRef.current
-    if (!map) return
-    if (!map.isStyleLoaded()) {
-      if (focusRetryRef.current) clearTimeout(focusRetryRef.current)
-      focusRetryRef.current = setTimeout(() => applyFocus(routeId), 100)
-      return
-    }
-    if (focusRetryRef.current) { clearTimeout(focusRetryRef.current); focusRetryRef.current = null }
+    if (!map || !mapReadyRef.current) return
 
     urbanRoutePolylines.forEach(r => {
       let keys: string[]
@@ -616,7 +612,9 @@ function MapLibreRenderer({ trackingLineId, isFullscreen }: MapProps) {
         }
         rafRef.current = requestAnimationFrame(animChev)
 
+        mapReadyRef.current = true
         setReady(true)
+        applyFocus(pendingRouteRef.current)
       })
 
       // ── Live driver tracking ── 0775453629 ──────────────────────────────────
@@ -646,16 +644,14 @@ function MapLibreRenderer({ trackingLineId, isFullscreen }: MapProps) {
       driverRef.current?.remove()
       userRef.current?.remove()
       simBuses.current.forEach(b => b.marker.remove()); simBuses.current = []
+      mapReadyRef.current = false
       mapRef.current?.remove(); mapRef.current = null; initRef.current = false
     }
   }, [])
 
   useEffect(() => {
-    if (focusRetryRef.current) { clearTimeout(focusRetryRef.current); focusRetryRef.current = null }
+    pendingRouteRef.current = selectedRoute
     applyFocus(selectedRoute)
-    return () => {
-      if (focusRetryRef.current) { clearTimeout(focusRetryRef.current); focusRetryRef.current = null }
-    }
   }, [selectedRoute])
 
   const locateMe = () => {
