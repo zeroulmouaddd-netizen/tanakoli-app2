@@ -1,0 +1,41 @@
+Building on the previous marker change, I also want the route LINE 
+itself (not just the station markers) to visually indicate its start 
+and end:
+
+- The first ~40 meters of each route's line should render in a distinct 
+  style from the rest of the line.
+- The last ~50 meters of each route's line should also render in a 
+  distinct style.
+- The middle/main portion of the line stays exactly as it is now (solid, 
+  full line color).
+
+SUGGESTED TECHNIQUE (use your judgment for the cleanest implementation):
+Use Mapbox/MapLibre's line-gradient paint property, which lets you style 
+a line by distance along its length:
+1. Enable `lineMetrics: true` on each route's GeoJSON source.
+2. For each route, compute its total length in meters (e.g. using 
+   turf.length on the line geometry).
+3. Convert 40m and 50m into fractional progress along that specific 
+   line: startFraction = 40 / totalLengthMeters, endFraction = 1 - 
+   (50 / totalLengthMeters).
+4. Use a line-gradient expression with color stops at 0, startFraction, 
+   endFraction, and 1 — so the first 40m and last 50m get a visually 
+   distinct treatment (e.g. a lighter/fading shade of the same line 
+   color, or a subtle dash pattern) while the middle stays solid.
+5. Make sure this works correctly even on short routes (where 40m+50m 
+   might be a large fraction of total length) — handle that edge case 
+   gracefully (e.g. cap the fractions so they don't overlap/invert).
+
+VISUAL REQUIREMENTS:
+- Elegant and subtle — a tasteful fade/gradient or fine dash pattern, 
+  not a jarring color change or thick overlay.
+- Should stay readable and match each line's own color (don't introduce 
+  unrelated colors).
+- Should look good both zoomed in and zoomed out.
+
+SCOPE:
+- Don't touch line selection logic, station markers, or anything else 
+  that currently works — only add this start/end line styling.
+- No GitHub push — keep changes local to this Replit workspace.
+
+Show me a screenshot of the result so I can confirm before moving on.

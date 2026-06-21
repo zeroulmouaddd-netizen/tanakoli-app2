@@ -151,6 +151,22 @@ function computeChevPoints(coords:[number,number][], phase:number, spacingDeg = 
   return { type:"FeatureCollection", features }
 }
 
+// ── Route gradient helpers ────────────────────────────────────────────────────
+function approxLengthMeters(coords: [number, number][]): number {
+  let total = 0
+  for (let i = 0; i < coords.length - 1; i++) {
+    const [lng1, lat1] = coords[i]; const [lng2, lat2] = coords[i + 1]
+    const dlat = (lat2 - lat1) * 111320
+    const dlng = (lng2 - lng1) * 111320 * Math.cos((lat1 + lat2) * Math.PI / 360)
+    total += Math.sqrt(dlat * dlat + dlng * dlng)
+  }
+  return total || 1
+}
+function hexToRgba(hex: string, alpha: number): string {
+  const h = hex.replace('#', '')
+  return `rgba(${parseInt(h.slice(0,2),16)},${parseInt(h.slice(2,4),16)},${parseInt(h.slice(4,6),16)},${alpha})`
+}
+
 // ── Shared CSS injector ───────────────────────────────────────────────────────
 function injectMapStyles() {
   if (typeof document === "undefined") return
@@ -450,22 +466,40 @@ function MapLibreRenderer({ trackingLineId, isFullscreen }: MapProps) {
 
         // ── Premium 3-layer route renderer ────────────────────────────────────
         const addRoute = (key: string, color: string, geoCoords: [number, number][]) => {
+          // Compute gradient fractions: first ~40m fades in, last ~50m fades out
+          const totalLen   = approxLengthMeters(geoCoords)
+          const startFrac  = Math.min(40  / totalLen, 0.40)
+          const endFrac    = Math.max(1 - 50 / totalLen, startFrac + 0.10)
+          const faded      = hexToRgba(color, 0.22)
+
+          // lineMetrics:true is required for line-gradient to work
           map.addSource(`src-${key}`, {
             type: "geojson",
+            lineMetrics: true,
             data: { type: "Feature", geometry: { type: "LineString", coordinates: geoCoords }, properties: {} },
           })
-          // Layer 1 — ambient glow
+          // Layer 1 — ambient glow (solid color, no gradient needed here)
           map.addLayer({ id: `glow-${key}`, type: "line", source: `src-${key}`,
             layout: { "line-cap": "round", "line-join": "round" },
             paint: { "line-color": color, "line-width": 20, "line-opacity": 0.15, "line-blur": 8 } })
-          // Layer 2 — white casing (border effect)
+          // Layer 2 — white casing (solid, unchanged)
           map.addLayer({ id: `casing-${key}`, type: "line", source: `src-${key}`,
             layout: { "line-cap": "round", "line-join": "round" },
             paint: { "line-color": "#ffffff", "line-width": 8, "line-opacity": 0.82 } })
-          // Layer 3 — colored inner line
+          // Layer 3 — inner line with subtle start/end fade via line-gradient
+          // line-gradient replaces line-color; line-opacity is not compatible with it
           map.addLayer({ id: `route-${key}`, type: "line", source: `src-${key}`,
             layout: { "line-cap": "round", "line-join": "round" },
-            paint: { "line-color": color, "line-width": 5, "line-opacity": 1 } })
+            paint: {
+              "line-width": 5,
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              "line-gradient": ["interpolate", ["linear"], ["line-progress"],
+                0,          faded,
+                startFrac,  color,
+                endFrac,    color,
+                1,          faded,
+              ] as any,
+            } })
           // Layer 4 — animated chevrons (points updated each rAF frame)
           map.addSource(`chev-src-${key}`, { type:"geojson", data:{ type:"FeatureCollection", features:[] } })
           map.addLayer({ id:`chev-${key}`, type:"symbol", source:`chev-src-${key}`,
