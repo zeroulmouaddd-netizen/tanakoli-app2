@@ -303,9 +303,6 @@ function MapLibreRenderer({ trackingLineId, isFullscreen }: MapProps) {
   const initRef      = useRef(false)
   const { isDark }   = useTheme()
 
-  const stationEls       = useRef<Array<{ el: HTMLElement; lines: string[] }>>([])
-  const fringalEls       = useRef<HTMLElement[]>([])
-  const hammaEls         = useRef<HTMLElement[]>([])
   const simBuses         = useRef<Array<{ marker: import("maplibre-gl").Marker; routeId: string; offset: number; direction: number }>>([])
   const driverRef        = useRef<import("maplibre-gl").Marker | null>(null)
   const userRef          = useRef<import("maplibre-gl").Marker | null>(null)
@@ -323,7 +320,7 @@ function MapLibreRenderer({ trackingLineId, isFullscreen }: MapProps) {
     else routeCoords.set(r.id, r.waypoints)
   })
 
-  // Focus mode
+  // Focus mode — visibility-based route isolation + native stop layer filtering
   const applyFocus = (routeId: SelectedRoute) => {
     const map = mapRef.current
     if (!map) return
@@ -332,42 +329,49 @@ function MapLibreRenderer({ trackingLineId, isFullscreen }: MapProps) {
       return
     }
 
+    // Route layers: use visibility "none"/"visible" so non-selected layers are fully removed
+    // from the render pipeline (not just transparent).
     urbanRoutePolylines.forEach(r => {
       let keys: string[]
       if (r.id === "line-11") keys = ["line-11-outbound", "line-11-return"]
       else if (r.id === "line-05") keys = ["line-05-outbound", "line-05-return"]
       else keys = [r.id]
+      const active  = routeId === null || r.id === routeId
+      const focused = routeId !== null && r.id === routeId
+      const vis = active ? "visible" : "none"
       keys.forEach(key => {
-        const active  = routeId === null || r.id === routeId
-        const focused = routeId !== null && r.id === routeId
-        if (map.getLayer(`glow-${key}`))
-          map.setPaintProperty(`glow-${key}`,   "line-opacity", active ? (focused ? 0.30 : 0.15) : 0)
+        if (map.getLayer(`glow-${key}`)) {
+          map.setLayoutProperty(`glow-${key}`, "visibility", vis)
+          if (active) map.setPaintProperty(`glow-${key}`, "line-opacity", focused ? 0.30 : 0.15)
+        }
         if (map.getLayer(`casing-${key}`)) {
-          map.setPaintProperty(`casing-${key}`, "line-opacity", active ? (focused ? 0.95 : 0.82) : 0)
-          map.setPaintProperty(`casing-${key}`, "line-width",   focused ? 10 : 8)
+          map.setLayoutProperty(`casing-${key}`, "visibility", vis)
+          if (active) {
+            map.setPaintProperty(`casing-${key}`, "line-opacity", focused ? 0.95 : 0.82)
+            map.setPaintProperty(`casing-${key}`, "line-width",   focused ? 10 : 8)
+          }
         }
         if (map.getLayer(`route-${key}`)) {
-          map.setPaintProperty(`route-${key}`,  "line-opacity", active ? 1 : 0)
-          map.setPaintProperty(`route-${key}`,  "line-width",   focused ? 7 : 5)
+          map.setLayoutProperty(`route-${key}`, "visibility", vis)
+          if (active) map.setPaintProperty(`route-${key}`, "line-width", focused ? 7 : 5)
         }
         if (map.getLayer(`chev-${key}`))
-          map.setLayoutProperty(`chev-${key}`, "visibility", active ? "visible" : "none")
+          map.setLayoutProperty(`chev-${key}`, "visibility", vis)
       })
     })
 
-    stationEls.current.forEach(({ el, lines }) => {
-      el.style.opacity = routeId === null || lines.includes(routeId) ? "1" : "0"
-    })
-    fringalEls.current.forEach(el => {
-      el.style.opacity = routeId === null || routeId === "line-11" ? "1" : "0"
-    })
-    hammaEls.current.forEach(el => {
-      el.style.opacity = routeId === null || routeId === "line-05" ? "1" : "0"
-    })
+    // Native stop layers — filter by selected route using linesStr substring match
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const stopsFilter: any = routeId === null ? null : ["in", `,${routeId},`, ["get", "linesStr"]]
+    if (map.getLayer("stops-circle")) map.setFilter("stops-circle", stopsFilter)
+    if (map.getLayer("stops-label"))  map.setFilter("stops-label",  stopsFilter)
+
+    // Simulated buses
     simBuses.current.forEach(({ marker, routeId: br }) => {
       marker.getElement().style.opacity = routeId === null || br === routeId ? "1" : "0"
     })
 
+    // Fly to selected route bounds
     if (routeId) {
       if (routeId === "line-11") {
         const all = [...fringalOutboundCoords, ...fringalReturnCoords]
@@ -398,6 +402,7 @@ function MapLibreRenderer({ trackingLineId, isFullscreen }: MapProps) {
 
       const CARTO_STYLE: import("maplibre-gl").StyleSpecification = {
         version: 8,
+        glyphs: "https://fonts.openmaptiles.org/{fontstack}/{range}.pbf",
         sources: {
           carto: {
             type: "raster",
@@ -492,22 +497,23 @@ function MapLibreRenderer({ trackingLineId, isFullscreen }: MapProps) {
           addRoute(route.id, route.color, coords)
         }
 
-        // ── Urban bus stop markers (single pass — avoids duplicates at interchange stations) ──
+        // ── Native stop layers: collect all stops as GeoJSON then add circle + symbol layers ──
+        // Native layers are rendered by WebGL at exact geographic coords — zero zoom drift.
+        type StopFeat = {
+          type: "Feature"
+          geometry: { type: "Point"; coordinates: [number, number] }
+          properties: { name: string; linesStr: string; color: string; isMain: boolean }
+        }
+        const stopFeatures: StopFeat[] = []
+
+        // Urban stops
         urbanStations.forEach(s => {
-          const sz = s.isMain ? 12 : 8
-          const bw = s.isMain ? 3 : 2.5
-          const firstLineColor = urbanRoutePolylines.find(r => s.lines.includes(r.id))?.color ?? "#64748b"
-          const wrapper = document.createElement("div")
-          wrapper.className = "tk-stop-wrapper"
-          wrapper.style.cssText = `width:${sz}px;height:${sz}px;`
-          const dot = document.createElement("div")
-          dot.style.cssText = `width:${sz}px;height:${sz}px;background:white;border:${bw}px solid ${firstLineColor};border-radius:50%;box-shadow:0 1px 5px rgba(0,0,0,0.3);flex-shrink:0;`
-          const label = document.createElement("span")
-          label.className = "tk-stop-label"
-          label.textContent = s.name
-          wrapper.appendChild(dot); wrapper.appendChild(label)
-          new maplibregl.Marker({ element: wrapper, anchor: "center" }).setLngLat([s.position[1], s.position[0]]).addTo(map)
-          stationEls.current.push({ el: wrapper, lines: s.lines })
+          const color = urbanRoutePolylines.find(r => s.lines.includes(r.id))?.color ?? "#64748b"
+          stopFeatures.push({
+            type: "Feature",
+            geometry: { type: "Point", coordinates: [s.position[1], s.position[0]] },
+            properties: { name: s.name, linesStr: `,${s.lines.join(",")},`, color, isMain: s.isMain },
+          })
         })
 
         // Fringal routes
@@ -517,23 +523,17 @@ function MapLibreRenderer({ trackingLineId, isFullscreen }: MapProps) {
         }
         addFringal(fringalOutboundCoords, "line-11-outbound")
         addFringal(fringalReturnCoords,   "line-11-return")
-        // Deduplicated stop markers — snapped to outbound polyline, one per unique name
+        // Fringal stops — deduplicated, snapped to outbound polyline
         const seenFringal = new Set<string>()
         ;[...fringalOutboundWaypoints, ...fringalReturnWaypoints].forEach(wp => {
           if (seenFringal.has(wp.name)) return
           seenFringal.add(wp.name)
           const snapped = snapToPolyline(wp.coords, fringalOutboundCoords)
-          const size = wp.isTerminal ? 12 : 8
-          const wrapper = document.createElement("div")
-          wrapper.className = "tk-stop-wrapper"
-          wrapper.style.cssText = `width:${size}px;height:${size}px;`
-          const dot = document.createElement("div")
-          dot.style.cssText = `width:${size}px;height:${size}px;background:white;border:${wp.isTerminal?3:2.5}px solid ${fringalColor};border-radius:50%;box-shadow:0 1px 4px rgba(0,0,0,0.28);flex-shrink:0;`
-          const label = document.createElement("span")
-          label.className = "tk-stop-label"; label.textContent = wp.name
-          wrapper.appendChild(dot); wrapper.appendChild(label)
-          new maplibregl.Marker({ element: wrapper, anchor: "center" }).setLngLat([snapped[1], snapped[0]]).addTo(map)
-          fringalEls.current.push(wrapper)
+          stopFeatures.push({
+            type: "Feature",
+            geometry: { type: "Point", coordinates: [snapped[1], snapped[0]] },
+            properties: { name: wp.name, linesStr: ",line-11,", color: fringalColor, isMain: wp.isTerminal },
+          })
         })
 
         // Hamma routes (خط 05 — الحامة-خنشلة)
@@ -543,32 +543,60 @@ function MapLibreRenderer({ trackingLineId, isFullscreen }: MapProps) {
         }
         addHamma(hammaOutboundCoords, "line-05-outbound")
         addHamma(hammaReturnCoords,   "line-05-return")
-        // Deduplicated stop markers — snapped to outbound polyline, one per unique name
+        // Hamma stops — deduplicated, snapped to outbound polyline
         const seenHamma = new Set<string>()
         ;[...hammaOutboundWaypoints, ...hammaReturnWaypoints].forEach(wp => {
           if (seenHamma.has(wp.name)) return
           seenHamma.add(wp.name)
           const snapped = snapToPolyline(wp.coords, hammaOutboundCoords)
-          const size = wp.isTerminal ? 12 : 8
-          const wrapper = document.createElement("div")
-          wrapper.className = "tk-stop-wrapper"
-          wrapper.style.cssText = `width:${size}px;height:${size}px;`
-          const dot = document.createElement("div")
-          dot.style.cssText = `width:${size}px;height:${size}px;background:white;border:${wp.isTerminal?3:2.5}px solid ${hammaColor};border-radius:50%;box-shadow:0 1px 4px rgba(0,0,0,0.28);flex-shrink:0;`
-          const label = document.createElement("span")
-          label.className = "tk-stop-label"; label.textContent = wp.name
-          wrapper.appendChild(dot); wrapper.appendChild(label)
-          new maplibregl.Marker({ element: wrapper, anchor: "center" }).setLngLat([snapped[1], snapped[0]]).addTo(map)
-          hammaEls.current.push(wrapper)
+          stopFeatures.push({
+            type: "Feature",
+            geometry: { type: "Point", coordinates: [snapped[1], snapped[0]] },
+            properties: { name: wp.name, linesStr: ",line-05,", color: hammaColor, isMain: wp.isTerminal },
+          })
         })
 
-        // ── Zoom-based label visibility ─────────────────────────────────────
-        const updateLabels = () => {
-          const show = map.getZoom() >= 14
-          containerRef.current?.classList.toggle("tk-labels-on", show)
-        }
-        map.on("zoom", updateLabels)
-        updateLabels()
+        // Add GeoJSON source + circle layer (no drift — rendered in WebGL at exact coords)
+        map.addSource("stops", {
+          type: "geojson",
+          data: { type: "FeatureCollection", features: stopFeatures },
+        })
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        map.addLayer({
+          id: "stops-circle",
+          type: "circle",
+          source: "stops",
+          paint: {
+            "circle-radius":        ["case", ["get", "isMain"], 6, 4]       as any,
+            "circle-color":         "white",
+            "circle-stroke-width":  ["case", ["get", "isMain"], 3, 2]       as any,
+            "circle-stroke-color":  ["get", "color"]                        as any,
+            "circle-stroke-opacity": 1,
+          },
+        } as any)
+        // Symbol labels — minzoom keeps them hidden until z14, no JS listener needed
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        map.addLayer({
+          id: "stops-label",
+          type: "symbol",
+          source: "stops",
+          minzoom: 14,
+          layout: {
+            "text-field":             ["get", "name"]          as any,
+            "text-size":              11,
+            "text-font":              ["Noto Sans Regular"],
+            "text-anchor":            "left",
+            "text-offset":            [1.2, 0]                 as any,
+            "text-allow-overlap":     false,
+            "text-ignore-placement":  false,
+            "text-max-width":         8,
+          },
+          paint: {
+            "text-color":       "#1e293b",
+            "text-halo-color":  "rgba(255,255,255,0.92)",
+            "text-halo-width":  2,
+          },
+        } as any)
 
         // ── Chevron rAF animation loop ───────────────────────────────────────
         let chevPhase = 0; let lastTs = 0
@@ -613,7 +641,6 @@ function MapLibreRenderer({ trackingLineId, isFullscreen }: MapProps) {
       if (rafRef.current) cancelAnimationFrame(rafRef.current)
       driverRef.current?.remove()
       userRef.current?.remove()
-      stationEls.current = []; fringalEls.current = []; hammaEls.current = []
       simBuses.current.forEach(b => b.marker.remove()); simBuses.current = []
       mapRef.current?.remove(); mapRef.current = null; initRef.current = false
     }
