@@ -61,7 +61,16 @@ const urbanRoutePolylines: {
   arabicName: string
 }[] = [
   { id: "line-01", lineNumber: "01", color: "#FF6B35", arabicName: "خط 01 — طريق العيزار",
-    waypoints: [[35.4075,7.1380],[35.4279,7.1431]] },
+    // Waypoints extracted from outbound GPX (DOC-20260621-WA0000); OSRM road-snaps between them
+    waypoints: [
+      [35.42725, 7.14413],  // نزل المالية — departure terminus
+      [35.42039, 7.13830],  // Aree sbitar (hospital vicinity)
+      [35.41690, 7.13609],  // intermediate
+      [35.41390, 7.13431],  // intermediate
+      [35.40192, 7.12879],  // intermediate
+      [35.40003, 7.12786],  // near end (westernmost point)
+      [35.39970, 7.13234],  // طريق العيزار — arrival terminus (Fin daree)
+    ] },
   { id: "line-02", lineNumber: "02", color: "#9B59B6", arabicName: "خط 02 — موسى رداح",
     waypoints: [[35.450003,7.123128],[35.445878,7.144128]] },
   { id: "line-04", lineNumber: "04", color: "#00BCD4", arabicName: "خط 04 — انسيغة",

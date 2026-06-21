@@ -1,0 +1,46 @@
+I need a focused fix for ONE specific route only: "خط 01 — طريق العيزار" 
+(Line 01 - Al-Aizar Road). I'm attaching a reference coordinates file 
+for this route.
+
+STRICT RULES — read carefully before doing anything:
+
+1. DO NOT change the line/route rendering logic, styling, colors, 
+   widths, the start/end gradient effect, or the start/end station 
+   markers we just built. Nothing about HOW lines are drawn should 
+   change. This task is only about fixing the underlying GEOMETRY/DATA 
+   of this one specific route.
+
+2. The attached coordinates are a REFERENCE ONLY, not the final geometry 
+   to use as-is. Use them to understand the correct general path/sequence 
+   of this route (which streets it travels, in what order), but the 
+   actual line you draw must be properly SNAPPED to the real road network 
+   on the map — following actual streets precisely, not jagged straight 
+   segments between raw points (see the current broken result in the 
+   screenshot — it cuts across blocks instead of following roads).
+   - Use a map-matching/routing approach (e.g. a map matching API, 
+     routing service, or whatever road-snapping method is already used 
+     elsewhere in this project for other routes) to convert these 
+     reference waypoints into a road-accurate path.
+   - If other routes in the app are already road-snapped correctly, use 
+     the exact same method/pipeline for consistency — don't invent a new 
+     approach.
+
+3. There's a separate bug to fix: when the map goes idle (no user 
+   interaction for a bit), something causes the route geometry to get 
+   corrupted — it adds extra wrong roads/turns that aren't part of the 
+   real route. Please investigate what triggers on map idle (an 'idle' 
+   event listener, a debounce/recompute, a re-fetch, etc.) that's 
+   touching route geometry, and fix it so idle state never alters or 
+   re-generates route paths incorrectly. This bug should be fixed 
+   generally (not just for this one route), since it likely affects 
+   route integrity across the app.
+
+SCOPE REMINDER:
+- Only this route's geometry/data + the idle-corruption bug should be 
+  touched. Don't refactor or "improve" anything else.
+
+No GitHub push — keep all changes local to this Replit workspace.
+
+After fixing, show me a screenshot of "خط 01 — طريق العيزار" so I can 
+confirm it now follows the real roads correctly, and confirm the idle 
+bug is resolved.
