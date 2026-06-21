@@ -102,6 +102,22 @@ interface MapProps {
   isFullscreen?: boolean
 }
 
+// ── Snap a [lat,lng] point to the nearest point on a [lat,lng][] polyline ────
+function snapToPolyline(point: [number, number], polyline: [number, number][]): [number, number] {
+  let bestDist = Infinity, bestLat = point[0], bestLng = point[1]
+  for (let i = 0; i < polyline.length - 1; i++) {
+    const [ay, ax] = polyline[i];   const [by, bx] = polyline[i+1]  // y=lat, x=lng
+    const [py, px] = point
+    const abx = bx-ax, aby = by-ay; const len2 = abx*abx + aby*aby
+    if (len2 === 0) continue
+    const t = Math.max(0, Math.min(1, ((px-ax)*abx + (py-ay)*aby) / len2))
+    const nx = ax + t*abx, ny = ay + t*aby
+    const d = Math.hypot(px-nx, py-ny)
+    if (d < bestDist) { bestDist = d; bestLat = ny; bestLng = nx }
+  }
+  return [bestLat, bestLng]
+}
+
 // ── Chevron point computation (shared by MapLibre rAF loop) ──────────────────
 type ChevFC = { type:"FeatureCollection"; features:Array<{ type:"Feature"; geometry:{ type:"Point"; coordinates:[number,number] }; properties:{ bearing:number } }> }
 function computeChevPoints(coords:[number,number][], phase:number, spacingDeg = 0.007): ChevFC {
@@ -320,14 +336,14 @@ function MapLibreRenderer({ trackingLineId, isFullscreen }: MapProps) {
         const active  = routeId === null || r.id === routeId
         const focused = routeId !== null && r.id === routeId
         if (map.getLayer(`glow-${key}`))
-          map.setPaintProperty(`glow-${key}`,    "line-opacity", active ? (focused ? 0.30 : 0.15) : 0.02)
+          map.setPaintProperty(`glow-${key}`,   "line-opacity", active ? (focused ? 0.30 : 0.15) : 0)
         if (map.getLayer(`casing-${key}`)) {
-          map.setPaintProperty(`casing-${key}`,  "line-opacity", active ? (focused ? 0.95 : 0.82) : 0.04)
-          map.setPaintProperty(`casing-${key}`,  "line-width",   focused ? 10 : 8)
+          map.setPaintProperty(`casing-${key}`, "line-opacity", active ? (focused ? 0.95 : 0.82) : 0)
+          map.setPaintProperty(`casing-${key}`, "line-width",   focused ? 10 : 8)
         }
         if (map.getLayer(`route-${key}`)) {
-          map.setPaintProperty(`route-${key}`,   "line-opacity", active ? 1 : 0.04)
-          map.setPaintProperty(`route-${key}`,   "line-width",   focused ? 7 : 5)
+          map.setPaintProperty(`route-${key}`,  "line-opacity", active ? 1 : 0)
+          map.setPaintProperty(`route-${key}`,  "line-width",   focused ? 7 : 5)
         }
         if (map.getLayer(`chev-${key}`))
           map.setLayoutProperty(`chev-${key}`, "visibility", active ? "visible" : "none")
@@ -335,13 +351,13 @@ function MapLibreRenderer({ trackingLineId, isFullscreen }: MapProps) {
     })
 
     stationEls.current.forEach(({ el, lines }) => {
-      el.style.opacity = routeId === null || lines.includes(routeId) ? "1" : "0.1"
+      el.style.opacity = routeId === null || lines.includes(routeId) ? "1" : "0"
     })
     fringalEls.current.forEach(el => {
-      el.style.opacity = routeId === null || routeId === "line-11" ? "1" : "0.1"
+      el.style.opacity = routeId === null || routeId === "line-11" ? "1" : "0"
     })
     hammaEls.current.forEach(el => {
-      el.style.opacity = routeId === null || routeId === "line-05" ? "1" : "0.1"
+      el.style.opacity = routeId === null || routeId === "line-05" ? "1" : "0"
     })
     simBuses.current.forEach(({ marker, routeId: br }) => {
       marker.getElement().style.opacity = routeId === null || br === routeId ? "1" : "0"
@@ -472,49 +488,55 @@ function MapLibreRenderer({ trackingLineId, isFullscreen }: MapProps) {
 
         // Fringal routes
         const fringalColor = "#2980B9"
-        const addFringal = (coords: [number, number][], wps: typeof fringalOutboundWaypoints, key: "line-11-outbound" | "line-11-return") => {
-          const geoCoords = coords.map(([lat, lng]) => [lng, lat] as [number, number])
-          addRoute(key, fringalColor, geoCoords)
-          wps.forEach(wp => {
-            const size = wp.isTerminal ? 12 : 8
-            const wrapper = document.createElement("div")
-            wrapper.className = "tk-stop-wrapper"
-            wrapper.style.cssText = `width:${size}px;height:${size}px;`
-            const dot = document.createElement("div")
-            dot.style.cssText = `width:${size}px;height:${size}px;background:white;border:${wp.isTerminal?3:2.5}px solid ${fringalColor};border-radius:50%;box-shadow:0 1px 4px rgba(0,0,0,0.28);flex-shrink:0;`
-            const label = document.createElement("span")
-            label.className = "tk-stop-label"
-            label.textContent = wp.name ?? ""
-            wrapper.appendChild(dot); wrapper.appendChild(label)
-            new maplibregl.Marker({ element: wrapper, anchor: "center" }).setLngLat([wp.coords[1], wp.coords[0]]).addTo(map)
-            fringalEls.current.push(wrapper)
-          })
+        const addFringal = (coords: [number, number][], key: "line-11-outbound" | "line-11-return") => {
+          addRoute(key, fringalColor, coords.map(([lat, lng]) => [lng, lat] as [number, number]))
         }
-        addFringal(fringalOutboundCoords, fringalOutboundWaypoints, "line-11-outbound")
-        addFringal(fringalReturnCoords,   fringalReturnWaypoints,   "line-11-return")
+        addFringal(fringalOutboundCoords, "line-11-outbound")
+        addFringal(fringalReturnCoords,   "line-11-return")
+        // Deduplicated stop markers — snapped to outbound polyline, one per unique name
+        const seenFringal = new Set<string>()
+        ;[...fringalOutboundWaypoints, ...fringalReturnWaypoints].forEach(wp => {
+          if (seenFringal.has(wp.name)) return
+          seenFringal.add(wp.name)
+          const snapped = snapToPolyline(wp.coords, fringalOutboundCoords)
+          const size = wp.isTerminal ? 12 : 8
+          const wrapper = document.createElement("div")
+          wrapper.className = "tk-stop-wrapper"
+          wrapper.style.cssText = `width:${size}px;height:${size}px;`
+          const dot = document.createElement("div")
+          dot.style.cssText = `width:${size}px;height:${size}px;background:white;border:${wp.isTerminal?3:2.5}px solid ${fringalColor};border-radius:50%;box-shadow:0 1px 4px rgba(0,0,0,0.28);flex-shrink:0;`
+          const label = document.createElement("span")
+          label.className = "tk-stop-label"; label.textContent = wp.name
+          wrapper.appendChild(dot); wrapper.appendChild(label)
+          new maplibregl.Marker({ element: wrapper, anchor: "center" }).setLngLat([snapped[1], snapped[0]]).addTo(map)
+          fringalEls.current.push(wrapper)
+        })
 
         // Hamma routes (خط 05 — الحامة-خنشلة)
         const hammaColor = "#27AE60"
-        const addHamma = (coords: [number, number][], wps: typeof hammaOutboundWaypoints, key: "line-05-outbound" | "line-05-return") => {
-          const geoCoords = coords.map(([lat, lng]) => [lng, lat] as [number, number])
-          addRoute(key, hammaColor, geoCoords)
-          wps.forEach(wp => {
-            const size = wp.isTerminal ? 12 : 8
-            const wrapper = document.createElement("div")
-            wrapper.className = "tk-stop-wrapper"
-            wrapper.style.cssText = `width:${size}px;height:${size}px;`
-            const dot = document.createElement("div")
-            dot.style.cssText = `width:${size}px;height:${size}px;background:white;border:${wp.isTerminal?3:2.5}px solid ${hammaColor};border-radius:50%;box-shadow:0 1px 4px rgba(0,0,0,0.28);flex-shrink:0;`
-            const label = document.createElement("span")
-            label.className = "tk-stop-label"
-            label.textContent = wp.name ?? ""
-            wrapper.appendChild(dot); wrapper.appendChild(label)
-            new maplibregl.Marker({ element: wrapper, anchor: "center" }).setLngLat([wp.coords[1], wp.coords[0]]).addTo(map)
-            hammaEls.current.push(wrapper)
-          })
+        const addHamma = (coords: [number, number][], key: "line-05-outbound" | "line-05-return") => {
+          addRoute(key, hammaColor, coords.map(([lat, lng]) => [lng, lat] as [number, number]))
         }
-        addHamma(hammaOutboundCoords, hammaOutboundWaypoints, "line-05-outbound")
-        addHamma(hammaReturnCoords,   hammaReturnWaypoints,   "line-05-return")
+        addHamma(hammaOutboundCoords, "line-05-outbound")
+        addHamma(hammaReturnCoords,   "line-05-return")
+        // Deduplicated stop markers — snapped to outbound polyline, one per unique name
+        const seenHamma = new Set<string>()
+        ;[...hammaOutboundWaypoints, ...hammaReturnWaypoints].forEach(wp => {
+          if (seenHamma.has(wp.name)) return
+          seenHamma.add(wp.name)
+          const snapped = snapToPolyline(wp.coords, hammaOutboundCoords)
+          const size = wp.isTerminal ? 12 : 8
+          const wrapper = document.createElement("div")
+          wrapper.className = "tk-stop-wrapper"
+          wrapper.style.cssText = `width:${size}px;height:${size}px;`
+          const dot = document.createElement("div")
+          dot.style.cssText = `width:${size}px;height:${size}px;background:white;border:${wp.isTerminal?3:2.5}px solid ${hammaColor};border-radius:50%;box-shadow:0 1px 4px rgba(0,0,0,0.28);flex-shrink:0;`
+          const label = document.createElement("span")
+          label.className = "tk-stop-label"; label.textContent = wp.name
+          wrapper.appendChild(dot); wrapper.appendChild(label)
+          new maplibregl.Marker({ element: wrapper, anchor: "center" }).setLngLat([snapped[1], snapped[0]]).addTo(map)
+          hammaEls.current.push(wrapper)
+        })
 
         // ── Zoom-based label visibility ─────────────────────────────────────
         const updateLabels = () => {
@@ -661,24 +683,27 @@ function LeafletDarkRenderer({ trackingLineId, isFullscreen }: MapProps) {
 
     routeLayers.current.forEach((poly, id) => {
       const a = isActive(id); const f = focused(id)
-      poly.setStyle({ opacity: a ? 1 : 0.05, weight: f ? 7 : 5 })
+      poly.setStyle({ opacity: a ? 1 : 0, weight: f ? 7 : 5 })
     })
     routeCasings.current.forEach((casing, id) => {
       const a = isActive(id); const f = focused(id)
-      casing.setStyle({ opacity: a ? (f ? 0.95 : 0.82) : 0.04, weight: f ? 10 : 8 })
+      casing.setStyle({ opacity: a ? (f ? 0.95 : 0.82) : 0, weight: f ? 10 : 8 })
     })
     routeGlows.current.forEach((g, id) => {
       const a = isActive(id); const f = focused(id)
-      g.setStyle({ opacity: a ? (f ? 0.32 : 0.15) : 0.02 })
+      g.setStyle({ opacity: a ? (f ? 0.32 : 0.15) : 0 })
     })
     stationRefs.current.forEach(({ marker, lines }) => {
-      marker.getElement()?.style && (marker.getElement()!.style.opacity = routeId === null || lines.some(l => l === routeId) ? "1" : "0.1")
+      const el = marker.getElement()
+      if (el?.style) el.style.opacity = routeId === null || lines.some(l => l === routeId) ? "1" : "0"
     })
     fringalRefs.current.forEach(m => {
-      m.getElement()?.style && (m.getElement()!.style.opacity = routeId === null || routeId === "line-11" ? "1" : "0.1")
+      const el = m.getElement()
+      if (el?.style) el.style.opacity = routeId === null || routeId === "line-11" ? "1" : "0"
     })
     hammaRefs.current.forEach(m => {
-      m.getElement()?.style && (m.getElement()!.style.opacity = routeId === null || routeId === "line-05" ? "1" : "0.1")
+      const el = m.getElement()
+      if (el?.style) el.style.opacity = routeId === null || routeId === "line-05" ? "1" : "0"
     })
     simBusRef.current.forEach(({ marker, routeId: br }) => {
       marker.getElement()?.style && (marker.getElement()!.style.opacity = routeId === null || br === routeId ? "1" : "0")
@@ -716,54 +741,47 @@ function LeafletDarkRenderer({ trackingLineId, isFullscreen }: MapProps) {
 
     // Fringal routes
     const fringalColor = "#2980B9"
-    const addFringalTrack = (
-      coords: [number, number][],
-      wps: typeof fringalOutboundWaypoints,
-      id: string,
-    ) => {
+    const addFringalTrack = (coords: [number, number][], id: string) => {
       const glow   = L.polyline(coords, { color: fringalColor, weight: 20, opacity: 0.15 }).addTo(map)
       const casing = L.polyline(coords, { color: "#ffffff",    weight: 8,  opacity: 0.82, lineCap: "round", lineJoin: "round" }).addTo(map)
       const line   = L.polyline(coords, { color: fringalColor, weight: 5,  opacity: 1,    lineCap: "round", lineJoin: "round" }).addTo(map)
-      routeGlows.current.set(id, glow)
-      routeCasings.current.set(id, casing)
-      routeLayers.current.set(id, line)
-
-      wps.forEach(wp => {
-        const sz = wp.isTerminal ? 12 : 8
-        const bw = wp.isTerminal ? 3 : 2.5
-        const html = `<div class="tk-stop-wrapper" style="width:${sz}px;height:${sz}px;"><div style="width:${sz}px;height:${sz}px;background:white;border:${bw}px solid ${fringalColor};border-radius:50%;box-shadow:0 1px 4px rgba(0,0,0,0.25);"></div><span class="tk-stop-label">${wp.name ?? ""}</span></div>`
-        const icon = L.divIcon({ html, className: "", iconSize: [sz, sz], iconAnchor: [sz/2, sz/2] })
-        const m = L.marker(wp.coords, { icon }).addTo(map)
-        fringalRefs.current.push(m)
-      })
+      routeGlows.current.set(id, glow); routeCasings.current.set(id, casing); routeLayers.current.set(id, line)
     }
-    addFringalTrack(fringalOutboundCoords, fringalOutboundWaypoints, "line-11-outbound")
-    addFringalTrack(fringalReturnCoords,   fringalReturnWaypoints,   "line-11-return")
+    addFringalTrack(fringalOutboundCoords, "line-11-outbound")
+    addFringalTrack(fringalReturnCoords,   "line-11-return")
+    // Deduplicated fringal stops — snapped, one per unique name
+    const seenFringalL = new Set<string>()
+    ;[...fringalOutboundWaypoints, ...fringalReturnWaypoints].forEach(wp => {
+      if (seenFringalL.has(wp.name)) return
+      seenFringalL.add(wp.name)
+      const snapped = snapToPolyline(wp.coords, fringalOutboundCoords)
+      const sz = wp.isTerminal ? 12 : 8; const bw = wp.isTerminal ? 3 : 2.5
+      const html = `<div class="tk-stop-wrapper" style="width:${sz}px;height:${sz}px;"><div style="width:${sz}px;height:${sz}px;background:white;border:${bw}px solid ${fringalColor};border-radius:50%;box-shadow:0 1px 4px rgba(0,0,0,0.25);"></div><span class="tk-stop-label">${wp.name}</span></div>`
+      const icon = L.divIcon({ html, className: "", iconSize: [sz, sz], iconAnchor: [sz/2, sz/2] })
+      fringalRefs.current.push(L.marker(snapped, { icon }).addTo(map))
+    })
 
     // Hamma routes (خط 05 — الحامة-خنشلة)
     const hammaColor = "#27AE60"
-    const addHammaTrack = (
-      coords: [number, number][],
-      wps: typeof hammaOutboundWaypoints,
-      id: string,
-    ) => {
+    const addHammaTrack = (coords: [number, number][], id: string) => {
       const glow   = L.polyline(coords, { color: hammaColor, weight: 20, opacity: 0.15 }).addTo(map)
       const casing = L.polyline(coords, { color: "#ffffff",  weight: 8,  opacity: 0.82, lineCap: "round", lineJoin: "round" }).addTo(map)
       const line   = L.polyline(coords, { color: hammaColor, weight: 5,  opacity: 1,    lineCap: "round", lineJoin: "round" }).addTo(map)
-      routeGlows.current.set(id, glow)
-      routeCasings.current.set(id, casing)
-      routeLayers.current.set(id, line)
-      wps.forEach(wp => {
-        const sz = wp.isTerminal ? 12 : 8
-        const bw = wp.isTerminal ? 3 : 2.5
-        const html = `<div class="tk-stop-wrapper" style="width:${sz}px;height:${sz}px;"><div style="width:${sz}px;height:${sz}px;background:white;border:${bw}px solid ${hammaColor};border-radius:50%;box-shadow:0 1px 4px rgba(0,0,0,0.25);"></div><span class="tk-stop-label">${wp.name ?? ""}</span></div>`
-        const icon = L.divIcon({ html, className: "", iconSize: [sz, sz], iconAnchor: [sz/2, sz/2] })
-        const m = L.marker(wp.coords, { icon }).addTo(map)
-        hammaRefs.current.push(m)
-      })
+      routeGlows.current.set(id, glow); routeCasings.current.set(id, casing); routeLayers.current.set(id, line)
     }
-    addHammaTrack(hammaOutboundCoords, hammaOutboundWaypoints, "line-05-outbound")
-    addHammaTrack(hammaReturnCoords,   hammaReturnWaypoints,   "line-05-return")
+    addHammaTrack(hammaOutboundCoords, "line-05-outbound")
+    addHammaTrack(hammaReturnCoords,   "line-05-return")
+    // Deduplicated hamma stops — snapped, one per unique name
+    const seenHammaL = new Set<string>()
+    ;[...hammaOutboundWaypoints, ...hammaReturnWaypoints].forEach(wp => {
+      if (seenHammaL.has(wp.name)) return
+      seenHammaL.add(wp.name)
+      const snapped = snapToPolyline(wp.coords, hammaOutboundCoords)
+      const sz = wp.isTerminal ? 12 : 8; const bw = wp.isTerminal ? 3 : 2.5
+      const html = `<div class="tk-stop-wrapper" style="width:${sz}px;height:${sz}px;"><div style="width:${sz}px;height:${sz}px;background:white;border:${bw}px solid ${hammaColor};border-radius:50%;box-shadow:0 1px 4px rgba(0,0,0,0.25);"></div><span class="tk-stop-label">${wp.name}</span></div>`
+      const icon = L.divIcon({ html, className: "", iconSize: [sz, sz], iconAnchor: [sz/2, sz/2] })
+      hammaRefs.current.push(L.marker(snapped, { icon }).addTo(map))
+    })
 
     // ── Station markers (single pass — premium white circle + colored border) ──
     urbanStations.forEach(s => {
