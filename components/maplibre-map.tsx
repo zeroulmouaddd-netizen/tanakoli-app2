@@ -391,12 +391,14 @@ function MapLibreRenderer({ trackingLineId, isFullscreen }: MapProps) {
       if (!_rtlPluginLoaded) {
         try {
           maplibregl.setRTLTextPlugin(
-            'https://unpkg.com/@mapbox/mapbox-gl-rtl-text/mapbox-gl-rtl-text.min.js',
+            '/mapbox-gl-rtl-text.min.js',
             null,
             true
           )
           _rtlPluginLoaded = true
-        } catch { /* already loaded or unavailable */ }
+        } catch (e) {
+          console.warn('[map] RTL plugin could not be registered:', e)
+        }
       }
 
       const CARTO_STYLE: import("maplibre-gl").StyleSpecification = {

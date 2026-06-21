@@ -1,0 +1,49 @@
+My Next.js + Mapbox GL app has three related bugs I need fixed together in one pass:
+
+BUG 1 — RTL plugin fails to load (console error):
+Runtime NetworkError: Failed to execute 'importScripts' on 'WorkerGlobalScope': 
+The script at 'https://unpkg.com/@mapbox/mapbox-gl-rtl-text/mapbox-gl-rtl-text.min.js' failed to load.
+
+BUG 2 — Arabic station labels render with reversed/mirrored character order 
+(e.g. "الحديقة" shows as "ةقيدحلا") on the map. This is caused by Bug 1: 
+since the RTL plugin never loads, Arabic text shaping never gets applied.
+
+BUG 3 — Severe lag when selecting a route/line from the line picker: after 
+selecting a line, there is a long delay (multiple seconds) before the route 
+polyline and stations actually render on the map.
+
+Please fix all three together:
+
+For Bug 1 & 2 (do these together, they share one root cause):
+1. Find the mapboxgl.setRTLTextPlugin() call in the codebase.
+2. Stop loading it from unpkg.com — instead download the official 
+   mapbox-gl-rtl-text.min.js file and serve it as a static asset from 
+   /public (e.g. /mapbox-gl-rtl-text.min.js), OR load it from Mapbox's 
+   official CDN (https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-rtl-text/v0.3.0/mapbox-gl-rtl-text.js) 
+   instead of unpkg.
+3. Make sure setRTLTextPlugin is called exactly once, before any map 
+   instance is created, with lazy=true.
+4. Wrap it in try/catch with a console.warn fallback so a failed load 
+   never crashes the app.
+5. After the fix, verify Arabic station names render with correct 
+   right-to-left character order on the map.
+
+For Bug 3 (route selection performance):
+1. Profile what happens on line selection — identify whether the app is 
+   re-fetching/re-parsing the full GeoJSON route data, re-creating the 
+   map layer/source from scratch, or doing a heavy synchronous computation 
+   on the main thread each time a line is picked.
+2. If the route data is static, fix it so the data is loaded/parsed once 
+   and cached, and switching lines only updates the map source's data 
+   (map.getSource(id).setData(...)) or toggles layer visibility, rather 
+   than re-creating sources/layers.
+3. Memoize any derived data (filtered stations, route coordinates) so it's 
+   not recomputed on every render.
+4. Add a loading indicator if any unavoidable async work remains, so the 
+   UI doesn't feel frozen.
+5. Target: line should render within a few hundred milliseconds of 
+   selection, not multiple seconds.
+
+After fixing, show me a summary of what was changed and confirm: 
+(a) the console error is gone, (b) Arabic labels render correctly, 
+(c) line selection feels instant.
