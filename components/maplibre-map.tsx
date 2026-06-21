@@ -76,6 +76,9 @@ const urbanRoutePolylines: {
     waypoints: [[35.45,7.19],[35.396003,7.100503],[35.426753,7.135503],[35.445878,7.144128]] },
 ]
 
+// ── RTL plugin guard (called once per page load) ──────────────────────────────
+let _rtlPluginLoaded = false
+
 // ── WebGL probe ───────────────────────────────────────────────────────────────
 function detectWebGL(): boolean {
   if (typeof document === "undefined") return false
@@ -320,7 +323,9 @@ function MapLibreRenderer({ trackingLineId, isFullscreen }: MapProps) {
     else routeCoords.set(r.id, r.waypoints)
   })
 
-  // Focus mode — visibility-based route isolation + native stop layer filtering
+  // Focus mode — visibility-only toggling via setLayoutProperty + setFilter.
+  // No setPaintProperty calls here: each one triggers a full MapLibre style
+  // recompile which causes the UI freeze on rapid route selection.
   const applyFocus = (routeId: SelectedRoute) => {
     const map = mapRef.current
     if (!map) return
@@ -329,34 +334,17 @@ function MapLibreRenderer({ trackingLineId, isFullscreen }: MapProps) {
       return
     }
 
-    // Route layers: use visibility "none"/"visible" so non-selected layers are fully removed
-    // from the render pipeline (not just transparent).
     urbanRoutePolylines.forEach(r => {
       let keys: string[]
       if (r.id === "line-11") keys = ["line-11-outbound", "line-11-return"]
       else if (r.id === "line-05") keys = ["line-05-outbound", "line-05-return"]
       else keys = [r.id]
-      const active  = routeId === null || r.id === routeId
-      const focused = routeId !== null && r.id === routeId
-      const vis = active ? "visible" : "none"
+      const vis = (routeId === null || r.id === routeId) ? "visible" : "none"
       keys.forEach(key => {
-        if (map.getLayer(`glow-${key}`)) {
-          map.setLayoutProperty(`glow-${key}`, "visibility", vis)
-          if (active) map.setPaintProperty(`glow-${key}`, "line-opacity", focused ? 0.30 : 0.15)
-        }
-        if (map.getLayer(`casing-${key}`)) {
-          map.setLayoutProperty(`casing-${key}`, "visibility", vis)
-          if (active) {
-            map.setPaintProperty(`casing-${key}`, "line-opacity", focused ? 0.95 : 0.82)
-            map.setPaintProperty(`casing-${key}`, "line-width",   focused ? 10 : 8)
-          }
-        }
-        if (map.getLayer(`route-${key}`)) {
-          map.setLayoutProperty(`route-${key}`, "visibility", vis)
-          if (active) map.setPaintProperty(`route-${key}`, "line-width", focused ? 7 : 5)
-        }
-        if (map.getLayer(`chev-${key}`))
-          map.setLayoutProperty(`chev-${key}`, "visibility", vis)
+        if (map.getLayer(`glow-${key}`))   map.setLayoutProperty(`glow-${key}`,   "visibility", vis)
+        if (map.getLayer(`casing-${key}`)) map.setLayoutProperty(`casing-${key}`, "visibility", vis)
+        if (map.getLayer(`route-${key}`))  map.setLayoutProperty(`route-${key}`,  "visibility", vis)
+        if (map.getLayer(`chev-${key}`))   map.setLayoutProperty(`chev-${key}`,   "visibility", vis)
       })
     })
 
@@ -399,6 +387,17 @@ function MapLibreRenderer({ trackingLineId, isFullscreen }: MapProps) {
 
     const initMap = async () => {
       const maplibregl = (await import("maplibre-gl")).default
+
+      if (!_rtlPluginLoaded) {
+        try {
+          maplibregl.setRTLTextPlugin(
+            'https://unpkg.com/@mapbox/mapbox-gl-rtl-text/mapbox-gl-rtl-text.min.js',
+            null,
+            true
+          )
+          _rtlPluginLoaded = true
+        } catch { /* already loaded or unavailable */ }
+      }
 
       const CARTO_STYLE: import("maplibre-gl").StyleSpecification = {
         version: 8,
