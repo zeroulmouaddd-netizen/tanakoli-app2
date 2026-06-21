@@ -362,7 +362,8 @@ function MapLibreRenderer({ trackingLineId, isFullscreen }: MapProps) {
         actx.lineTo(7,  8)
         actx.closePath()
         actx.fill()
-        map.addImage("chevron-arrow", arrowCanvas)
+        const arrowImageData = actx.getImageData(0, 0, arrowSz, arrowSz)
+        map.addImage("chevron-arrow", { width: arrowSz, height: arrowSz, data: new Uint8Array(arrowImageData.data.buffer) })
 
         // ── Premium 3-layer route renderer ────────────────────────────────────
         const addRoute = (key: string, color: string, geoCoords: [number, number][]) => {
