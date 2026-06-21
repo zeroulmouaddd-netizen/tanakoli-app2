@@ -88,7 +88,7 @@ export default function RootLayout({
           strategy="afterInteractive"
         />
       </head>
-      <body className={`${notoArabic.variable} font-sans antialiased theme-transition`}>
+      <body suppressHydrationWarning className={`${notoArabic.variable} font-sans antialiased theme-transition`}>
         <TouchInit />
         <AuthProvider>
           <ThemeProvider>
