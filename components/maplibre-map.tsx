@@ -171,6 +171,7 @@ function injectMapStyles() {
       position:absolute;left:14px;top:50%;transform:translateY(-50%);
       display:none;box-shadow:0 1px 4px rgba(0,0,0,0.18); }
     .tk-stop-wrapper { position:relative;display:flex;align-items:center;cursor:pointer; }
+    .tk-stop-wrapper > div { box-sizing:border-box; }
     .tk-labels-on .tk-stop-label { display:block; }
     /* Leaflet fallback popup */
     .tk-popup .leaflet-popup-content-wrapper {
@@ -325,7 +326,11 @@ function MapLibreRenderer({ trackingLineId, isFullscreen }: MapProps) {
   // Focus mode
   const applyFocus = (routeId: SelectedRoute) => {
     const map = mapRef.current
-    if (!map || !map.isStyleLoaded()) return
+    if (!map) return
+    if (!map.isStyleLoaded()) {
+      setTimeout(() => applyFocus(routeId), 100)
+      return
+    }
 
     urbanRoutePolylines.forEach(r => {
       let keys: string[]
@@ -362,6 +367,25 @@ function MapLibreRenderer({ trackingLineId, isFullscreen }: MapProps) {
     simBuses.current.forEach(({ marker, routeId: br }) => {
       marker.getElement().style.opacity = routeId === null || br === routeId ? "1" : "0"
     })
+
+    if (routeId) {
+      if (routeId === "line-11") {
+        const all = [...fringalOutboundCoords, ...fringalReturnCoords]
+        const lats = all.map(c => c[0]), lngs = all.map(c => c[1])
+        map.fitBounds([[Math.min(...lngs), Math.min(...lats)], [Math.max(...lngs), Math.max(...lats)]], { padding: 60, maxZoom: 14 })
+      } else if (routeId === "line-05") {
+        const all = [...hammaOutboundCoords, ...hammaReturnCoords]
+        const lats = all.map(c => c[0]), lngs = all.map(c => c[1])
+        map.fitBounds([[Math.min(...lngs), Math.min(...lats)], [Math.max(...lngs), Math.max(...lats)]], { padding: 60, maxZoom: 14 })
+      } else {
+        const route = urbanRoutePolylines.find(r => r.id === routeId)
+        if (route) {
+          const coords = routeCoords.get(routeId) ?? route.waypoints
+          const lats = coords.map(c => c[0]), lngs = coords.map(c => c[1])
+          map.fitBounds([[Math.min(...lngs), Math.min(...lats)], [Math.max(...lngs), Math.max(...lats)]], { padding: 50, maxZoom: 15 })
+        }
+      }
+    }
   }
 
   useEffect(() => {
@@ -666,6 +690,7 @@ function LeafletDarkRenderer({ trackingLineId, isFullscreen }: MapProps) {
   const fringalRefs = useRef<L.Marker[]>([])
   const hammaRefs   = useRef<L.Marker[]>([])
   const userRef     = useRef<L.Marker | null>(null)
+  const chevMarkersRef = useRef<Array<{ marker: L.Marker; routeId: string; phase: number }>>([])
 
   const routeCoords = new Map<string, [number, number][]>()
   urbanRoutePolylines.forEach(r => {
@@ -708,6 +733,25 @@ function LeafletDarkRenderer({ trackingLineId, isFullscreen }: MapProps) {
     simBusRef.current.forEach(({ marker, routeId: br }) => {
       marker.getElement()?.style && (marker.getElement()!.style.opacity = routeId === null || br === routeId ? "1" : "0")
     })
+    chevMarkersRef.current.forEach(({ marker, routeId: cr }) => {
+      const el = marker.getElement()
+      if (el?.style) el.style.opacity = isActive(cr) ? "1" : "0"
+    })
+
+    if (routeId && mapRef.current) {
+      const map = mapRef.current
+      if (routeId === "line-11") {
+        map.fitBounds(L.latLngBounds([...fringalOutboundCoords, ...fringalReturnCoords]), { padding: [60, 60], maxZoom: 14 })
+      } else if (routeId === "line-05") {
+        map.fitBounds(L.latLngBounds([...hammaOutboundCoords, ...hammaReturnCoords]), { padding: [60, 60], maxZoom: 14 })
+      } else {
+        const route = urbanRoutePolylines.find(r => r.id === routeId)
+        if (route) {
+          const coords = routeCoords.get(routeId) ?? route.waypoints
+          map.fitBounds(L.latLngBounds(coords), { padding: [50, 50], maxZoom: 15 })
+        }
+      }
+    }
   }
 
   useEffect(() => {
@@ -804,8 +848,6 @@ function LeafletDarkRenderer({ trackingLineId, isFullscreen }: MapProps) {
     updateLeafletLabels()
 
     // ── Leaflet chevron animation — 4 moving chevron DIVs per route ────────────
-    type ChevEntry = { marker: L.Marker; routeId: string; phase: number }
-    const chevMarkers: ChevEntry[] = []
     const chevronHtml = (color: string) =>
       `<div style="width:14px;height:14px;display:flex;align-items:center;justify-content:center;opacity:0.9;">
         <svg viewBox="0 0 12 12" width="12" height="12">
@@ -821,13 +863,14 @@ function LeafletDarkRenderer({ trackingLineId, isFullscreen }: MapProps) {
       { id: "line-05-outbound", coords: hammaOutboundCoords,   color: "#27AE60" },
       { id: "line-05-return",   coords: hammaReturnCoords,     color: "#27AE60" },
     ]
+    chevMarkersRef.current = []
     allLeafletRoutes.forEach(route => {
       for (let i = 0; i < 4; i++) {
         const phase0 = i / 4
         const icon = L.divIcon({ html: chevronHtml(route.color), className: "", iconSize: [14, 14], iconAnchor: [7, 7] })
         const pos = getSimPos(route.coords, phase0)
         const m = L.marker([pos.lat, pos.lng], { icon, interactive: false, zIndexOffset: -10 }).addTo(map)
-        chevMarkers.push({ marker: m, routeId: route.id, phase: phase0 })
+        chevMarkersRef.current.push({ marker: m, routeId: route.id, phase: phase0 })
       }
     })
 
@@ -836,7 +879,7 @@ function LeafletDarkRenderer({ trackingLineId, isFullscreen }: MapProps) {
     const animLeafletChev = (ts: number) => {
       const dt = Math.min((lastChevTs ? ts - lastChevTs : 16), 100) / 1000
       lastChevTs = ts
-      chevMarkers.forEach(entry => {
+      chevMarkersRef.current.forEach(entry => {
         entry.phase = (entry.phase + CHEV_SPEED * dt) % 1
         const route = allLeafletRoutes.find(r => r.id === entry.routeId)
         if (!route) return
@@ -875,7 +918,8 @@ function LeafletDarkRenderer({ trackingLineId, isFullscreen }: MapProps) {
     return () => {
       unsubDriver()
       if (rafRef.current) cancelAnimationFrame(rafRef.current)
-      chevMarkers.forEach(e => e.marker.remove())
+      chevMarkersRef.current.forEach(e => e.marker.remove())
+      chevMarkersRef.current = []
       map.remove()
       mapRef.current = null
       initRef.current = false

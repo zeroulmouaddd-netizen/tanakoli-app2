@@ -1,1 +1,2 @@
 - [MapLibre WebGL fallback](maplibre-webgl-fallback.md) — hybrid renderer: MapLibre GL when WebGL available, Leaflet+CartoDB Dark Matter when not (Replit preview has no GPU).
+- [Leaflet chevron filter bug](leaflet-chev-filter.md) — chevron markers must be stored in a ref (not a local closure var) so applyFocus can filter them; also box-sizing:border-box on dot divs prevents fractional flex centering.
