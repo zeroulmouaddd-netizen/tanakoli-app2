@@ -732,6 +732,11 @@ function MapLibreRenderer({ trackingLineId, isFullscreen }: MapProps) {
         rafRef.current = requestAnimationFrame(animChev)
 
         // ── Simulated bus markers (busPhase loop — separate from chevPhase) ──
+        // Guard: if cleanup ran during the async OSRM fetches above, bail now before
+        // touching shared refs — prevents zombie handlers from corrupting the live map's state
+        if (!alive) return
+        // Reset BOTH arrays so indices always stay in sync (busDataRef[i] ↔ simBuses[i])
+        simBuses.current = []
         busDataRef.current = []
         urbanRoutePolylines.forEach(route => {
           const count = BUS_CONFIG[route.id]
@@ -767,15 +772,17 @@ function MapLibreRenderer({ trackingLineId, isFullscreen }: MapProps) {
           if (!alive || !mapRef.current) return
           const dt = Math.min((lastBusTs ? ts - lastBusTs : 16), 100) / 1000
           lastBusTs = ts
-          busDataRef.current.forEach((bd, idx) => {
-            bd.progress = (bd.progress + bd.speed * dt) % 1
-            const simEntry = simBuses.current[idx]
-            if (!simEntry) return
-            const pos = getSimPos(bd.coords, bd.progress, bd.cache)
-            simEntry.marker.setLngLat([pos.lng, pos.lat])
-            const inner = simEntry.marker.getElement().firstElementChild as HTMLElement | null
-            if (inner) inner.style.transform = `rotate(${pos.heading}deg)`
-          })
+          try {
+            busDataRef.current.forEach((bd, idx) => {
+              bd.progress = (bd.progress + bd.speed * dt) % 1
+              const simEntry = simBuses.current[idx]
+              if (!simEntry) return
+              const pos = getSimPos(bd.coords, bd.progress, bd.cache)
+              simEntry.marker.setLngLat([pos.lng, pos.lat])
+              const inner = simEntry.marker.getElement()?.firstElementChild as HTMLElement | null
+              if (inner) inner.style.transform = `rotate(${pos.heading}deg)`
+            })
+          } catch { /* marker removed mid-frame — next frame will be fine */ }
           busRafRef.current = requestAnimationFrame(animBus)
         }
         busRafRef.current = requestAnimationFrame(animBus)
