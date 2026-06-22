@@ -548,6 +548,11 @@ function MapLibreRenderer({ trackingLineId, isFullscreen }: MapProps) {
         for (const route of urbanRoutePolylines) {
           if (route.id === "line-11") continue
           if (route.id === "line-05") continue
+          // line-06: hardcoded static coords — skip OSRM entirely to prevent auto-generated loops
+          if (route.id === "line-06") {
+            addRoute(route.id, route.color, route.waypoints.map(([lat, lng]) => [lng, lat]))
+            continue
+          }
           let coords: [number, number][] = route.waypoints.map(([lat, lng]) => [lng, lat])
           try {
             const seg = route.waypoints.map(([lat, lng]) => `${lng},${lat}`).join(";")

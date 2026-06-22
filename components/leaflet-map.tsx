@@ -1233,8 +1233,8 @@ const { subStations } = useRouteSubStations(selectedRoute)
       if (route.id === "line-11") return
       if (route.id === "line-05") return
 
-      // Fetch real road geometry from OSRM
-      const osrmCoords = await fetchOSRMRoute(route.waypoints)
+      // line-06 uses hardcoded static coords — skip OSRM to prevent auto-generated loops
+      const osrmCoords = route.id === "line-06" ? null : await fetchOSRMRoute(route.waypoints)
       const routeCoords = osrmCoords || route.waypoints // Fallback to waypoints if OSRM fails
 
       // Glow halo layer — thick, blurred, same color, drawn FIRST (behind)
