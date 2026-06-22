@@ -30,5 +30,5 @@ export const fringalReturnWaypoints = [
   { name: "الكوشة",                       nameEn: "Cosha",                     coords: [35.42739267, 7.13320309] as [number, number], isTerminal: false, isStart: false },
   { name: "مركز الشرطة",                  nameEn: "Police HQ",                 coords: [35.42858105, 7.13442336] as [number, number], isTerminal: false, isStart: false },
   { name: "الحديقة",                      nameEn: "Al-Hadika",                 coords: [35.43102017, 7.13748972] as [number, number], isTerminal: false, isStart: false },
-  { name: "الشابور — نهاية الطريق",       nameEn: "Shabour — End",             coords: [35.4273755,  7.14302098] as [number, number], isTerminal: true,  isStart: false },
+  { name: "اخر محطة الشابور",             nameEn: "Last Shabour Stop",         coords: [35.4273755,  7.14302098] as [number, number], isTerminal: true,  isStart: false },
 ]
