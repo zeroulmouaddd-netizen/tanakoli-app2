@@ -441,6 +441,9 @@ function MapLibreRenderer({ trackingLineId, isFullscreen }: MapProps) {
   useEffect(() => {
     if (initRef.current || !containerRef.current) return
     initRef.current = true
+    // alive flag: set to false in cleanup BEFORE map.remove() so any in-flight
+    // rAF callbacks (started by map.on('load')) bail out immediately
+    let alive = true
     injectMapStyles()
 
     const initMap = async () => {
@@ -678,6 +681,8 @@ function MapLibreRenderer({ trackingLineId, isFullscreen }: MapProps) {
         // ── Chevron rAF animation loop ───────────────────────────────────────
         let chevPhase = 0; let lastTs = 0
         const animChev = (ts: number) => {
+          // Guard: bail immediately if component unmounted or map destroyed
+          if (!alive || !mapRef.current) return
           const dt = Math.min((lastTs ? ts - lastTs : 16), 100) / 1000
           lastTs = ts
           chevPhase = (chevPhase + 0.14 * dt) % 1
@@ -722,8 +727,9 @@ function MapLibreRenderer({ trackingLineId, isFullscreen }: MapProps) {
     initMap().then(unsub => { cleanup = unsub })
 
     return () => {
-      cleanup?.()
+      alive = false                                        // ← must be first: stops any in-flight rAF from touching the map
       if (rafRef.current) cancelAnimationFrame(rafRef.current)
+      cleanup?.()
       driverRef.current?.remove()
       userRef.current?.remove()
       simBuses.current.forEach(b => b.marker.remove()); simBuses.current = []
