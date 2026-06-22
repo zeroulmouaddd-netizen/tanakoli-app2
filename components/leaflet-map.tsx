@@ -69,7 +69,7 @@ const urbanStations: { position: [number, number]; name: string; nameEn: string;
   { position: [35.450003, 7.123128], name: "مسجد موسى رداح", nameEn: "Mosquée Moussa Raddah", arabicLabel: "مسجد حي موسى رداح", lines: ["line-02"], isMain: true, category: "urban" },
   { position: [35.3950, 7.1420], name: "انسيغة", nameEn: "Ansigha (Tammayurt)", arabicLabel: "انسيغة - قرب مركز الشرطة", lines: ["line-04"], isMain: true, category: "urban" },
   { position: [35.4659, 7.0581], name: "الحامة", nameEn: "Al-Hama (centre)", arabicLabel: "الحامة - وسط المدينة", lines: ["line-05"], isMain: true, category: "urban" },
-  { position: [35.4300,  7.1491  ], name: "نقطة انطلاق دار الثقافة", nameEn: "Dar Thaqafa Departure Point", arabicLabel: "نقطة انطلاق دار الثقافة", lines: ["line-06"], isMain: true, category: "urban" },
+  { position: [35.4308,  7.1486  ], name: "نقطة انطلاق دار الثقافة", nameEn: "Dar Thaqafa Departure Point", arabicLabel: "نقطة انطلاق دار الثقافة", lines: ["line-06"], isMain: true, category: "urban" },
   { position: [35.3697,  7.2154  ], name: "نقطة وصول تازوقاغت",      nameEn: "Tazoughaght Arrival Point",  arabicLabel: "نقطة وصول تازوقاغت",      lines: ["line-06"], isMain: true, category: "urban" },
   { position: [35.424,   7.138   ], name: "المدينة الجديدة", nameEn: "Cité Nouvelle / Al-Hadika", arabicLabel: "المدينة الجديدة - حي الحديقة", lines: ["line-10"], isMain: true, category: "urban" },
   { position: [35.45,    7.19    ], name: "قرية فرنقال", nameEn: "Village Frnqal", arabicLabel: "قرية فرنقال", lines: ["line-11"], isMain: true, category: "urban" },
@@ -163,11 +163,12 @@ const urbanRoutePolylines: {
     terminalFrom: "نقطة انطلاق دار الثقافة",
     terminalTo: "نقطة وصول تازوقاغت",
     stops: [
-      { name: "نقطة انطلاق دار الثقافة", nameEn: "Dar Thaqafa Departure Point", coords: [35.4300, 7.1491], isTerminal: true },
+      { name: "نقطة انطلاق دار الثقافة", nameEn: "Dar Thaqafa Departure Point", coords: [35.4308, 7.1486], isTerminal: true },
       { name: "نقطة وصول تازوقاغت",      nameEn: "Tazoughaght Arrival Point",   coords: [35.3697, 7.2154], isTerminal: true },
     ],
     waypoints: [
-      [35.4300, 7.1491],
+      [35.4308, 7.1486],
+      [35.4272, 7.1528],
       [35.4150, 7.1650],
       [35.4000, 7.1800],
       [35.3850, 7.1970],
