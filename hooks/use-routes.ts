@@ -91,12 +91,12 @@ const urbanRoutes: BusRoute[] = [
     frequency: 25,
     category: "urban",
     stops: [
-      { id: "04-s1", name: "انسيغة",     nameEn: "Ansigha (Tammayurt)", coords: [35.3950, 7.1420], order: 1 },
-      { id: "04-s2", name: "نزل المالية", nameEn: "Hôtel des Finances",  coords: [35.4279, 7.1431], order: 2 },
+      { id: "04-s1", name: "نقطة انطلاق انسيغة", nameEn: "Ansigha Departure Point", coords: [35.42722, 7.14421], order: 1 },
+      { id: "04-s2", name: "انسيغة",              nameEn: "Ansigha (Tammayurt)",    coords: [35.3950,  7.1420 ], order: 2 },
     ],
     sub_stations: [
-      { id: "sub-04-1", name: "انسيغة",     nameEn: "Ansigha (Tammayurt)", coords: [35.3950, 7.1420], order: 1 },
-      { id: "sub-04-2", name: "نزل المالية", nameEn: "Hôtel des Finances",  coords: [35.4279, 7.1431], order: 2 },
+      { id: "sub-04-1", name: "نقطة انطلاق انسيغة", nameEn: "Ansigha Departure Point", coords: [35.42722, 7.14421], order: 1 },
+      { id: "sub-04-2", name: "انسيغة",              nameEn: "Ansigha (Tammayurt)",    coords: [35.3950,  7.1420 ], order: 2 },
     ],
   },
   {
@@ -186,7 +186,8 @@ const fallbackStations: Station[] = [
   { id: "station-terminal",   name: "موقف الحافلات",   nameEn: "Gare Routière",       address: "موقف الحافلات الرئيسي - خنشلة", coords: [35.445878, 7.144128], lines: ["02","06","10","11"],       facilities: ["shelter","bench","kiosk","toilet"], isMainStation: true },
   { id: "station-aizar-start", name: "نقطة الانطلاق طريق العيزار", nameEn: "Al-Aizar Departure Point", address: "نقطة الانطلاق طريق العيزار - خنشلة", coords: [35.4279, 7.1431], lines: ["01"], facilities: ["shelter","bench"], isMainStation: true },
   { id: "station-muamria",     name: "نقطة وصول طريق العيزار",    nameEn: "Al-Aizar Arrival Point",   address: "نقطة وصول طريق العيزار - خنشلة",    coords: [35.4075, 7.1380], lines: ["01"], facilities: ["shelter","bench"], isMainStation: true },
-  { id: "station-finances",   name: "نزل المالية",     nameEn: "Hôtel des Finances",  address: "نزل المالية - خنشلة",            coords: [35.4279, 7.1431],     lines: ["04","05"],        facilities: ["shelter","bench"], isMainStation: true },
+  { id: "station-ansigha-start", name: "نقطة انطلاق انسيغة", nameEn: "Ansigha Departure Point", address: "نقطة انطلاق انسيغة - خنشلة", coords: [35.42722, 7.14421], lines: ["04"], facilities: ["shelter","bench"], isMainStation: true },
+  { id: "station-finances",   name: "نزل المالية",     nameEn: "Hôtel des Finances",  address: "نزل المالية - خنشلة",            coords: [35.4279, 7.1431],     lines: ["05"],        facilities: ["shelter","bench"], isMainStation: true },
   { id: "station-moussa",     name: "مسجد موسى رداح",      nameEn: "Mosquée Moussa Raddah",    address: "مسجد حي موسى رداح - خنشلة",            coords: [35.450003, 7.123128], lines: ["02"], facilities: ["shelter","bench"],           isMainStation: true  },
   { id: "station-ansigha",    name: "انسيغة",               nameEn: "Ansigha",                  address: "انسيغة - قرب مركز الشرطة",             coords: [35.518,    7.119   ], lines: ["04"], facilities: ["shelter"],                  isMainStation: true  },
   { id: "station-alhama",     name: "الحامة",               nameEn: "Al-Hama (centre)",         address: "الحامة - وسط المدينة",                 coords: [35.4659,   7.0581  ], lines: ["05"], facilities: ["shelter","bench"],           isMainStation: true  },
