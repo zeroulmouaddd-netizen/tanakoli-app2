@@ -62,7 +62,8 @@ const ROUTE_CATEGORIES = {
 // All stops across the 7 verified Khenchela bus lines
 const urbanStations: { position: [number, number]; name: string; nameEn: string; arabicLabel: string; lines: string[]; isMain: boolean; category: "urban" }[] = [
   { position: [35.445878, 7.144128], name: "موقف الحافلات", nameEn: "Gare Routière", arabicLabel: "موقف الحافلات الرئيسي", lines: ["line-02","line-06","line-10","line-11"], isMain: true, category: "urban" },
-  { position: [35.4075, 7.1380], name: "نقطة الانطلاق طريق العيزار", nameEn: "Al-Aizar Departure Point", arabicLabel: "نقطة الانطلاق طريق العيزار", lines: ["line-01"], isMain: true, category: "urban" },
+  { position: [35.4279, 7.1431], name: "نقطة الانطلاق طريق العيزار", nameEn: "Al-Aizar Departure Point", arabicLabel: "نقطة الانطلاق طريق العيزار", lines: ["line-01"], isMain: true, category: "urban" },
+  { position: [35.4075, 7.1380], name: "نقطة وصول طريق العيزار",    nameEn: "Al-Aizar Arrival Point",   arabicLabel: "نقطة وصول طريق العيزار",    lines: ["line-01"], isMain: true, category: "urban" },
   { position: [35.4279, 7.1431], name: "نزل المالية", nameEn: "Hôtel des Finances", arabicLabel: "نزل المالية", lines: ["line-04","line-05"], isMain: true, category: "urban" },
   { position: [35.450003, 7.123128], name: "مسجد موسى رداح", nameEn: "Mosquée Moussa Raddah", arabicLabel: "مسجد حي موسى رداح", lines: ["line-02"], isMain: true, category: "urban" },
   { position: [35.3950, 7.1420], name: "انسيغة", nameEn: "Ansigha (Tammayurt)", arabicLabel: "انسيغة - قرب مركز الشرطة", lines: ["line-04"], isMain: true, category: "urban" },
@@ -89,9 +90,10 @@ const urbanRoutePolylines: {
     color: "#FF6B35",
     category: "urban",
     terminalFrom: "نقطة الانطلاق طريق العيزار",
-    terminalTo: "نقطة الانطلاق طريق العيزار",
+    terminalTo: "نقطة وصول طريق العيزار",
     stops: [
-      { name: "نقطة الانطلاق طريق العيزار", nameEn: "Al-Aizar Departure Point", coords: [35.4075, 7.1380], isTerminal: true },
+      { name: "نقطة الانطلاق طريق العيزار", nameEn: "Al-Aizar Departure Point", coords: [35.4279, 7.1431], isTerminal: true },
+      { name: "نقطة وصول طريق العيزار",    nameEn: "Al-Aizar Arrival Point",   coords: [35.4075, 7.1380], isTerminal: true },
     ],
     waypoints: [
       [35.4075, 7.1380],
