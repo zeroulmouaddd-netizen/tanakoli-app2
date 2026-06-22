@@ -1,0 +1,46 @@
+The app's animations feel like they're running at ~30fps instead of 
+smooth 60fps, and overall browsing/navigation feels less crisp than it 
+should. I want this fixed — faster, smoother — WITHOUT changing any 
+visual quality, styling, or app logic. Everything that currently works 
+must keep working exactly the same; this is a pure performance pass.
+
+PLAN — please follow this order:
+
+1. PROFILE FIRST, don't guess. Use React DevTools Profiler and Chrome 
+   Performance tab (or equivalent) to identify the actual bottleneck(s) 
+   during typical interactions: opening the map, selecting a line, 
+   panning/zooming, switching between lines rapidly. Report what you 
+   find before changing anything — e.g. unnecessary re-renders, expensive 
+   map repaints, layout thrashing, large bundle/JS execution blocking 
+   the main thread, etc.
+
+2. Based on findings, apply ONLY safe, behavior-preserving optimizations 
+   such as:
+   - Memoizing components/values that re-render unnecessarily 
+     (React.memo, useMemo, useCallback) where state changes are causing 
+     wasted renders.
+   - Reducing redundant map.setData() / paint-property calls — batch or 
+     debounce them only where it doesn't change observable behavior.
+   - Ensuring any CSS transitions/animations use transform/opacity 
+     (GPU-accelerated) instead of properties that trigger layout reflow, 
+     if any exist.
+   - Checking if markers/overlays are implemented as heavy DOM elements 
+     when they could be lighter (only if this doesn't change their 
+     appearance or behavior at all).
+   - Removing any accidental duplicate work (e.g. effects firing more 
+     than needed, redundant state updates).
+
+3. Do NOT change: visual design, colors, line styles, gradients, marker 
+   shapes, animation timing/easing as perceived by the user, or any 
+   business logic (line selection, route data, station data, etc.). 
+   The end result must look and behave identically — just smoother and 
+   faster.
+
+4. After each change, verify nothing broke (line selection still works, 
+   markers still correct, no visual regressions) before moving to the 
+   next optimization.
+
+5. Summarize what was found and what was changed, with before/after 
+   performance notes if possible (e.g. "X re-renders reduced to Y").
+
+No GitHub push — keep all changes local to this Replit workspace.

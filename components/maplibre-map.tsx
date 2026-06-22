@@ -10,7 +10,7 @@
  * Live driver tracking (0775453629) is present in BOTH renderers.
  */
 
-import { useEffect, useRef, useState } from "react"
+import { useEffect, memo, useRef, useState } from "react"
 import L from "leaflet"
 import "leaflet/dist/leaflet.css"
 import "maplibre-gl/dist/maplibre-gl.css"
@@ -85,6 +85,28 @@ const urbanRoutePolylines: {
     waypoints: [[35.45,7.19],[35.396003,7.100503],[35.426753,7.135503],[35.445878,7.144128]] },
 ]
 
+// ── Module-level derived constants (never recomputed per render) ─────────────
+// routeCoords: canonical [lat,lng] coords for each line used by both renderers
+const routeCoords = new Map<string, [number, number][]>()
+urbanRoutePolylines.forEach(r => {
+  if (r.id === "line-11") routeCoords.set(r.id, fringalOutboundCoords)
+  else if (r.id === "line-05") routeCoords.set(r.id, hammaOutboundCoords)
+  else routeCoords.set(r.id, r.waypoints)
+})
+
+// Pre-computed MapLibre-format [[minLng,minLat],[maxLng,maxLat]] bounds for GPX routes
+// Avoids Math.min(...lats) spread over hundreds of coords on every route selection
+function _boundsML(arrays: [number,number][][]): [[number,number],[number,number]] {
+  let minLat=Infinity,maxLat=-Infinity,minLng=Infinity,maxLng=-Infinity
+  for (const arr of arrays) for (const [lat,lng] of arr) {
+    if(lat<minLat)minLat=lat; if(lat>maxLat)maxLat=lat
+    if(lng<minLng)minLng=lng; if(lng>maxLng)maxLng=lng
+  }
+  return [[minLng,minLat],[maxLng,maxLat]]
+}
+const LINE_11_BOUNDS = _boundsML([fringalOutboundCoords, fringalReturnCoords])
+const LINE_05_BOUNDS = _boundsML([hammaOutboundCoords,   hammaReturnCoords])
+
 // ── RTL plugin guard (called once per page load) ──────────────────────────────
 let _rtlPluginLoaded = false
 
@@ -132,30 +154,41 @@ function snapToPolyline(point: [number, number], polyline: [number, number][]): 
 
 // ── Chevron point computation (shared by MapLibre rAF loop) ──────────────────
 type ChevFC = { type:"FeatureCollection"; features:Array<{ type:"Feature"; geometry:{ type:"Point"; coordinates:[number,number] }; properties:{ bearing:number } }> }
-function computeChevPoints(coords:[number,number][], phase:number, spacingDeg = 0.007): ChevFC {
-  const features: ChevFC["features"] = []
-  if (coords.length < 2) return { type:"FeatureCollection", features }
-  const lens: number[] = []; let total = 0
-  for (let i = 0; i < coords.length-1; i++) {
+// ── Arc-length cache — pre-computed once per route, reused every rAF frame ────
+// Eliminates the O(N) lens[] rebuild that previously ran inside computeChevPoints
+// and getSimPos on every animation frame.
+type ArcCache = { lens: Float64Array; total: number }
+function buildArcCache(coords: [number, number][]): ArcCache {
+  const n = Math.max(0, coords.length - 1)
+  const lens = new Float64Array(n)
+  let total = 0
+  for (let i = 0; i < n; i++) {
     const d = Math.hypot(coords[i+1][0]-coords[i][0], coords[i+1][1]-coords[i][1])
-    lens.push(d); total += d
+    lens[i] = d; total += d
   }
-  if (total === 0) return { type:"FeatureCollection", features }
+  return { lens, total }
+}
+
+// computeChevPoints — O(N+M) instead of former O(N×M).
+// Accepts pre-built cache (no per-frame allocation) and advances the segment
+// index forward across consecutive chevrons instead of restarting from 0.
+function computeChevPoints(coords:[number,number][], phase:number, cache: ArcCache, spacingDeg = 0.007): ChevFC {
+  const features: ChevFC["features"] = []
+  const { lens, total } = cache
+  if (coords.length < 2 || total === 0) return { type:"FeatureCollection", features }
   const startOff = (phase * spacingDeg) % spacingDeg
+  let segIdx = 0; let segAcc = 0
   for (let dist = startOff; dist < total; dist += spacingDeg) {
-    let acc = 0
-    for (let i = 0; i < lens.length; i++) {
-      if (acc + lens[i] >= dist || i === lens.length-1) {
-        const t = lens[i] > 0 ? Math.min(1,(dist-acc)/lens[i]) : 0
-        const lng = coords[i][0] + t*(coords[i+1][0]-coords[i][0])
-        const lat = coords[i][1] + t*(coords[i+1][1]-coords[i][1])
-        // icon is drawn pointing right; convert route direction to MapLibre bearing (CW from north)
-        const bearing = Math.atan2(coords[i+1][0]-coords[i][0], coords[i+1][1]-coords[i][1])*180/Math.PI - 90
-        features.push({ type:"Feature", geometry:{ type:"Point", coordinates:[lng,lat] }, properties:{ bearing } })
-        break
-      }
-      acc += lens[i]
+    // Advance segment index forward — never restart from 0 between consecutive chevrons
+    while (segIdx < lens.length - 1 && segAcc + lens[segIdx] < dist) {
+      segAcc += lens[segIdx]; segIdx++
     }
+    const i = segIdx
+    const t = lens[i] > 0 ? Math.min(1, (dist - segAcc) / lens[i]) : 0
+    const lng = coords[i][0] + t*(coords[i+1][0]-coords[i][0])
+    const lat = coords[i][1] + t*(coords[i+1][1]-coords[i][1])
+    const bearing = Math.atan2(coords[i+1][0]-coords[i][0], coords[i+1][1]-coords[i][1])*180/Math.PI - 90
+    features.push({ type:"Feature", geometry:{ type:"Point", coordinates:[lng,lat] }, properties:{ bearing } })
   }
   return { type:"FeatureCollection", features }
 }
@@ -234,13 +267,20 @@ function injectMapStyles() {
 }
 
 // ── Sim-bus interpolation ─────────────────────────────────────────────────────
-function getSimPos(coords: [number, number][], progress: number) {
+// getSimPos — accepts an optional pre-built ArcCache to skip per-call O(N) work
+function getSimPos(coords: [number, number][], progress: number, cache?: ArcCache) {
   if (!coords || coords.length < 2) return { lat: coords?.[0]?.[0] ?? 35.44, lng: coords?.[0]?.[1] ?? 7.14, heading: 0 }
   const clamped = Math.max(0, Math.min(0.9999, progress))
-  const lens: number[] = []; let totalLen = 0
-  for (let i = 0; i < coords.length - 1; i++) {
-    const d = Math.hypot(coords[i+1][0]-coords[i][0], coords[i+1][1]-coords[i][1])
-    lens.push(d); totalLen += d
+  let lens: { length: number; [i: number]: number }; let totalLen: number
+  if (cache) {
+    lens = cache.lens; totalLen = cache.total
+  } else {
+    const arr: number[] = []; let t = 0
+    for (let i = 0; i < coords.length - 1; i++) {
+      const d = Math.hypot(coords[i+1][0]-coords[i][0], coords[i+1][1]-coords[i][1])
+      arr.push(d); t += d
+    }
+    lens = arr; totalLen = t
   }
   if (totalLen === 0) return { lat: coords[0][0], lng: coords[0][1], heading: 0 }
   const target = clamped * totalLen; let acc = 0
@@ -259,7 +299,8 @@ function getSimPos(coords: [number, number][], progress: number) {
 }
 
 // ── RouteController (shared React UI) ────────────────────────────────────────
-function RouteController({
+// memo: prevents re-renders when parent state (locating, ready, etc.) changes
+const RouteController = memo(function RouteController({
   selectedRoute, onRouteSelect, isDark,
 }: { selectedRoute: SelectedRoute; onRouteSelect: (id: SelectedRoute) => void; isDark: boolean }) {
   const [open, setOpen] = useState(false)
@@ -319,7 +360,7 @@ function RouteController({
       </motion.div>
     </div>
   )
-}
+})
 
 
 // ════════════════════════════════════════════════════════════════════════════════
@@ -335,20 +376,13 @@ function MapLibreRenderer({ trackingLineId, isFullscreen }: MapProps) {
   const driverRef        = useRef<import("maplibre-gl").Marker | null>(null)
   const userRef          = useRef<import("maplibre-gl").Marker | null>(null)
   const rafRef           = useRef<number | null>(null)
-  const chevronCoordsRef = useRef<Map<string, [number,number][]>>(new Map())
+  const chevronCoordsRef = useRef<Map<string, { coords: [number,number][]; cache: ArcCache }>>(new Map())
   const pendingRouteRef  = useRef<SelectedRoute>(null)
   const mapReadyRef      = useRef(false)
 
   const [selectedRoute, setSelectedRoute] = useState<SelectedRoute>(null)
   const [ready, setReady] = useState(false)
   const [locating, setLocating] = useState(false)
-
-  const routeCoords = new Map<string, [number, number][]>()
-  urbanRoutePolylines.forEach(r => {
-    if (r.id === "line-11") routeCoords.set(r.id, fringalOutboundCoords)
-    else if (r.id === "line-05") routeCoords.set(r.id, hammaOutboundCoords)
-    else routeCoords.set(r.id, r.waypoints)
-  })
 
   // Focus mode — visibility-only toggling via setLayoutProperty + setFilter.
   // Purely synchronous: if the map isn't ready yet, applyFocus is a no-op.
@@ -383,22 +417,22 @@ function MapLibreRenderer({ trackingLineId, isFullscreen }: MapProps) {
       marker.getElement().style.opacity = routeId === null || br === routeId ? "1" : "0"
     })
 
-    // Fly to selected route bounds
+    // Fly to selected route bounds — use pre-computed module-level constants for GPX routes
+    // (avoids Math.min/max spread over hundreds of coords on every route tap)
     if (routeId) {
       if (routeId === "line-11") {
-        const all = [...fringalOutboundCoords, ...fringalReturnCoords]
-        const lats = all.map(c => c[0]), lngs = all.map(c => c[1])
-        map.fitBounds([[Math.min(...lngs), Math.min(...lats)], [Math.max(...lngs), Math.max(...lats)]], { padding: 60, maxZoom: 14 })
+        map.fitBounds(LINE_11_BOUNDS, { padding: 60, maxZoom: 14 })
       } else if (routeId === "line-05") {
-        const all = [...hammaOutboundCoords, ...hammaReturnCoords]
-        const lats = all.map(c => c[0]), lngs = all.map(c => c[1])
-        map.fitBounds([[Math.min(...lngs), Math.min(...lats)], [Math.max(...lngs), Math.max(...lats)]], { padding: 60, maxZoom: 14 })
+        map.fitBounds(LINE_05_BOUNDS, { padding: 60, maxZoom: 14 })
       } else {
-        const route = urbanRoutePolylines.find(r => r.id === routeId)
-        if (route) {
-          const coords = routeCoords.get(routeId) ?? route.waypoints
-          const lats = coords.map(c => c[0]), lngs = coords.map(c => c[1])
-          map.fitBounds([[Math.min(...lngs), Math.min(...lats)], [Math.max(...lngs), Math.max(...lats)]], { padding: 50, maxZoom: 15 })
+        const coords = routeCoords.get(routeId)
+        if (coords) {
+          let minLat=Infinity,maxLat=-Infinity,minLng=Infinity,maxLng=-Infinity
+          for (const [lat,lng] of coords) {
+            if(lat<minLat)minLat=lat; if(lat>maxLat)maxLat=lat
+            if(lng<minLng)minLng=lng; if(lng>maxLng)maxLng=lng
+          }
+          map.fitBounds([[minLng,minLat],[maxLng,maxLat]], { padding: 50, maxZoom: 15 })
         }
       }
     }
@@ -521,7 +555,7 @@ function MapLibreRenderer({ trackingLineId, isFullscreen }: MapProps) {
               "icon-ignore-placement": true,
             },
           })
-          chevronCoordsRef.current.set(key, geoCoords)
+          chevronCoordsRef.current.set(key, { coords: geoCoords, cache: buildArcCache(geoCoords) })
         }
 
         // Urban routes (OSRM optional)
@@ -647,9 +681,15 @@ function MapLibreRenderer({ trackingLineId, isFullscreen }: MapProps) {
           const dt = Math.min((lastTs ? ts - lastTs : 16), 100) / 1000
           lastTs = ts
           chevPhase = (chevPhase + 0.14 * dt) % 1
-          chevronCoordsRef.current.forEach((coords, key) => {
+          const focusedId = pendingRouteRef.current
+          chevronCoordsRef.current.forEach(({ coords, cache }, key) => {
+            // Skip setData for hidden chevron sources when a route is focused
+            if (focusedId !== null) {
+              const baseId = key.replace(/-outbound$|-return$/, "")
+              if (baseId !== focusedId) return
+            }
             const src = map.getSource(`chev-src-${key}`) as import("maplibre-gl").GeoJSONSource | undefined
-            src?.setData(computeChevPoints(coords, chevPhase) as unknown as import("maplibre-gl").GeoJSONSourceSpecification["data"])
+            src?.setData(computeChevPoints(coords, chevPhase, cache) as unknown as import("maplibre-gl").GeoJSONSourceSpecification["data"])
           })
           rafRef.current = requestAnimationFrame(animChev)
         }
@@ -765,12 +805,6 @@ function LeafletDarkRenderer({ trackingLineId, isFullscreen }: MapProps) {
   const userRef     = useRef<L.Marker | null>(null)
   const chevMarkersRef = useRef<Array<{ marker: L.Marker; routeId: string; phase: number }>>([])
 
-  const routeCoords = new Map<string, [number, number][]>()
-  urbanRoutePolylines.forEach(r => {
-    if (r.id === "line-11") routeCoords.set(r.id, fringalOutboundCoords)
-    else if (r.id === "line-05") routeCoords.set(r.id, hammaOutboundCoords)
-    else routeCoords.set(r.id, r.waypoints)
-  })
 
   const applyFocus = (routeId: SelectedRoute) => {
     const isActive = (id: string) =>
@@ -947,6 +981,10 @@ function LeafletDarkRenderer({ trackingLineId, isFullscreen }: MapProps) {
       }
     })
 
+    // Pre-build lookup maps once — O(1) per-frame instead of O(N) find()
+    const routeByIdL  = new Map(allLeafletRoutes.map(r => [r.id, r]))
+    const arcCachesL  = new Map(allLeafletRoutes.map(r => [r.id, buildArcCache(r.coords)]))
+
     const CHEV_SPEED = 0.12
     let lastChevTs = 0
     const animLeafletChev = (ts: number) => {
@@ -954,9 +992,9 @@ function LeafletDarkRenderer({ trackingLineId, isFullscreen }: MapProps) {
       lastChevTs = ts
       chevMarkersRef.current.forEach(entry => {
         entry.phase = (entry.phase + CHEV_SPEED * dt) % 1
-        const route = allLeafletRoutes.find(r => r.id === entry.routeId)
+        const route = routeByIdL.get(entry.routeId)
         if (!route) return
-        const pos = getSimPos(route.coords, entry.phase)
+        const pos = getSimPos(route.coords, entry.phase, arcCachesL.get(entry.routeId))
         const heading = pos.heading
         const el = entry.marker.getElement()
         if (el) {
