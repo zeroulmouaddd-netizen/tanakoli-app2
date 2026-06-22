@@ -585,21 +585,28 @@ function MapLibreRenderer({ trackingLineId, isFullscreen }: MapProps) {
           chevronCoordsRef.current.set(key, { coords: geoCoords, cache: buildArcCache(geoCoords) })
         }
 
+        // [lat,lng] coords used for bus positioning — must match the drawn route geometry exactly
+        const resolvedBusCoords = new Map<string, [number, number][]>()
         // Urban routes (OSRM optional)
         for (const route of urbanRoutePolylines) {
           if (route.id === "line-11") continue
           if (route.id === "line-05") continue
-          let coords: [number, number][] = route.waypoints.map(([lat, lng]) => [lng, lat])
+          let coordsLngLat: [number, number][] = route.waypoints.map(([lat, lng]) => [lng, lat])
           try {
             const seg = route.waypoints.map(([lat, lng]) => `${lng},${lat}`).join(";")
             const res = await fetch(`https://router.project-osrm.org/route/v1/driving/${seg}?overview=full&geometries=geojson`, { signal: AbortSignal.timeout(4000) })
             if (res.ok) {
               const d = await res.json()
-              if (d.routes?.[0]?.geometry?.coordinates) coords = d.routes[0].geometry.coordinates
+              if (d.routes?.[0]?.geometry?.coordinates) coordsLngLat = d.routes[0].geometry.coordinates
             }
           } catch { /* use waypoints */ }
-          addRoute(route.id, route.color, coords)
+          addRoute(route.id, route.color, coordsLngLat)
+          // Convert back to [lat,lng] so buses travel on the exact same geometry as the drawn line
+          resolvedBusCoords.set(route.id, coordsLngLat.map(([lng, lat]) => [lat, lng] as [number, number]))
         }
+        // GPX routes: both line and buses already use the same coord arrays
+        resolvedBusCoords.set("line-11", fringalOutboundCoords)
+        resolvedBusCoords.set("line-05", hammaOutboundCoords)
 
         // ── Native stop layers: collect all stops as GeoJSON then add circle + symbol layers ──
         // Native layers are rendered by WebGL at exact geographic coords — zero zoom drift.
@@ -729,7 +736,8 @@ function MapLibreRenderer({ trackingLineId, isFullscreen }: MapProps) {
         urbanRoutePolylines.forEach(route => {
           const count = BUS_CONFIG[route.id]
           if (!count) return
-          const coords = routeCoords.get(route.id)
+          // Use the same geometry that was drawn on the map so buses sit on the line
+          const coords = resolvedBusCoords.get(route.id) ?? routeCoords.get(route.id)
           if (!coords || coords.length < 2) return
           const cache = buildArcCache(coords)
           // speed in progress/sec based on 35 km/h (1 deg ≈ 111 km)
@@ -737,10 +745,13 @@ function MapLibreRenderer({ trackingLineId, isFullscreen }: MapProps) {
           for (let i = 0; i < count; i++) {
             const initialProgress = i / count
             const el = document.createElement("div")
-            el.style.cssText = "pointer-events:none;"
+            // Explicit 22×38 gives MapLibre a stable bounding box for anchor:"center"
+            // so pixel (11,19) always lands on the geographic coordinate regardless of rotation
+            el.style.cssText = "pointer-events:none;width:22px;height:38px;"
             el.innerHTML = makeBusSvg(route.color)
             const busInner = el.firstElementChild as HTMLElement | null
             const pos = getSimPos(coords, initialProgress, cache)
+            // Rotate only the inner SVG wrapper — MapLibre owns transform on the outer el
             if (busInner) busInner.style.transform = `rotate(${pos.heading}deg)`
             const marker = new maplibregl.Marker({ element: el, anchor: "center" })
               .setLngLat([pos.lng, pos.lat])
