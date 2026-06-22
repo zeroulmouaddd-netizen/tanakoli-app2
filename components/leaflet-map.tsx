@@ -168,12 +168,7 @@ const urbanRoutePolylines: {
     ],
     waypoints: [
       [35.4296000, 7.1498576],
-      [35.4291845, 7.1502522],
-      [35.4288031, 7.1506931],
       [35.4287001, 7.1508286],
-      [35.4150000, 7.1650000],
-      [35.4000000, 7.1800000],
-      [35.3850000, 7.1970000],
       [35.3697000, 7.2154000],
     ],
   },
@@ -1233,8 +1228,7 @@ const { subStations } = useRouteSubStations(selectedRoute)
       if (route.id === "line-11") return
       if (route.id === "line-05") return
 
-      // line-06 uses hardcoded static coords — skip OSRM to prevent auto-generated loops
-      const osrmCoords = route.id === "line-06" ? null : await fetchOSRMRoute(route.waypoints)
+      const osrmCoords = await fetchOSRMRoute(route.waypoints)
       const routeCoords = osrmCoords || route.waypoints // Fallback to waypoints if OSRM fails
 
       // Glow halo layer — thick, blurred, same color, drawn FIRST (behind)

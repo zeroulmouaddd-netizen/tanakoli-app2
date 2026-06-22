@@ -78,7 +78,7 @@ const urbanRoutePolylines: {
   { id: "line-05", lineNumber: "05", color: "#27AE60", arabicName: "خط 05 — الحامة",
     waypoints: [[35.4279,7.1431],[35.4380,7.0950],[35.4659,7.0581]] },
   { id: "line-06", lineNumber: "06", color: "#E74C3C", arabicName: "خط 06 — المحمل",
-    waypoints: [[35.4296000,7.1498576],[35.4291845,7.1502522],[35.4288031,7.1506931],[35.4287001,7.1508286],[35.4150000,7.1650000],[35.4000000,7.1800000],[35.3850000,7.1970000],[35.3697000,7.2154000]] },
+    waypoints: [[35.4296000,7.1498576],[35.4287001,7.1508286],[35.3697000,7.2154000]] },
   { id: "line-10", lineNumber: "10", color: "#F39C12", arabicName: "خط 10 — المدينة الجديدة",
     waypoints: [[35.424,7.138],[35.445878,7.144128]] },
   { id: "line-11", lineNumber: "11", color: "#2980B9", arabicName: "خط 11 — فرنقال",
@@ -548,11 +548,6 @@ function MapLibreRenderer({ trackingLineId, isFullscreen }: MapProps) {
         for (const route of urbanRoutePolylines) {
           if (route.id === "line-11") continue
           if (route.id === "line-05") continue
-          // line-06: hardcoded static coords — skip OSRM entirely to prevent auto-generated loops
-          if (route.id === "line-06") {
-            addRoute(route.id, route.color, route.waypoints.map(([lat, lng]) => [lng, lat]))
-            continue
-          }
           let coords: [number, number][] = route.waypoints.map(([lat, lng]) => [lng, lat])
           try {
             const seg = route.waypoints.map(([lat, lng]) => `${lng},${lat}`).join(";")
