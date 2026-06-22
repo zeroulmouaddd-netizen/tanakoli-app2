@@ -465,18 +465,7 @@ function MapLibreRenderer({ trackingLineId, isFullscreen }: MapProps) {
       if (!containerRef.current) return
       const map = new maplibregl.Map({
         container: containerRef.current,
-        style: {
-          version: 8,
-          sources: {
-            osm: {
-              type: "raster",
-              tiles: ["https://tile.openstreetmap.org/{z}/{x}/{y}.png"],
-              tileSize: 256,
-              attribution: "&copy; OpenStreetMap contributors",
-            },
-          },
-          layers: [{ id: "osm-tiles", type: "raster", source: "osm", minzoom: 0, maxzoom: 19 }],
-        } as import("maplibre-gl").StyleSpecification,
+        style: 'https://api.maptiler.com/maps/streets-v4/style.json?key=7F3P1mah3oZkSBXMkpME',
         center: KHENCHELA_LNG_LAT,
         zoom: DEFAULT_ZOOM,
         attributionControl: false,
