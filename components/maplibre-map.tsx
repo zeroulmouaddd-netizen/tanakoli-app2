@@ -462,27 +462,10 @@ function MapLibreRenderer({ trackingLineId, isFullscreen }: MapProps) {
         }
       }
 
-      const CARTO_STYLE: import("maplibre-gl").StyleSpecification = {
-        version: 8,
-        glyphs: "https://fonts.openmaptiles.org/{fontstack}/{range}.pbf",
-        sources: {
-          carto: {
-            type: "raster",
-            tiles: [
-              "https://a.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png",
-              "https://b.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png",
-              "https://c.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png",
-            ],
-            tileSize: 256,
-          },
-        },
-        layers: [{ id: "carto", type: "raster", source: "carto" }],
-      }
-
       if (!containerRef.current) return
       const map = new maplibregl.Map({
         container: containerRef.current,
-        style: CARTO_STYLE,
+        style: "https://basemaps.cartocdn.com/gl/voyager-gl-style/style.json",
         center: KHENCHELA_LNG_LAT,
         zoom: DEFAULT_ZOOM,
         attributionControl: false,
