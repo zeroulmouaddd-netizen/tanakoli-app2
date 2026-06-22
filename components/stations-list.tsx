@@ -3,8 +3,10 @@
 import { MapPin, Navigation, Building2, GraduationCap, Hospital, Clock, WifiOff } from "lucide-react"
 import { Card } from "@/components/ui/card"
 import { useEffect, useRef, useState } from "react"
-import L from "leaflet"
-import "leaflet/dist/leaflet.css"
+import maplibregl from "maplibre-gl"
+import "maplibre-gl/dist/maplibre-gl.css"
+
+const MAPTILER_STYLE = 'https://api.maptiler.com/maps/streets-v4/style.json?key=7F3P1mah3oZkSBXMkpME'
 
 // ─── Landmark definitions (real Khenchela GPS coordinates) ────────────────────
 
@@ -138,6 +140,40 @@ async function fetchWalkingRoute(
   }
 }
 
+// ─── Mini-map overlay helper ──────────────────────────────────────────────────
+
+function applyOverlays(
+  map: maplibregl.Map,
+  userPosition: [number, number] | null,
+  routeCoords: [number, number][] | null,
+  landmarkCoords: [number, number]
+) {
+  const userSrc = map.getSource("user") as maplibregl.GeoJSONSource | undefined
+  const routeSrc = map.getSource("route") as maplibregl.GeoJSONSource | undefined
+  if (!userSrc || !routeSrc) return
+
+  if (userPosition) {
+    userSrc.setData({ type: "Feature", geometry: { type: "Point", coordinates: [userPosition[1], userPosition[0]] }, properties: {} })
+  } else {
+    userSrc.setData({ type: "FeatureCollection", features: [] })
+  }
+
+  if (routeCoords && routeCoords.length > 1) {
+    routeSrc.setData({ type: "Feature", geometry: { type: "LineString", coordinates: routeCoords.map(([lat, lng]) => [lng, lat]) }, properties: {} })
+    const lngs = routeCoords.map(([, lng]) => lng)
+    const lats = routeCoords.map(([lat]) => lat)
+    map.fitBounds([[Math.min(...lngs), Math.min(...lats)], [Math.max(...lngs), Math.max(...lats)]], { padding: 28, maxZoom: 17, animate: false })
+  } else if (userPosition) {
+    routeSrc.setData({ type: "FeatureCollection", features: [] })
+    const bounds = new maplibregl.LngLatBounds()
+    bounds.extend([userPosition[1], userPosition[0]])
+    bounds.extend([landmarkCoords[1], landmarkCoords[0]])
+    map.fitBounds(bounds, { padding: 28, maxZoom: 16, animate: false })
+  } else {
+    routeSrc.setData({ type: "FeatureCollection", features: [] })
+  }
+}
+
 // ─── Mini-map component ───────────────────────────────────────────────────────
 
 function MiniMapComponent({
@@ -150,91 +186,62 @@ function MiniMapComponent({
   routeCoords: [number, number][] | null
 }) {
   const mapContainer = useRef<HTMLDivElement>(null)
-  const mapRef = useRef<L.Map | null>(null)
-  const routeLineRef = useRef<L.Polyline | null>(null)
-  const userMarkerRef = useRef<L.CircleMarker | null>(null)
+  const mapRef = useRef<maplibregl.Map | null>(null)
+  const mapLoadedRef = useRef(false)
+  const pendingUserPos = useRef(userPosition)
+  const pendingRoute = useRef(routeCoords)
+
+  // Keep pending refs in sync so the load callback can apply the latest props
+  useEffect(() => { pendingUserPos.current = userPosition }, [userPosition])
+  useEffect(() => { pendingRoute.current = routeCoords }, [routeCoords])
 
   // Initialise map once per landmark
   useEffect(() => {
     if (!mapContainer.current) return
 
-    // CartoDB Voyager — natural/light style, free, no API key
-    const tileUrl = "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
-
-    const map = L.map(mapContainer.current, {
+    const map = new maplibregl.Map({
+      container: mapContainer.current,
+      style: MAPTILER_STYLE,
+      center: [landmark.coordinates[1], landmark.coordinates[0]], // [lng, lat]
+      zoom: 15,
+      interactive: false,
       attributionControl: false,
-      zoomControl: false,
-      dragging: false,
-      scrollWheelZoom: false,
-      doubleClickZoom: false,
-      touchZoom: false,
-      boxZoom: false,
-      keyboard: false,
-    }).setView(landmark.coordinates, 15)
+    })
 
-    L.tileLayer(tileUrl, { maxZoom: 19, subdomains: "abcd" }).addTo(map)
+    map.on("load", () => {
+      // Landmark marker — bright green circle with white border
+      map.addSource("landmark", {
+        type: "geojson",
+        data: { type: "Feature", geometry: { type: "Point", coordinates: [landmark.coordinates[1], landmark.coordinates[0]] }, properties: {} },
+      })
+      map.addLayer({ id: "landmark-circle", type: "circle", source: "landmark", paint: { "circle-radius": 10, "circle-color": "#22C55E", "circle-stroke-color": "white", "circle-stroke-width": 3 } })
 
-    // Landmark marker — bright green circle with white border (visible on dark tiles)
-    L.circleMarker(landmark.coordinates, {
-      radius: 10,
-      fillColor: "#22C55E",
-      color: "white",
-      weight: 3,
-      opacity: 1,
-      fillOpacity: 1,
-    }).addTo(map)
+      // User position source (empty until position arrives)
+      map.addSource("user", { type: "geojson", data: { type: "FeatureCollection", features: [] } })
+      map.addLayer({ id: "user-circle", type: "circle", source: "user", paint: { "circle-radius": 8, "circle-color": "#60A5FA", "circle-stroke-color": "white", "circle-stroke-width": 2.5 } })
+
+      // Route line source (empty until route arrives)
+      map.addSource("route", { type: "geojson", data: { type: "FeatureCollection", features: [] } })
+      map.addLayer({ id: "route-line", type: "line", source: "route", layout: { "line-join": "round", "line-cap": "round" }, paint: { "line-color": "#22C55E", "line-width": 4, "line-opacity": 0.9 } })
+
+      mapLoadedRef.current = true
+      applyOverlays(map, pendingUserPos.current, pendingRoute.current, landmark.coordinates)
+    })
 
     mapRef.current = map
 
     return () => {
+      mapLoadedRef.current = false
       map.remove()
       mapRef.current = null
-      routeLineRef.current = null
-      userMarkerRef.current = null
     }
   }, [landmark])
 
-  // Update user marker + route polyline when either changes
+  // Update user marker + route line whenever props change
   useEffect(() => {
     const map = mapRef.current
-    if (!map) return
-
-    // Clear old layers
-    routeLineRef.current?.remove()
-    routeLineRef.current = null
-    userMarkerRef.current?.remove()
-    userMarkerRef.current = null
-
-    if (!userPosition) return
-
-    // Blue dot — user location (bright on dark tiles)
-    userMarkerRef.current = L.circleMarker(userPosition, {
-      radius: 8,
-      fillColor: "#60A5FA",
-      color: "white",
-      weight: 2.5,
-      opacity: 1,
-      fillOpacity: 1,
-    }).addTo(map)
-
-    if (routeCoords && routeCoords.length > 1) {
-      // Real road route — bright green polyline (visible on dark tiles)
-      routeLineRef.current = L.polyline(routeCoords, {
-        color: "#22C55E",
-        weight: 4,
-        opacity: 0.9,
-        lineJoin: "round",
-        lineCap: "round",
-      }).addTo(map)
-
-      // Fit both endpoints plus some padding
-      const bounds = L.latLngBounds(routeCoords)
-      map.fitBounds(bounds, { padding: [28, 28], maxZoom: 17 })
-    } else {
-      // Route not loaded yet — fit user + landmark
-      const bounds = L.latLngBounds([userPosition, landmark.coordinates])
-      map.fitBounds(bounds, { padding: [28, 28], maxZoom: 16 })
-    }
+    if (!map || !mapLoadedRef.current) return
+    applyOverlays(map, userPosition, routeCoords, landmark.coordinates)
   }, [userPosition, routeCoords, landmark.coordinates])
 
   return (

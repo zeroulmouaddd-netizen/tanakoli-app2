@@ -36,7 +36,7 @@ import {
 const KHENCHELA_CENTER: [number, number] = [35.43, 7.14]   // [lat, lng]
 const KHENCHELA_LNG_LAT: [number, number] = [7.14, 35.43]  // [lng, lat] for MapLibre
 const DEFAULT_ZOOM = 13
-const CARTO_VOYAGER_URL = "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
+const MAPTILER_RASTER_URL = "https://api.maptiler.com/maps/streets-v4/{z}/{x}/{y}.png?key=7F3P1mah3oZkSBXMkpME"
 
 // ── Route / station data ──────────────────────────────────────────────────────
 const urbanStations: {
@@ -859,9 +859,8 @@ function LeafletDarkRenderer({ trackingLineId, isFullscreen }: MapProps) {
       .setView(KHENCHELA_CENTER, DEFAULT_ZOOM)
     mapRef.current = map
 
-    // CartoDB Voyager (natural/light) tiles
-    L.tileLayer(CARTO_VOYAGER_URL, {
-      subdomains: "abcd",
+    // MapTiler Streets v4 raster tiles (no-WebGL fallback path)
+    L.tileLayer(MAPTILER_RASTER_URL, {
       maxZoom: 19,
     }).addTo(map)
 
