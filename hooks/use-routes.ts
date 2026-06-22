@@ -129,11 +129,11 @@ const urbanRoutes: BusRoute[] = [
     frequency: 30,
     category: "urban",
     stops: [
-      { id: "06-s1", name: "نقطة انطلاق دار الثقافة", nameEn: "Dar Thaqafa Departure Point", coords: [35.4308, 7.1486], order: 1 },
+      { id: "06-s1", name: "نقطة انطلاق دار الثقافة", nameEn: "Dar Thaqafa Departure Point", coords: [35.4296, 7.1499], order: 1 },
       { id: "06-s2", name: "نقطة وصول تازوقاغت",      nameEn: "Tazoughaght Arrival Point",   coords: [35.3697, 7.2154], order: 2 },
     ],
     sub_stations: [
-      { id: "sub-06-1", name: "نقطة انطلاق دار الثقافة", nameEn: "Dar Thaqafa Departure Point", coords: [35.4308, 7.1486], order: 1 },
+      { id: "sub-06-1", name: "نقطة انطلاق دار الثقافة", nameEn: "Dar Thaqafa Departure Point", coords: [35.4296, 7.1499], order: 1 },
       { id: "sub-06-2", name: "نقطة وصول تازوقاغت",      nameEn: "Tazoughaght Arrival Point",   coords: [35.3697, 7.2154], order: 2 },
     ],
   },
@@ -190,7 +190,7 @@ const fallbackStations: Station[] = [
   { id: "station-ansigha",    name: "انسيغة",               nameEn: "Ansigha",                  address: "انسيغة - قرب مركز الشرطة",             coords: [35.518,    7.119   ], lines: ["04"], facilities: ["shelter"],                  isMainStation: true  },
   { id: "station-alhama",     name: "الحامة",               nameEn: "Al-Hama (centre)",         address: "الحامة - وسط المدينة",                 coords: [35.4659,   7.0581  ], lines: ["05"], facilities: ["shelter","bench"],           isMainStation: true  },
   { id: "station-mahmal",     name: "نقطة وصول تازوقاغت",      nameEn: "Tazoughaght Arrival Point",   address: "تازوقاغت وسط - خنشلة",                 coords: [35.3697,   7.2154  ], lines: ["06"], facilities: ["shelter"],                  isMainStation: true  },
-  { id: "station-culture",    name: "نقطة انطلاق دار الثقافة", nameEn: "Dar Thaqafa Departure Point", address: "شارع عباس لغرور - محطة الحافلات أولاد رشاش - خنشلة", coords: [35.4308,   7.1486  ], lines: ["06"], facilities: ["shelter","bench"],           isMainStation: true  },
+  { id: "station-culture",    name: "نقطة انطلاق دار الثقافة", nameEn: "Dar Thaqafa Departure Point", address: "شارع عباس لغرور - محطة الحافلات أولاد رشاش - خنشلة", coords: [35.4296,   7.1499  ], lines: ["06"], facilities: ["shelter","bench"],           isMainStation: true  },
   { id: "station-newcity",    name: "المدينة الجديدة",      nameEn: "Cité Nouvelle / Al-Hadika", address: "المدينة الجديدة - حي الحديقة",        coords: [35.424,    7.138   ], lines: ["10"], facilities: ["shelter","bench"],           isMainStation: true  },
   { id: "station-frnqal-v",   name: "قرية فرنقال",         nameEn: "Village Frnqal",           address: "قرية فرنقال - خنشلة",                 coords: [35.45,     7.19    ], lines: ["11"], facilities: ["shelter"],                  isMainStation: true  },
 ]
