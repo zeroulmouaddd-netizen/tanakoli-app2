@@ -94,6 +94,18 @@ urbanRoutePolylines.forEach(r => {
   else routeCoords.set(r.id, r.waypoints)
 })
 
+// ── Simulated bus count per line ─────────────────────────────────────────────
+const BUS_CONFIG: Record<string, number> = {
+  "line-05": 3,
+  "line-11": 2,
+  "line-10": 2,
+  "line-01": 3,
+  "line-04": 2,
+  "line-06": 2,
+  "line-02": 1,
+}
+const BUS_KMH = 35
+
 // Pre-computed MapLibre-format [[minLng,minLat],[maxLng,maxLat]] bounds for GPX routes
 // Avoids Math.min(...lats) spread over hundreds of coords on every route selection
 function _boundsML(arrays: [number,number][][]): [[number,number],[number,number]] {
@@ -207,6 +219,33 @@ function approxLengthMeters(coords: [number, number][]): number {
 function hexToRgba(hex: string, alpha: number): string {
   const h = hex.replace('#', '')
   return `rgba(${parseInt(h.slice(0,2),16)},${parseInt(h.slice(2,4),16)},${parseInt(h.slice(4,6),16)},${alpha})`
+}
+
+// ── Custom bus SVG icon (top-down view, faces UP/north, tinted to route color) ─
+function makeBusSvg(color: string): string {
+  const h = color.replace('#', '')
+  const r = parseInt(h.slice(0,2),16), g = parseInt(h.slice(2,4),16), b = parseInt(h.slice(4,6),16)
+  const dark = `rgb(${Math.round(r*0.55)},${Math.round(g*0.55)},${Math.round(b*0.55)})`
+  const mid  = `rgb(${Math.round(r*0.78)},${Math.round(g*0.78)},${Math.round(b*0.78)})`
+  return `<div class="tk-sim-bus" style="width:22px;height:38px;transform-origin:center center;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.60)) drop-shadow(0 0 6px ${color}55);">
+    <svg xmlns="http://www.w3.org/2000/svg" width="22" height="38" viewBox="0 0 22 38" style="display:block;">
+      <rect x="2" y="3" width="18" height="32" rx="4" fill="${color}"/>
+      <rect x="3" y="4" width="16" height="14" rx="3" fill="white" opacity="0.17"/>
+      <rect x="4" y="3" width="14" height="7" rx="2.5" fill="rgba(190,230,255,0.80)" stroke="${mid}" stroke-width="0.4"/>
+      <rect x="4" y="28" width="14" height="7" rx="2" fill="rgba(190,230,255,0.50)" stroke="${dark}" stroke-width="0.4"/>
+      <rect x="2.5" y="13" width="4.5" height="5.5" rx="1.2" fill="rgba(190,230,255,0.90)"/>
+      <rect x="2.5" y="20" width="4.5" height="5.5" rx="1.2" fill="rgba(190,230,255,0.90)"/>
+      <rect x="15" y="13" width="4.5" height="5.5" rx="1.2" fill="rgba(190,230,255,0.90)"/>
+      <rect x="15" y="20" width="4.5" height="5.5" rx="1.2" fill="rgba(190,230,255,0.90)"/>
+      <circle cx="5.5" cy="4.5" r="1.4" fill="rgba(255,255,190,0.95)"/>
+      <circle cx="16.5" cy="4.5" r="1.4" fill="rgba(255,255,190,0.95)"/>
+      <circle cx="5.5" cy="33.5" r="1.4" fill="rgba(255,65,65,0.92)"/>
+      <circle cx="16.5" cy="33.5" r="1.4" fill="rgba(255,65,65,0.92)"/>
+      <line x1="6" y1="3" x2="16" y2="3" stroke="white" stroke-width="1.4" stroke-linecap="round" opacity="0.5"/>
+      <line x1="6" y1="35" x2="16" y2="35" stroke="${dark}" stroke-width="1" stroke-linecap="round" opacity="0.55"/>
+      <rect x="8" y="8" width="6" height="1.5" rx="0.75" fill="white" opacity="0.35"/>
+    </svg>
+  </div>`
 }
 
 // ── Shared CSS injector ───────────────────────────────────────────────────────
@@ -376,6 +415,8 @@ function MapLibreRenderer({ trackingLineId, isFullscreen }: MapProps) {
   const driverRef        = useRef<import("maplibre-gl").Marker | null>(null)
   const userRef          = useRef<import("maplibre-gl").Marker | null>(null)
   const rafRef           = useRef<number | null>(null)
+  const busRafRef        = useRef<number | null>(null)
+  const busDataRef       = useRef<Array<{ routeId: string; progress: number; speed: number; coords: [number,number][]; cache: ArcCache }>>([])
   const chevronCoordsRef = useRef<Map<string, { coords: [number,number][]; cache: ArcCache }>>(new Map())
   const pendingRouteRef  = useRef<SelectedRoute>(null)
   const mapReadyRef      = useRef(false)
@@ -683,6 +724,51 @@ function MapLibreRenderer({ trackingLineId, isFullscreen }: MapProps) {
         }
         rafRef.current = requestAnimationFrame(animChev)
 
+        // ── Simulated bus markers (busPhase loop — separate from chevPhase) ──
+        busDataRef.current = []
+        urbanRoutePolylines.forEach(route => {
+          const count = BUS_CONFIG[route.id]
+          if (!count) return
+          const coords = routeCoords.get(route.id)
+          if (!coords || coords.length < 2) return
+          const cache = buildArcCache(coords)
+          // speed in progress/sec based on 35 km/h (1 deg ≈ 111 km)
+          const speed = Math.max((BUS_KMH / 3.6) / (cache.total * 111000), 0.0008)
+          for (let i = 0; i < count; i++) {
+            const initialProgress = i / count
+            const el = document.createElement("div")
+            el.style.cssText = "pointer-events:none;"
+            el.innerHTML = makeBusSvg(route.color)
+            const busInner = el.firstElementChild as HTMLElement | null
+            const pos = getSimPos(coords, initialProgress, cache)
+            if (busInner) busInner.style.transform = `rotate(${pos.heading}deg)`
+            const marker = new maplibregl.Marker({ element: el, anchor: "center" })
+              .setLngLat([pos.lng, pos.lat])
+              .addTo(map)
+            simBuses.current.push({ marker, routeId: route.id, offset: initialProgress, direction: 0 })
+            busDataRef.current.push({ routeId: route.id, progress: initialProgress, speed, coords, cache })
+          }
+        })
+
+        // Bus phase animation — kept in a separate rAF to not bloat the chevron loop
+        let lastBusTs = 0
+        const animBus = (ts: number) => {
+          if (!alive || !mapRef.current) return
+          const dt = Math.min((lastBusTs ? ts - lastBusTs : 16), 100) / 1000
+          lastBusTs = ts
+          busDataRef.current.forEach((bd, idx) => {
+            bd.progress = (bd.progress + bd.speed * dt) % 1
+            const simEntry = simBuses.current[idx]
+            if (!simEntry) return
+            const pos = getSimPos(bd.coords, bd.progress, bd.cache)
+            simEntry.marker.setLngLat([pos.lng, pos.lat])
+            const inner = simEntry.marker.getElement().firstElementChild as HTMLElement | null
+            if (inner) inner.style.transform = `rotate(${pos.heading}deg)`
+          })
+          busRafRef.current = requestAnimationFrame(animBus)
+        }
+        busRafRef.current = requestAnimationFrame(animBus)
+
         mapReadyRef.current = true
         setReady(true)
         applyFocus(pendingRouteRef.current)
@@ -712,10 +798,12 @@ function MapLibreRenderer({ trackingLineId, isFullscreen }: MapProps) {
     return () => {
       alive = false                                        // ← must be first: stops any in-flight rAF from touching the map
       if (rafRef.current) cancelAnimationFrame(rafRef.current)
+      if (busRafRef.current) cancelAnimationFrame(busRafRef.current)
       cleanup?.()
       driverRef.current?.remove()
       userRef.current?.remove()
       simBuses.current.forEach(b => b.marker.remove()); simBuses.current = []
+      busDataRef.current = []
       mapReadyRef.current = false
       mapRef.current?.remove(); mapRef.current = null; initRef.current = false
     }
@@ -779,6 +867,8 @@ function LeafletDarkRenderer({ trackingLineId, isFullscreen }: MapProps) {
   const driverRef    = useRef<L.Marker | null>(null)
   const simBusRef    = useRef<Array<{ marker: L.Marker; routeId: string; offset: number; direction: number }>>([])
   const rafRef       = useRef<number | null>(null)
+  const busRafRef    = useRef<number | null>(null)
+  const busDataRef   = useRef<Array<{ routeId: string; progress: number; speed: number; coords: [number,number][]; cache: ArcCache }>>([])
   const { isDark }   = useTheme()
 
   const [selectedRoute, setSelectedRoute] = useState<SelectedRoute>(null)
@@ -998,6 +1088,53 @@ function LeafletDarkRenderer({ trackingLineId, isFullscreen }: MapProps) {
     }
     rafRef.current = requestAnimationFrame(animLeafletChev)
 
+    // ── Simulated bus markers (busPhase loop — separate from chevron loop) ────
+    busDataRef.current = []
+    simBusRef.current = []
+    urbanRoutePolylines.forEach(route => {
+      const count = BUS_CONFIG[route.id]
+      if (!count) return
+      const coords = routeCoords.get(route.id) ?? route.waypoints
+      if (!coords || coords.length < 2) return
+      const cache = buildArcCache(coords)
+      const speed = Math.max((BUS_KMH / 3.6) / (cache.total * 111000), 0.0008)
+      for (let i = 0; i < count; i++) {
+        const initialProgress = i / count
+        const pos = getSimPos(coords, initialProgress, cache)
+        const svgHtml = makeBusSvg(route.color)
+        const icon = L.divIcon({
+          html: `<div style="transform:rotate(${pos.heading}deg);transform-origin:center center;width:22px;height:38px;">${svgHtml}</div>`,
+          className: "",
+          iconSize: [22, 38],
+          iconAnchor: [11, 19],
+        })
+        const m = L.marker([pos.lat, pos.lng], { icon, interactive: false, zIndexOffset: 50 }).addTo(map)
+        simBusRef.current.push({ marker: m, routeId: route.id, offset: initialProgress, direction: 0 })
+        busDataRef.current.push({ routeId: route.id, progress: initialProgress, speed, coords, cache })
+      }
+    })
+
+    // Bus animation loop — independent of chevron loop
+    let lastBusTs = 0
+    const animLeafletBus = (ts: number) => {
+      const dt = Math.min((lastBusTs ? ts - lastBusTs : 16), 100) / 1000
+      lastBusTs = ts
+      busDataRef.current.forEach((bd, idx) => {
+        bd.progress = (bd.progress + bd.speed * dt) % 1
+        const entry = simBusRef.current[idx]
+        if (!entry) return
+        const pos = getSimPos(bd.coords, bd.progress, bd.cache)
+        entry.marker.setLatLng([pos.lat, pos.lng])
+        const el = entry.marker.getElement()
+        if (el) {
+          const wrapper = el.firstElementChild as HTMLElement | null
+          if (wrapper) wrapper.style.transform = `rotate(${pos.heading}deg)`
+        }
+      })
+      busRafRef.current = requestAnimationFrame(animLeafletBus)
+    }
+    busRafRef.current = requestAnimationFrame(animLeafletBus)
+
     // ── Live driver tracking ── 0775453629 ────────────────────────────────────
     const driverDbRef = rtdbRef(rtdb, "drivers/0775453629/location")
     const unsubDriver = onValue(driverDbRef, snap => {
@@ -1017,13 +1154,16 @@ function LeafletDarkRenderer({ trackingLineId, isFullscreen }: MapProps) {
     return () => {
       unsubDriver()
       if (rafRef.current) cancelAnimationFrame(rafRef.current)
+      if (busRafRef.current) cancelAnimationFrame(busRafRef.current)
       chevMarkersRef.current.forEach(e => e.marker.remove())
       chevMarkersRef.current = []
+      simBusRef.current.forEach(e => e.marker.remove())
+      simBusRef.current = []
+      busDataRef.current = []
       map.remove()
       mapRef.current = null
       initRef.current = false
       stationRefs.current = []; fringalRefs.current = []; hammaRefs.current = []
-      simBusRef.current = []
     }
   }, [])
 

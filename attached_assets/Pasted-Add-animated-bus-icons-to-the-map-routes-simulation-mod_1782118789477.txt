@@ -1,0 +1,60 @@
+Add animated bus icons to the map routes — simulation mode only for now 
+(random positions along each route, no real GPS). This is a preview to 
+see how the buses will look before we wire them to real driver data.
+
+BUS COUNT PER LINE:
+- خط الحامة: 3 buses
+- خط فرنقال: 2 buses
+- خط المدينة الجديدة: 2 buses
+- خط طريق العيزار: 3 buses
+- خط أنسيغة: 2 buses
+- خط المحمل (تازوقاغت): 2 buses
+- خط موسى رداح: 1 bus
+
+BUS ICON DESIGN — this is the most important part, be creative:
+- Design a custom SVG bus icon that looks modern, polished and 
+  distinctive — NOT a generic default marker or plain rectangle.
+- The icon should resemble a stylized top-down or slight isometric 
+  view of a city bus — with visible windows, a distinct front/rear, 
+  and clean minimal detail.
+- Each bus icon should be tinted/colored to match its route's line 
+  color, so buses on different lines are visually distinct.
+- The icon should have a subtle drop shadow or glow so it stands out 
+  clearly against the map background without being distracting.
+- Size: visible and readable on mobile but not so large it blocks the 
+  route line or station markers.
+- The icon should rotate to face the direction of travel along the 
+  route (heading-aware).
+
+ANIMATION & MOVEMENT:
+- Buses move smoothly along their route polyline at a realistic 
+  city-bus speed (simulate ~30–40 km/h scaled to the map).
+- Movement must be smooth (interpolated frame by frame using rAF), 
+  not jumping between points.
+- Buses are distributed at different starting positions along the 
+  route so they don't all start at the same point.
+- When a bus reaches the end of its route, it loops back to the start 
+  smoothly.
+- When a route is hidden (user selected a different line), its buses 
+  must also hide. When the route is shown again, buses reappear.
+
+TECHNICAL REQUIREMENTS:
+- Implement buses as MapLibre/Leaflet markers using the custom SVG icon.
+- Bus position calculation must reuse the existing ArcCache / 
+  route geometry already in the codebase — do NOT add a separate 
+  redundant geometry system.
+- Add a `busPhase` animation loop separate from the existing 
+  `chevPhase` loop so they don't interfere with each other.
+
+STRICT SCOPE:
+- Do NOT touch: route rendering, station markers, start/end gradients, 
+  line selection logic, RTL plugin, or any other existing feature.
+- Only ADD the bus icon layer on top of what exists.
+- If adding buses requires reading route coordinates, use the same 
+  data source already used by the chevron animation — don't duplicate.
+
+No GitHub push — keep all changes local to this Replit workspace.
+
+When done, show me a screenshot of the map with buses visible on at 
+least two different lines so I can evaluate the icon design and 
+animation before we proceed to wiring real driver data.
