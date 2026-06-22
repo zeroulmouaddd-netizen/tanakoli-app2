@@ -167,16 +167,12 @@ const urbanRoutes: BusRoute[] = [
     frequency: 20,
     category: "urban",
     stops: [
-      { id: "11-s1", name: "قرية فرنقال",         nameEn: "Village Frnqal",          coords: [35.45,     7.19    ], order: 1 },
-      { id: "11-s2", name: "عمارات طريق فرنقال",  nameEn: "Résid. Route Frnqal",     coords: [35.396003, 7.100503], order: 2 },
-      { id: "11-s3", name: "نزل المدينة",          nameEn: "Hôtel 1er Novembre",      coords: [35.426753, 7.135503], order: 3 },
-      { id: "11-s4", name: "موقف الحافلات",        nameEn: "Gare Routière",           coords: [35.445878, 7.144128], order: 4 },
+      { id: "11-s1", name: "قرية فرنقال",  nameEn: "Village Frnqal", coords: [35.45,     7.19    ], order: 1 },
+      { id: "11-s4", name: "موقف الحافلات", nameEn: "Gare Routière",  coords: [35.445878, 7.144128], order: 2 },
     ],
     sub_stations: [
-      { id: "sub-11-1", name: "قرية فرنقال",         nameEn: "Village Frnqal",          coords: [35.45,     7.19    ], order: 1 },
-      { id: "sub-11-2", name: "عمارات طريق فرنقال",  nameEn: "Résid. Route Frnqal",     coords: [35.396003, 7.100503], order: 2 },
-      { id: "sub-11-3", name: "نزل المدينة",          nameEn: "Hôtel 1er Novembre",      coords: [35.426753, 7.135503], order: 3 },
-      { id: "sub-11-4", name: "موقف الحافلات",        nameEn: "Gare Routière",           coords: [35.445878, 7.144128], order: 4 },
+      { id: "sub-11-1", name: "قرية فرنقال",  nameEn: "Village Frnqal", coords: [35.45,     7.19    ], order: 1 },
+      { id: "sub-11-4", name: "موقف الحافلات", nameEn: "Gare Routière",  coords: [35.445878, 7.144128], order: 2 },
     ],
   },
 ]
@@ -195,8 +191,6 @@ const fallbackStations: Station[] = [
   { id: "station-culture",    name: "دار الثقافة",          nameEn: "Maison de la Culture",     address: "دار الثقافة خنشلة",                   coords: [35.4382,   7.1468  ], lines: ["06"], facilities: ["bench"],                    isMainStation: false },
   { id: "station-newcity",    name: "المدينة الجديدة",      nameEn: "Cité Nouvelle / Al-Hadika", address: "المدينة الجديدة - حي الحديقة",        coords: [35.424,    7.138   ], lines: ["10"], facilities: ["shelter","bench"],           isMainStation: true  },
   { id: "station-frnqal-v",   name: "قرية فرنقال",         nameEn: "Village Frnqal",           address: "قرية فرنقال - خنشلة",                 coords: [35.45,     7.19    ], lines: ["11"], facilities: ["shelter"],                  isMainStation: true  },
-  { id: "station-frnqal-apt", name: "عمارات طريق فرنقال",  nameEn: "Résid. Route Frnqal",      address: "عمارات طريق فرنقال - خنشلة",           coords: [35.396003, 7.100503], lines: ["11"], facilities: ["bench"],                    isMainStation: false },
-  { id: "station-nov1",       name: "نزل المدينة",          nameEn: "Hôtel 1er Novembre",       address: "نزل 1 نوفمبر - خنشلة",                coords: [35.426753, 7.135503], lines: ["11"], facilities: ["bench"],                    isMainStation: false },
 ]
 
 export function useRoutes() {

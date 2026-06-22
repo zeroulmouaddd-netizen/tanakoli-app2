@@ -71,8 +71,6 @@ const urbanStations: { position: [number, number]; name: string; nameEn: string;
   { position: [35.4382,  7.1468  ], name: "دار الثقافة", nameEn: "Maison de la Culture", arabicLabel: "دار الثقافة خنشلة", lines: ["line-06"], isMain: false, category: "urban" },
   { position: [35.424,   7.138   ], name: "المدينة الجديدة", nameEn: "Cité Nouvelle / Al-Hadika", arabicLabel: "المدينة الجديدة - حي الحديقة", lines: ["line-10"], isMain: true, category: "urban" },
   { position: [35.45,    7.19    ], name: "قرية فرنقال", nameEn: "Village Frnqal", arabicLabel: "قرية فرنقال", lines: ["line-11"], isMain: true, category: "urban" },
-  { position: [35.396003, 7.100503], name: "عمارات طريق فرنقال", nameEn: "Résid. Route Frnqal", arabicLabel: "عمارات طريق فرنقال", lines: ["line-11"], isMain: false, category: "urban" },
-  { position: [35.426753, 7.135503], name: "نزل المدينة", nameEn: "Hôtel 1er Novembre", arabicLabel: "نزل 1 نوفمبر", lines: ["line-11"], isMain: false, category: "urban" },
 ]
 
 // Removed intercity stations - Urban routes only
@@ -200,8 +198,6 @@ const urbanRoutePolylines: {
     terminalTo: "موقف الحافلات",
     stops: [
       { name: "قرية فرنقال",         nameEn: "Village Frnqal",          coords: [35.45,    7.19    ], isTerminal: true  },
-      { name: "عمارات طريق فرنقال",  nameEn: "Résid. Route Frnqal",     coords: [35.396003, 7.100503], isTerminal: false },
-      { name: "نزل المدينة",          nameEn: "Hôtel 1er Novembre",      coords: [35.426753, 7.135503], isTerminal: false },
       { name: "موقف الحافلات",        nameEn: "Gare Routière",           coords: [35.445878, 7.144128], isTerminal: true  },
     ],
     waypoints: [

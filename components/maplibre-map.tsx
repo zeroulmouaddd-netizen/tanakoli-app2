@@ -52,8 +52,6 @@ const urbanStations: {
   { position: [35.4382,   7.1468  ], name: "دار الثقافة",        nameEn: "Maison de la Culture",  lines: ["line-06"],                              isMain: false },
   { position: [35.424,    7.138   ], name: "المدينة الجديدة",    nameEn: "Cité Nouvelle",         lines: ["line-10"],                              isMain: true  },
   { position: [35.45,     7.19    ], name: "قرية فرنقال",        nameEn: "Village Frnqal",        lines: ["line-11"],                              isMain: true  },
-  { position: [35.396003, 7.100503], name: "عمارات طريق فرنقال", nameEn: "Résid. Route Frnqal",   lines: ["line-11"],                              isMain: false },
-  { position: [35.426753, 7.135503], name: "نزل المدينة",        nameEn: "Hôtel 1er Novembre",    lines: ["line-11"],                              isMain: false },
 ]
 
 const urbanRoutePolylines: {
