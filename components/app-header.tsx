@@ -11,6 +11,7 @@ import { useTheme } from "@/lib/theme-context"
 import { useDriverMode } from "@/lib/driver-mode-context"
 import { useNotifications } from "@/hooks/use-notifications"
 import { NotificationsDrawer } from "@/components/notifications-drawer"
+import { TankoliLogoIcon } from "@/components/tanakoli-logo"
 
 const menuItems = [
   { icon: MapPin, label: "المحطات القريبة", href: "/stations" },
@@ -36,7 +37,15 @@ export function AppHeader() {
   }
 
   return (
-    <header className="absolute inset-x-0 top-0 z-10 flex items-center justify-between px-2 sm:px-4 py-3 sm:py-4 gap-2 sm:gap-4 overflow-visible">
+    <header
+      className="absolute inset-x-0 top-0 z-10 flex items-center justify-between px-2 sm:px-4 py-2 sm:py-3 gap-2 sm:gap-4 overflow-visible"
+      style={{
+        background: "linear-gradient(to bottom, rgba(7,20,40,0.72) 0%, rgba(7,20,40,0.0) 100%)",
+        backdropFilter: "blur(14px)",
+        WebkitBackdropFilter: "blur(14px)",
+        borderBottom: "1px solid rgba(16,185,129,0.10)",
+      }}
+    >
       <Sheet open={isOpen} onOpenChange={setIsOpen}>
         <SheetTrigger asChild>
           <Button variant="ghost" size="icon" className="h-10 w-10 sm:h-12 sm:w-12 rounded-full bg-card/80 backdrop-blur-sm flex-shrink-0">
@@ -44,12 +53,37 @@ export function AppHeader() {
           </Button>
         </SheetTrigger>
         <SheetContent side="right" className="flex w-full sm:w-[300px] lg:w-[320px] max-h-dvh flex-col border-l-0 bg-card/95 p-0 backdrop-blur-xl overflow-y-auto" style={{ zIndex: 9999 }}>
-          <SheetHeader className="shrink-0 border-b border-border bg-primary p-4 sm:p-6 text-primary-foreground">
-            <div className="flex items-center gap-2 sm:gap-3">
-              <img src="/logo.png" alt="Tanakoli Khenchela" className="h-10 sm:h-12 w-10 sm:w-12 rounded-lg sm:rounded-xl" />
+          <SheetHeader
+            className="shrink-0 border-b p-4 sm:p-6"
+            style={{
+              background: "linear-gradient(135deg, #071428 0%, #0a2018 60%, #071428 100%)",
+              borderColor: "rgba(16,185,129,0.18)",
+            }}
+          >
+            <div className="flex items-center gap-3">
+              <div
+                className="h-12 w-12 rounded-xl flex items-center justify-center flex-shrink-0"
+                style={{
+                  background: "linear-gradient(135deg, rgba(16,185,129,0.18) 0%, rgba(20,184,166,0.12) 100%)",
+                  border: "1px solid rgba(16,185,129,0.3)",
+                  boxShadow: "0 0 20px rgba(16,185,129,0.2), inset 0 1px 0 rgba(255,255,255,0.08)",
+                }}
+              >
+                <TankoliLogoIcon className="h-10 w-10" />
+              </div>
               <div className="text-right">
-                <SheetTitle className="text-base sm:text-lg font-bold text-primary-foreground">تنقلي خنشلة</SheetTitle>
-                <p className="text-xs sm:text-sm text-primary-foreground/80">النقل الحضري</p>
+                <SheetTitle
+                  className="text-base sm:text-lg font-bold"
+                  style={{
+                    background: "linear-gradient(90deg, #34D399, #ffffff 50%, #2DD4BF)",
+                    WebkitBackgroundClip: "text",
+                    WebkitTextFillColor: "transparent",
+                    backgroundClip: "text",
+                  }}
+                >
+                  تنقلي خنشلة
+                </SheetTitle>
+                <p className="text-xs text-emerald-400/70 tracking-wide">النقل الحضري</p>
               </div>
             </div>
           </SheetHeader>
@@ -192,11 +226,30 @@ export function AppHeader() {
 
       <div className="flex items-center gap-2 sm:gap-3 flex-1 justify-end overflow-visible">
         <div className="flex flex-col items-end min-w-0">
-          <h1 className="text-base sm:text-lg font-bold text-foreground truncate">تنقلي خنشلة</h1>
-          <span className="text-xs text-muted-foreground">النقل الحضري</span>
+          <h1
+            className="text-base sm:text-lg font-bold truncate"
+            style={{
+              background: "linear-gradient(90deg, #34D399, #ffffff 50%, #2DD4BF)",
+              WebkitBackgroundClip: "text",
+              WebkitTextFillColor: "transparent",
+              backgroundClip: "text",
+              filter: "drop-shadow(0 0 8px rgba(16,185,129,0.35))",
+            }}
+          >
+            تنقلي خنشلة
+          </h1>
+          <span className="text-xs text-emerald-400/70 tracking-wide">النقل الحضري</span>
         </div>
-        <div className="flex-shrink-0 h-10 sm:h-12 w-10 sm:w-12">
-          <img src="/logo.png" alt="Tanakoli Khenchela" className="h-full w-full rounded-xl object-contain" />
+        <div
+          className="flex-shrink-0 h-10 w-10 sm:h-12 sm:w-12 rounded-xl flex items-center justify-center"
+          style={{
+            background: "linear-gradient(135deg, rgba(16,185,129,0.15) 0%, rgba(20,184,166,0.1) 100%)",
+            border: "1px solid rgba(16,185,129,0.25)",
+            boxShadow: "0 0 18px rgba(16,185,129,0.18), inset 0 1px 0 rgba(255,255,255,0.08)",
+            backdropFilter: "blur(8px)",
+          }}
+        >
+          <TankoliLogoIcon className="h-8 w-8 sm:h-10 sm:w-10" />
         </div>
       </div>
 
