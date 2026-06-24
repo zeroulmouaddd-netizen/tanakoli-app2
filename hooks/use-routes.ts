@@ -5,7 +5,7 @@ import { collection, onSnapshot } from "firebase/firestore"
 import { db } from "@/lib/firebase"
 import type { BusRoute, Station, RouteCategory, SubStation } from "@/lib/types/routes"
 
-const ROUTES_CACHE_KEY = "tanoukli_routes_cache"
+const ROUTES_CACHE_KEY = "tanoukli_routes_cache_v2"
 const STATIONS_CACHE_KEY = "tanoukli_stations_cache"
 const CACHE_DURATION = 5 * 60 * 1000 // 5 minutes
 
@@ -212,46 +212,10 @@ const fallbackStations: Station[] = [
 ]
 
 export function useRoutes() {
-  const [routes, setRoutes] = useState<BusRoute[]>(() => {
-    const cached = getFromCache<BusRoute[]>(ROUTES_CACHE_KEY)
-    return cached || fallbackRoutes
-  })
-  // We always have data synchronously (fallback or cache), so never block the UI.
-  const [isLoading, setIsLoading] = useState(false)
-
-  useEffect(() => {
-    const routesRef = collection(db, "routes")
-
-    // Safety timeout: if Firebase hasn't responded in 4 seconds, stop loading
-    const timeout = setTimeout(() => setIsLoading(false), 4000)
-
-    const unsubscribe = onSnapshot(
-      routesRef,
-      (snapshot) => {
-        clearTimeout(timeout)
-        if (!snapshot.empty) {
-          const routesData = snapshot.docs.map((doc) => ({
-            id: doc.id,
-            ...doc.data()
-          })) as BusRoute[]
-          setRoutes(routesData)
-          setCache(ROUTES_CACHE_KEY, routesData)
-        }
-        setIsLoading(false)
-      },
-      () => {
-        clearTimeout(timeout)
-        setIsLoading(false)
-      }
-    )
-
-    return () => {
-      clearTimeout(timeout)
-      unsubscribe()
-    }
-  }, [])
-
-  return { routes, isLoading }
+  // Always use the local authoritative route list — the Firestore collection
+  // contains stale/incomplete data that must not override the display.
+  const [isLoading] = useState(false)
+  return { routes: fallbackRoutes, isLoading }
 }
 
 export function useStations() {
