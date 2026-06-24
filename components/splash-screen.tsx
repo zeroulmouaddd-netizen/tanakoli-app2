@@ -197,7 +197,7 @@ export function SplashScreen({ onComplete }: { onComplete: () => void }) {
                 boxShadow: "0 0 40px rgba(16,185,129,0.3), 0 0 80px rgba(14,165,233,0.15), inset 0 1px 0 rgba(255,255,255,0.12)",
               }}
             >
-              <TankoliLogoSplash className="h-40 w-40" />
+              <img src="/logo-new.png" alt="تنقلي خنشلة" className="h-40 w-40 object-cover rounded-2xl" />
             </div>
           </div>
         </motion.div>

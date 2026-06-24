@@ -62,14 +62,13 @@ export function AppHeader() {
           >
             <div className="flex items-center gap-3">
               <div
-                className="h-12 w-12 rounded-xl flex items-center justify-center flex-shrink-0"
+                className="h-12 w-12 rounded-xl flex items-center justify-center flex-shrink-0 overflow-hidden"
                 style={{
-                  background: "linear-gradient(135deg, rgba(16,185,129,0.18) 0%, rgba(20,184,166,0.12) 100%)",
                   border: "1px solid rgba(16,185,129,0.3)",
                   boxShadow: "0 0 20px rgba(16,185,129,0.2), inset 0 1px 0 rgba(255,255,255,0.08)",
                 }}
               >
-                <TankoliLogoIcon className="h-10 w-10" />
+                <img src="/logo-new.png" alt="تنقلي خنشلة" className="h-full w-full object-cover" />
               </div>
               <div className="text-right">
                 <SheetTitle
@@ -241,15 +240,13 @@ export function AppHeader() {
           <span className="text-xs text-emerald-400/70 tracking-wide">النقل الحضري</span>
         </div>
         <div
-          className="flex-shrink-0 h-10 w-10 sm:h-12 sm:w-12 rounded-xl flex items-center justify-center"
+          className="flex-shrink-0 h-10 w-10 sm:h-12 sm:w-12 rounded-xl flex items-center justify-center overflow-hidden"
           style={{
-            background: "linear-gradient(135deg, rgba(16,185,129,0.15) 0%, rgba(20,184,166,0.1) 100%)",
             border: "1px solid rgba(16,185,129,0.25)",
             boxShadow: "0 0 18px rgba(16,185,129,0.18), inset 0 1px 0 rgba(255,255,255,0.08)",
-            backdropFilter: "blur(8px)",
           }}
         >
-          <TankoliLogoIcon className="h-8 w-8 sm:h-10 sm:w-10" />
+          <img src="/logo-new.png" alt="تنقلي خنشلة" className="h-full w-full object-cover" />
         </div>
       </div>
 
