@@ -1,0 +1,17 @@
+I need you to generate the offline-screen design as a SINGLE, fully self-contained raw HTML document — not as part of the app's codebase, but as standalone code I will paste into a third-party tool (Median.co) that wraps this app into an Android/iOS APK. This tool has its own built-in "Offline Page" editor that only accepts one complete HTML file with everything inline.
+
+Take the same premium animated design we already built (dark gradient breathing background, bus icon driving along a dotted route with bounce + flip-direction animation, expanding signal ripple rings, floating particles, pulsing ground glow, gradient teal Retry button with press/spinner animation, Arabic RTL text "انقطع الاتصال" / "تحقق من اتصالك بالإنترنت لمتابعة رحلتك") and rewrite it to match this exact required structure so it works inside Median's offline page system:
+
+Required structure:
+- A single <html><head><style>...</style></head><body>...<script>...</script></body></html> document — no external files, no external fonts, no external scripts, no service worker code (not needed/not supported here).
+- Use CSS custom properties exactly like this pattern so it supports Median's light/dark theme switching:
+  :root { --background-color: white; --primary-color: #1C1C1E; }
+  [data-theme="dark"] { --background-color: #121212; --primary-color: #eee; }
+  [data-theme="light"] { --background-color: white; --primary-color: #1C1C1E; }
+- Apply var(--background-color) to html, body and var(--primary-color) to text/icon colors so it adapts automatically to the device theme, but override with our own brand teal/green palette for the illustration and accents (the brand colors should stay fixed regardless of theme, only background/text should follow the variables).
+- Keep a div.container wrapping everything, matching the existing pattern (position: relative; text-align: center).
+- The Retry button must trigger a real retry: clicking it should call window.location.reload() after the press/spinner animation, since Median's offline page needs an actual functional retry action.
+- All animations (gradient breathing, bus driving, ripples, particles, glow, button press) must be pure CSS @keyframes or inline <script> — zero external dependencies, since this file runs in total isolation.
+- Keep total file size reasonable (this is a single static page, not the full app).
+
+Output the complete, ready-to-paste HTML code in one code block, nothing else needed outside it.
