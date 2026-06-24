@@ -1,0 +1,23 @@
+Redesign the initial app-load failure screen — the screen shown specifically when the user opens the app for the very first time (cold start / first load) and there is no internet connection. This is NOT a general error screen used elsewhere; it only appears at initial app launch before any content loads.
+
+Replace the current generic "No internet connection" browser-style screen (broken signal bars icon + plain white "Retry" button) with a premium, alive, dynamic design that reflects high product quality and the app's transit/tracking identity.
+
+Make it feel ALIVE, not static or dead:
+- Animated dark gradient background (teal/green brand color blending into near-black) that subtly shifts/breathes over time (slow animated gradient, CSS only).
+- Custom animated illustration: the app's bus icon driving back and forth (or gently bouncing) along a dotted/curved route line, with a soft glowing pulse effect around it — like it's actively "searching" for a signal, not frozen.
+- Add 2-3 small floating particles or signal-wave ripples animating outward from the bus icon, looping continuously, to give a sense of motion and depth.
+- Subtle entrance animation when the screen first appears (fade + slight scale-up), not an instant static render.
+- Arabic text:
+  - Main heading: "انقطع الاتصال"
+  - Subtext: "تحقق من اتصالك بالإنترنت لمتابعة رحلتك"
+- Retry button: premium styled button — rounded, teal/brand gradient background, soft glow/shadow, with a subtle press animation (scale down slightly on tap) and a small loading spinner state when tapped (while it retries).
+- Use smooth easing (ease-in-out) on all animations — nothing jerky or robotic.
+- Keep RTL layout and the app's existing Arabic font.
+
+Scope restrictions — IMPORTANT:
+- ONLY modify the initial app-load failure screen (its component, styles, and any new assets needed).
+- Do NOT touch map logic, GPX data, live tracking, ETA calculations, station data, trip data, or any other screen/page.
+- Do NOT run `git push` or any GitHub sync — make changes locally only.
+- Do NOT add new external animation libraries (no Lottie, no Framer Motion) — use plain CSS animations/keyframes and SVG only, to keep bundle size light.
+
+After implementing, take a screenshot AND a short screen recording (if possible) or describe the animation behavior as proof, and confirm exactly which file(s) were changed.

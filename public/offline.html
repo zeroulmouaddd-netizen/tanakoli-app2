@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>انقطع الاتصال — تنقلي خنشلة</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Arabic:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --emerald: #10B981;
+      --teal:    #14B8A6;
+      --emerald-light: #34D399;
+      --dark1:   #050d18;
+      --dark2:   #071a2e;
+      --dark3:   #082018;
+    }
+
+    body {
+      font-family: 'Noto Sans Arabic', system-ui, sans-serif;
+      min-height: 100dvh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      background: var(--dark1);
+      animation: bgBreathe 9s ease-in-out infinite;
+    }
+
+    /* ── Breathing gradient background ── */
+    @keyframes bgBreathe {
+      0%   { background: radial-gradient(ellipse 110% 90% at 50% 60%, #061a30 0%, #050d18 55%, #030a12 100%); }
+      30%  { background: radial-gradient(ellipse 110% 90% at 50% 60%, #072a20 0%, #061a30 55%, #030a12 100%); }
+      60%  { background: radial-gradient(ellipse 110% 90% at 50% 60%, #061a30 0%, #082618 55%, #030a12 100%); }
+      100% { background: radial-gradient(ellipse 110% 90% at 50% 60%, #061a30 0%, #050d18 55%, #030a12 100%); }
+    }
+
+    /* ── Grid overlay ── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(16,185,129,0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(16,185,129,0.04) 1px, transparent 1px);
+      background-size: 48px 48px;
+      pointer-events: none;
+    }
+
+    /* ── Entrance wrapper ── */
+    .scene {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0;
+      animation: fadeScaleIn 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+    }
+
+    @keyframes fadeScaleIn {
+      from { opacity: 0; transform: scale(0.88) translateY(18px); }
+      to   { opacity: 1; transform: scale(1)    translateY(0);    }
+    }
+
+    /* ── Illustration area ── */
+    .illustration {
+      position: relative;
+      width: 320px;
+      height: 220px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* ── Signal ripple rings ── */
+    .ripple-wrap {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 0;
+      height: 0;
+      pointer-events: none;
+    }
+
+    .ripple {
+      position: absolute;
+      border-radius: 50%;
+      border: 1.5px solid rgba(16,185,129,0.55);
+      animation: rippleOut 2.8s ease-out infinite;
+    }
+    .ripple:nth-child(1) { animation-delay: 0s;    width: 80px;  height: 80px;  top: -40px;  left: -40px;  }
+    .ripple:nth-child(2) { animation-delay: 0.9s;  width: 130px; height: 130px; top: -65px;  left: -65px;  }
+    .ripple:nth-child(3) { animation-delay: 1.8s;  width: 190px; height: 190px; top: -95px;  left: -95px;  }
+
+    @keyframes rippleOut {
+      0%   { opacity: 0.7; transform: scale(0.35); }
+      70%  { opacity: 0.2; }
+      100% { opacity: 0;   transform: scale(1);    }
+    }
+
+    /* ── Floating particles ── */
+    .particle {
+      position: absolute;
+      border-radius: 50%;
+      background: var(--emerald);
+      animation: particleFloat linear infinite;
+    }
+    .particle:nth-child(1) { width: 4px; height: 4px; left: 48px;  top: 160px; opacity: 0.6; animation-duration: 4.5s; animation-delay: 0s;    }
+    .particle:nth-child(2) { width: 3px; height: 3px; left: 250px; top: 170px; opacity: 0.4; animation-duration: 5.8s; animation-delay: 1.4s;  }
+    .particle:nth-child(3) { width: 5px; height: 5px; left: 150px; top: 180px; opacity: 0.5; animation-duration: 3.9s; animation-delay: 0.7s;  }
+
+    @keyframes particleFloat {
+      0%   { transform: translateY(0)    scale(1);   opacity: 0.6; }
+      50%  { transform: translateY(-55px) scale(1.2); opacity: 0.9; }
+      100% { transform: translateY(-110px) scale(0.5); opacity: 0; }
+    }
+
+    /* ── Route track ── */
+    .route-track {
+      position: absolute;
+      bottom: 44px;
+      left: 20px;
+      right: 20px;
+      height: 2px;
+    }
+
+    /* ── Bus wrapper ── */
+    .bus-wrap {
+      position: absolute;
+      bottom: 38px;
+      animation: busDrive 3.6s ease-in-out infinite alternate;
+      filter: drop-shadow(0 0 12px rgba(16,185,129,0.55));
+    }
+
+    @keyframes busDrive {
+      0%   { left: 30px;  transform: translateY(0px)    scaleX(1); }
+      45%  { left: 30px;  transform: translateY(-6px)   scaleX(1); }
+      50%  { left: 185px; transform: translateY(-6px)   scaleX(1); }
+      95%  { left: 185px; transform: translateY(-6px)   scaleX(-1); }
+      100% { left: 30px;  transform: translateY(0px)    scaleX(-1); }
+    }
+
+    /* ── Glow halo under bus ── */
+    .bus-glow {
+      position: absolute;
+      bottom: 33px;
+      left: 0;
+      right: 0;
+      height: 18px;
+      background: radial-gradient(ellipse 60% 100% at 50% 100%, rgba(16,185,129,0.4) 0%, transparent 80%);
+      filter: blur(6px);
+      animation: glowPulse 1.8s ease-in-out infinite;
+    }
+
+    @keyframes glowPulse {
+      0%, 100% { opacity: 0.5; }
+      50%       { opacity: 1;   }
+    }
+
+    /* ── Text block ── */
+    .text-block {
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      padding: 0 28px;
+      margin-top: -4px;
+    }
+
+    .heading {
+      font-size: 1.9rem;
+      font-weight: 700;
+      line-height: 1.2;
+      background: linear-gradient(90deg, #34D399, #fff 48%, #2DD4BF);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      filter: drop-shadow(0 0 14px rgba(16,185,129,0.4));
+      animation: fadeScaleIn 0.7s 0.15s cubic-bezier(0.22,1,0.36,1) both;
+    }
+
+    .subtext {
+      font-size: 0.95rem;
+      font-weight: 400;
+      color: rgba(255,255,255,0.52);
+      line-height: 1.65;
+      max-width: 280px;
+      animation: fadeScaleIn 0.7s 0.25s cubic-bezier(0.22,1,0.36,1) both;
+    }
+
+    /* ── Retry button ── */
+    .retry-btn {
+      margin-top: 28px;
+      position: relative;
+      padding: 14px 44px;
+      border: none;
+      border-radius: 999px;
+      background: linear-gradient(135deg, #10B981 0%, #14B8A6 100%);
+      color: #fff;
+      font-family: 'Noto Sans Arabic', sans-serif;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      letter-spacing: 0.01em;
+      box-shadow: 0 0 24px rgba(16,185,129,0.45), 0 4px 16px rgba(0,0,0,0.35);
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+      animation: fadeScaleIn 0.7s 0.35s cubic-bezier(0.22,1,0.36,1) both, btnGlow 2.6s ease-in-out 1s infinite;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    @keyframes btnGlow {
+      0%, 100% { box-shadow: 0 0 18px rgba(16,185,129,0.4),  0 4px 16px rgba(0,0,0,0.35); }
+      50%       { box-shadow: 0 0 36px rgba(16,185,129,0.75), 0 4px 20px rgba(0,0,0,0.4);  }
+    }
+
+    .retry-btn:active {
+      transform: scale(0.94);
+      box-shadow: 0 0 12px rgba(16,185,129,0.3), 0 2px 8px rgba(0,0,0,0.3);
+    }
+
+    .retry-btn.loading {
+      pointer-events: none;
+      opacity: 0.8;
+    }
+
+    /* Spinner inside button */
+    .spinner {
+      display: none;
+      width: 18px;
+      height: 18px;
+      border: 2.5px solid rgba(255,255,255,0.35);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+    }
+
+    .retry-btn.loading .spinner { display: block; }
+    .retry-btn.loading .btn-label { opacity: 0.8; }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* ── Brand footer ── */
+    .brand {
+      margin-top: 40px;
+      font-size: 0.72rem;
+      color: rgba(255,255,255,0.2);
+      letter-spacing: 0.08em;
+      animation: fadeScaleIn 0.7s 0.5s cubic-bezier(0.22,1,0.36,1) both;
+    }
+  </style>
+</head>
+<body>
+  <div class="scene">
+
+    <!-- Illustration -->
+    <div class="illustration">
+
+      <!-- Floating particles -->
+      <div class="particle"></div>
+      <div class="particle"></div>
+      <div class="particle"></div>
+
+      <!-- Ripple rings (centred on bus route) -->
+      <div class="ripple-wrap" style="top:55%;left:50%;">
+        <div class="ripple"></div>
+        <div class="ripple"></div>
+        <div class="ripple"></div>
+      </div>
+
+      <!-- Ground glow -->
+      <div class="bus-glow"></div>
+
+      <!-- Dotted route track (SVG) -->
+      <div class="route-track">
+        <svg width="100%" height="6" viewBox="0 0 280 6" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+          <line x1="0" y1="3" x2="280" y2="3"
+            stroke="rgba(16,185,129,0.35)" stroke-width="2"
+            stroke-dasharray="6,5" stroke-linecap="round"/>
+        </svg>
+      </div>
+
+      <!-- Animated bus -->
+      <div class="bus-wrap">
+        <svg width="90" height="52" viewBox="0 0 90 52" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <linearGradient id="bg" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stop-color="#34D399"/>
+              <stop offset="100%" stop-color="#0D9488"/>
+            </linearGradient>
+            <filter id="hl" x="-200%" y="-200%" width="500%" height="500%">
+              <feGaussianBlur stdDeviation="2.5" result="b"/>
+              <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+            </filter>
+          </defs>
+          <!-- Chassis -->
+          <rect x="4" y="20" width="82" height="24" rx="5" fill="url(#bg)"/>
+          <!-- Cabin -->
+          <path d="M 10,20 L 14,6 L 62,6 L 70,13 L 74,20 Z" fill="#2DD4A0"/>
+          <!-- Windshield -->
+          <path d="M 62,6 L 71,12 L 74,20 L 63,20 Z" fill="rgba(190,255,240,0.22)" stroke="rgba(255,255,255,0.3)" stroke-width="0.5"/>
+          <!-- Windows -->
+          <rect x="14" y="9"  width="14" height="9" rx="2" fill="rgba(190,255,240,0.18)" stroke="rgba(255,255,255,0.2)" stroke-width="0.5"/>
+          <rect x="32" y="9"  width="14" height="9" rx="2" fill="rgba(190,255,240,0.18)" stroke="rgba(255,255,255,0.2)" stroke-width="0.5"/>
+          <rect x="50" y="9"  width="10" height="9" rx="2" fill="rgba(190,255,240,0.18)" stroke="rgba(255,255,255,0.2)" stroke-width="0.5"/>
+          <!-- Stripe -->
+          <line x1="4" y1="30" x2="86" y2="30" stroke="rgba(255,255,255,0.1)" stroke-width="0.7"/>
+          <!-- Rear wheel -->
+          <circle cx="22" cy="44" r="8"   fill="#0B1E2E"/>
+          <circle cx="22" cy="44" r="5.5" fill="#162D40"/>
+          <circle cx="22" cy="44" r="2.5" fill="#10B981"/>
+          <!-- Front wheel -->
+          <circle cx="68" cy="44" r="8"   fill="#0B1E2E"/>
+          <circle cx="68" cy="44" r="5.5" fill="#162D40"/>
+          <circle cx="68" cy="44" r="2.5" fill="#10B981"/>
+          <!-- Headlight -->
+          <g filter="url(#hl)">
+            <ellipse cx="87" cy="28" rx="3" ry="4" fill="#FDE68A" opacity="0.95"/>
+            <ellipse cx="89" cy="28" rx="4.5" ry="3.5" fill="#FCD34D" opacity="0.2"/>
+          </g>
+        </svg>
+      </div>
+
+    </div>
+
+    <!-- Text -->
+    <div class="text-block">
+      <h1 class="heading">انقطع الاتصال</h1>
+      <p class="subtext">تحقق من اتصالك بالإنترنت لمتابعة رحلتك</p>
+    </div>
+
+    <!-- Retry button -->
+    <button class="retry-btn" id="retryBtn" onclick="handleRetry()">
+      <div class="spinner" id="spinner"></div>
+      <span class="btn-label">إعادة المحاولة</span>
+    </button>
+
+    <!-- Brand -->
+    <p class="brand">ETUS Khenchela · تنقلي خنشلة</p>
+
+  </div>
+
+  <script>
+    function handleRetry() {
+      var btn = document.getElementById('retryBtn');
+      btn.classList.add('loading');
+      setTimeout(function() {
+        window.location.reload();
+      }, 900);
+    }
+  </script>
+</body>
+</html>
