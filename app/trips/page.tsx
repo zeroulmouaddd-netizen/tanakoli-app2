@@ -368,7 +368,7 @@ export default function TripsPage() {
                                     size="sm"
                                     onClick={(e) => {
                                       e.stopPropagation()
-                                      handleTrackBus(route.lineNumber, route.name)
+                                      handleTrackBus("line-" + route.lineNumber, route.name)
                                     }}
                                     className="h-9 gap-1.5 rounded-full bg-primary px-4 text-xs font-semibold text-primary-foreground shadow-md hover:bg-primary/90"
                                   >

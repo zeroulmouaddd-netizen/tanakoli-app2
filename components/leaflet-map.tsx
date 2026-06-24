@@ -894,6 +894,8 @@ export default function LeafletMap({ trackingLineId, isFullscreen = false }: Lea
   // Route viewing state
   const [viewMode, setViewMode] = useState<RouteViewMode>("all")
   const [selectedRoute, setSelectedRoute] = useState<SelectedRoute>(null)
+  // Ref mirror of selectedRoute so async polyline draws can read the current selection
+  const selectedRouteRef = useRef<SelectedRoute>(null)
   
   // Get sub-stations for selected route
 const { subStations } = useRouteSubStations(selectedRoute)
@@ -1038,6 +1040,11 @@ const { subStations } = useRouteSubStations(selectedRoute)
       handleRouteSelect(trackingLineId)
     }
   }, [trackingLineId, handleRouteSelect])
+
+  // Keep selectedRouteRef in sync so async OSRM polyline draws can apply focus immediately
+  useEffect(() => {
+    selectedRouteRef.current = selectedRoute
+  }, [selectedRoute])
 
   // Switch tile layer based on theme (setUrl reuses the existing layer — no re-create)
   useEffect(() => {
@@ -1309,6 +1316,14 @@ const { subStations } = useRouteSubStations(selectedRoute)
       `)
       
       routePolylinesRef.current.set(route.id, polyline)
+      // Re-apply focus mode immediately if a route is already selected (handles async OSRM timing)
+      const sel = selectedRouteRef.current
+      if (sel) {
+        const isFocused = route.id === sel
+        polyline.setStyle(isFocused ? { weight: 6, opacity: 1 } : { weight: 2, opacity: 0.08 })
+        glowPolyline.setStyle(isFocused ? { weight: 22, opacity: 0.32 } : { weight: 10, opacity: 0.03 })
+        if (isFocused) polyline.bringToFront()
+      }
       // Store resolved coords for the rAF simulation loop
       routeCoordsRef.current.set(route.id, routeCoords)
     })
@@ -1361,6 +1376,14 @@ const { subStations } = useRouteSubStations(selectedRoute)
           `)
 
         routePolylinesRef.current.set(trackKey, polyline)
+        // Re-apply focus mode immediately if line-11 is already selected (async timing fix)
+        const sel11 = selectedRouteRef.current
+        if (sel11) {
+          const isFocused = sel11 === "line-11" && (trackKey === "line-11-outbound" || trackKey === "line-11-return")
+          polyline.setStyle(isFocused ? { weight: 6, opacity: 1 } : { weight: 2, opacity: 0.08 })
+          glowPoly.setStyle(isFocused ? { weight: 22, opacity: 0.32 } : { weight: 10, opacity: 0.03 })
+          if (isFocused) polyline.bringToFront()
+        }
         routeCoordsRef.current.set(trackKey, coords)
 
         // ── Stop markers ─────────────────────────────────────────────────────
@@ -1514,6 +1537,14 @@ const { subStations } = useRouteSubStations(selectedRoute)
           `)
 
         routePolylinesRef.current.set(trackKey, polyline)
+        // Re-apply focus mode immediately if line-05 is already selected (async timing fix)
+        const sel05 = selectedRouteRef.current
+        if (sel05) {
+          const isFocused = sel05 === "line-05" && (trackKey === "line-05-outbound" || trackKey === "line-05-return")
+          polyline.setStyle(isFocused ? { weight: 6, opacity: 1 } : { weight: 2, opacity: 0.08 })
+          glowPoly.setStyle(isFocused ? { weight: 22, opacity: 0.32 } : { weight: 10, opacity: 0.03 })
+          if (isFocused) polyline.bringToFront()
+        }
         routeCoordsRef.current.set(trackKey, coords)
 
         waypoints.forEach((stop, idx) => {

@@ -1,0 +1,20 @@
+Two critical issues remain unresolved. Please fix them properly this time, with actual verification before reporting back.
+Issue 1 — "تتبع" still doesn't isolate the route or zoom to the bus:
+I tested it again and tapping "تتبع" on any trip card does NOT:
+Filter/fade out the other routes on the map
+Zoom/pan the map to focus on the selected route's bus
+Please re-investigate this from scratch:
+Open leaflet-map.tsx and check exactly how route IDs are stored for the polylines (e.g. urbanRoutePolylines keyed by "line-01", "line-02", etc. — confirm the actual current key format, don't assume from past notes).
+Open the Trips page and trace exactly what value gets passed when "تتبع" is tapped — log it if needed — and confirm it matches the exact key format the map expects.
+Confirm the map actually has a "fit bounds to selected route" and "fade unselected routes" behavior implemented at all — if it doesn't exist, implement it; if it exists but isn't being triggered, fix the wiring.
+Test this yourself end-to-end (tap "تتبع" on at least 2 different routes) and provide a screenshot showing the route isolated and the map zoomed to it — not just a text description.
+Issue 2 — Route data (station counts, names) doesn't match the real data:
+I have 7 real lines, each with its own distinct, real number of stations: خط 01 (طريق العيزار), خط 02 (موسى رداح), خط 04 (انسيفة), خط 05 (الحامة), خط 06 (المحمل), خط 10 (المدينة الجديدة), خط 11 (فرنقال).
+The Stations/Trips pages are currently showing data that doesn't reflect this — e.g., showing the same generic station count (like "4 محطات") for multiple different routes, which is incorrect since each route has a different real number of stops.
+Find the authoritative real data source for station counts per route (route definitions / GPX files / hooks/use-routes.ts).
+Cross-check each of the 7 routes individually and confirm the actual real station count for EACH one is being displayed — not a repeated/default value.
+If the underlying data itself is wrong/incomplete at the source, flag that to me specifically (tell me which route's data is missing/wrong) rather than silently using a placeholder.
+General reminders:
+Do NOT touch or refactor anything unrelated to these two issues.
+Do NOT run git push or push/sync anything to GitHub.
+Provide real screenshots as proof for both fixes before claiming they're done — text descriptions alone are not acceptable proof.
