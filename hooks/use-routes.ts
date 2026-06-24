@@ -200,14 +200,19 @@ export function useRoutes() {
     const cached = getFromCache<BusRoute[]>(ROUTES_CACHE_KEY)
     return cached || fallbackRoutes
   })
-  const [isLoading, setIsLoading] = useState(true)
+  // We always have data synchronously (fallback or cache), so never block the UI.
+  const [isLoading, setIsLoading] = useState(false)
 
   useEffect(() => {
     const routesRef = collection(db, "routes")
-    
+
+    // Safety timeout: if Firebase hasn't responded in 4 seconds, stop loading
+    const timeout = setTimeout(() => setIsLoading(false), 4000)
+
     const unsubscribe = onSnapshot(
       routesRef,
       (snapshot) => {
+        clearTimeout(timeout)
         if (!snapshot.empty) {
           const routesData = snapshot.docs.map((doc) => ({
             id: doc.id,
@@ -219,12 +224,15 @@ export function useRoutes() {
         setIsLoading(false)
       },
       () => {
-        // On error, use fallback/cached data
+        clearTimeout(timeout)
         setIsLoading(false)
       }
     )
 
-    return () => unsubscribe()
+    return () => {
+      clearTimeout(timeout)
+      unsubscribe()
+    }
   }, [])
 
   return { routes, isLoading }
@@ -235,14 +243,18 @@ export function useStations() {
     const cached = getFromCache<Station[]>(STATIONS_CACHE_KEY)
     return cached || fallbackStations
   })
-  const [isLoading, setIsLoading] = useState(true)
+  // Always have data synchronously (fallback or cache), so never block the UI.
+  const [isLoading, setIsLoading] = useState(false)
 
   useEffect(() => {
     const stationsRef = collection(db, "stations")
-    
+
+    const timeout = setTimeout(() => setIsLoading(false), 4000)
+
     const unsubscribe = onSnapshot(
       stationsRef,
       (snapshot) => {
+        clearTimeout(timeout)
         if (!snapshot.empty) {
           const stationsData = snapshot.docs.map((doc) => ({
             id: doc.id,
@@ -254,11 +266,15 @@ export function useStations() {
         setIsLoading(false)
       },
       () => {
+        clearTimeout(timeout)
         setIsLoading(false)
       }
     )
 
-    return () => unsubscribe()
+    return () => {
+      clearTimeout(timeout)
+      unsubscribe()
+    }
   }, [])
 
   return { stations, isLoading }

@@ -1,0 +1,17 @@
+I'm starting fresh on this. Please implement the following features cleanly, from scratch, paying close attention to code quality and avoiding any loading/async issues that could freeze the app.
+1. Stations Page (المحطات):
+Each route card must display REAL data pulled from our actual route source (route definitions / hooks/use-routes.ts / GPX files) — not placeholders. This includes: route name, real number of stations, real fare, real operating hours (start-end), and the real frequency interval.
+All routes that exist on the map must appear here — all 7 lines.
+2. Trips Page (الرحلات):
+Each trip card must pull the same real route data (name, sub-stations, fare, operating hours, frequency).
+All 7 routes must be shown on this page, not a subset.
+Each trip card's "تتبع" (Track) button must navigate to the map and correctly select/isolate that specific route + its bus — reuse whatever route-selection mechanism already exists elsewhere in the app (e.g. from the Stations page), don't build a separate one.
+The "القادمة" (next arrival) field must show a real, dynamically-calculated ETA: find the next scheduled time (from the route's generated schedule, based on operating hours + frequency) that comes after the current real time, and show the difference in minutes. This must use the correct local timezone for Algeria (UTC+1), not server/UTC time directly — use a reliable method like Intl.DateTimeFormat with timeZone: "Africa/Algiers" to get the current local time before comparing.
+If the route has no more departures for the day, handle this gracefully (e.g. show first departure time for tomorrow) instead of breaking or showing a negative/huge number.
+3. Code quality requirements:
+Keep this implementation simple, readable, and well-isolated — avoid unnecessary complexity, avoid duplicating logic across files (centralize schedule/ETA calculation in one shared utility function used by both pages).
+Avoid any blocking/infinite loading states: any data fetch (Firestore, GPS, etc.) involved in rendering these pages must have proper error handling and a timeout fallback, so the page never gets stuck on a loading spinner indefinitely.
+Test that the app boots normally and reaches the home page without hanging, before considering this done.
+4. General reminders:
+Do NOT run git push or push/sync anything to GitHub. Local changes and checkpoint only.
+After implementing, confirm the app compiles successfully (HTTP 200), boots normally without getting stuck on loading, and take screenshots showing: (a) the Stations page with real data for all 7 routes, (b) the Trips page with real data + working tracking + realistic ETAs for all 7 routes.

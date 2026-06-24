@@ -15,60 +15,7 @@ import { PageTransition } from "@/components/page-transition"
 import { Button } from "@/components/ui/button"
 import { useTracking } from "@/lib/tracking-context"
 import { useRoutesByCategory } from "@/hooks/use-routes"
-
-// Helper function to generate schedule based on working hours and frequency
-function generateSchedule(workingHours: { start: string; end: string }, frequency: number) {
-  const schedule: { time: string; status: "departed" | "current" | "upcoming" }[] = []
-  const now = new Date()
-  const currentHour = now.getHours()
-  const currentMinute = now.getMinutes()
-  
-  const [startHour] = workingHours.start.split(":").map(Number)
-  const [endHour] = workingHours.end.split(":").map(Number)
-  
-  let foundCurrent = false
-  for (let hour = startHour; hour <= endHour; hour++) {
-    for (let minute = 0; minute < 60; minute += frequency) {
-      const timeString = `${hour.toString().padStart(2, "0")}:${minute.toString().padStart(2, "0")}`
-      
-      let status: "departed" | "current" | "upcoming"
-      if (hour < currentHour || (hour === currentHour && minute < currentMinute)) {
-        status = "departed"
-      } else if (!foundCurrent) {
-        status = "current"
-        foundCurrent = true
-      } else {
-        status = "upcoming"
-      }
-      
-      schedule.push({ time: timeString, status })
-      
-      // Limit to 5 visible times
-      if (schedule.length >= 5) break
-    }
-    if (schedule.length >= 5) break
-  }
-  
-  return schedule
-}
-
-// Helper to calculate next arrival
-function calculateNextArrival(workingHours: { start: string; end: string }, frequency: number): string {
-  const now = new Date()
-  const currentMinutes = now.getHours() * 60 + now.getMinutes()
-  
-  const [startHour, startMin] = workingHours.start.split(":").map(Number)
-  const startMinutes = startHour * 60 + startMin
-  
-  if (currentMinutes < startMinutes) {
-    return `${startMinutes - currentMinutes} دقيقة`
-  }
-  
-  const minutesSinceStart = currentMinutes - startMinutes
-  const nextBusIn = frequency - (minutesSinceStart % frequency)
-  
-  return `${nextBusIn} دقائق`
-}
+import { calculateNextArrival, generateSchedule } from "@/lib/schedule-utils"
 
 // Animation variants for tab content
 const tabContentVariants = {
