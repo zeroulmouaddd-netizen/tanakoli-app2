@@ -1,0 +1,19 @@
+There's a UI issue: long-pressing on icons/buttons in the app (especially the bottom navigation bar icons and other clickable icons) triggers the native Android/browser long-press context menu, showing a gray tooltip box with the link URL (e.g. "https://...app/stations").
+
+This happens because these elements are likely implemented as anchor tags (<a href="...">) instead of proper buttons/navigation handlers. Please fix this by:
+
+1. Find all icons/buttons across the app (bottom nav bar, header icons, station/trip list items, etc.) that are currently rendered as <a href="..."> elements used purely for in-app navigation (not real external links).
+2. Convert them to use <button> elements or <div>/<Link> components with onClick/router navigation handlers instead of native href navigation, so no native browser link-preview/context-menu behavior is triggered.
+3. As an additional global safety net, add this CSS to prevent long-press context menus and text-selection callouts app-wide on interactive elements:
+   * { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
+   button, a, [role="button"] { -webkit-touch-callout: none; }
+4. Add a global JS listener to suppress the native context menu specifically on touch-and-hold for interactive UI elements:
+   document.addEventListener('contextmenu', function(e) { e.preventDefault(); });
+
+Scope restrictions — IMPORTANT:
+- ONLY modify how these icons/buttons are implemented (anchor → button/click handler) and add the CSS/JS above. Do NOT change their visual appearance, layout, icons, or navigation destinations.
+- Do NOT touch map logic, GPX data, live tracking, ETA calculations, station data, or trip data.
+- Do NOT run `git push` or any GitHub sync — make changes locally only.
+- Do NOT remove legitimate text-selection ability from areas where the user might need to copy text (if any exist), only from icons/buttons/nav elements.
+
+After implementing, confirm exactly which files were changed, and describe how you tested that long-press no longer shows the context menu/link tooltip on the affected icons.

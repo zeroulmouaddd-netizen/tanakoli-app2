@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { Bell, Menu, Moon, Sun, MapPin, Clock, Settings, HelpCircle, Info, ChevronLeft, ScanLine, Loader2, AlertCircle, X } from "lucide-react"
-import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { motion, AnimatePresence } from "framer-motion"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
@@ -22,6 +22,7 @@ const menuItems = [
 ]
 
 export function AppHeader() {
+  const router = useRouter()
   const [isOpen, setIsOpen] = useState(false)
   const [notifOpen, setNotifOpen] = useState(false)
   const { theme, toggleTheme, isDark } = useTheme()
@@ -138,10 +139,10 @@ export function AppHeader() {
                 const color = iconColors[index]
                 
                 return (
-                  <Link
+                  <button
                     key={item.label}
-                    href={item.href}
-                    onClick={() => setIsOpen(false)}
+                    onClick={() => { router.push(item.href); setIsOpen(false); }}
+                    className="w-full text-right bg-transparent border-0 p-0"
                   >
                     <motion.div
                       className={`group flex items-center gap-2 sm:gap-3 rounded-lg sm:rounded-xl p-2 sm:p-3 text-foreground transition-all hover:bg-muted/50 ${color.glow}`}
@@ -162,7 +163,7 @@ export function AppHeader() {
                       <span className="flex-1 font-medium text-sm sm:text-base">{item.label}</span>
                       <ChevronLeft className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                     </motion.div>
-                  </Link>
+                  </button>
                 )
               })}
             </nav>

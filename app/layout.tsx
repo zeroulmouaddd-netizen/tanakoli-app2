@@ -100,6 +100,13 @@ export default function RootLayout({
             `
           }}
         />
+        <Script
+          id="no-contextmenu"
+          strategy="afterInteractive"
+          dangerouslySetInnerHTML={{
+            __html: `document.addEventListener('contextmenu', function(e) { e.preventDefault(); });`
+          }}
+        />
       </head>
       <body suppressHydrationWarning className={`${notoArabic.variable} font-sans antialiased theme-transition`}>
         <TouchInit />

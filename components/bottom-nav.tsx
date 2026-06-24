@@ -3,8 +3,7 @@
 import { useState, useEffect } from "react"
 import { createPortal } from "react-dom"
 import { Home, MapPin, Clock, User, QrCode, X, Wallet, ScanLine } from "lucide-react"
-import Link from "next/link"
-import { usePathname } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import { motion, AnimatePresence } from "framer-motion"
 import dynamic from "next/dynamic"
 import { useUserCache } from "@/hooks/use-user-cache"
@@ -49,6 +48,7 @@ const navItems = [
 
 export function BottomNav() {
   const pathname = usePathname()
+  const router = useRouter()
   const [showModal, setShowModal] = useState(false)
   const [hasMounted, setHasMounted] = useState(false)
   const [isPulsing, setIsPulsing] = useState(false)
@@ -119,7 +119,7 @@ export function BottomNav() {
 
               // Regular nav items
               return (
-                <Link key={item.label} href={item.href} onTouchStart={() => {}} className="flex flex-1 items-center justify-center">
+                <button key={item.label} onClick={() => router.push(item.href)} onTouchStart={() => {}} className="flex flex-1 items-center justify-center bg-transparent border-0 p-0">
                   <motion.div
                     className="relative flex flex-col items-center gap-0.5 sm:gap-1 px-2 sm:px-3 py-1.5 sm:py-2"
                     whileTap={{ scale: 0.90 }}
@@ -173,7 +173,7 @@ export function BottomNav() {
                       }}
                     />
                   </motion.div>
-                </Link>
+                </button>
               )
             })}
           </div>

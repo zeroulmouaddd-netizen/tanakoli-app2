@@ -1,6 +1,9 @@
 @import 'tailwindcss';
 @import 'tw-animate-css';
 
+* { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
+button, a, [role="button"] { -webkit-touch-callout: none; }
+
 @custom-variant dark (&:is(.dark *));
 
 :root {
