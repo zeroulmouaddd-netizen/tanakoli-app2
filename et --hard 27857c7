@@ -1,0 +1,44 @@
+[33mcommit 1e94c761a93cb4b4ef7a6868f58f4e6e3d6a0ce1[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m, [m[1;31mgitsafe-backup/main[m[33m)[m
+Author: Replit Agent <agent@replit.com>
+Date:   Sat Jun 27 03:38:10 2026 +0000
+
+    Restore instantaneous map rendering and real-time GPS tracking
+    
+    Remove GPS debouncing and modify the service worker to prevent interference with external map tile requests.
+    
+    Replit-Commit-Author: Agent
+    Replit-Commit-Session-Id: 77ac93e6-413a-4322-9d65-09497a2c7d62
+    Replit-Commit-Checkpoint-Type: full_checkpoint
+    Replit-Commit-Event-Id: aea64565-6061-47c0-9608-17e7222e5b20
+    Replit-Commit-Screenshot-Url: https://storage.googleapis.com/screenshot-production-us-central1/8a522775-99ec-4756-8eaa-bc0655619938/77ac93e6-413a-4322-9d65-09497a2c7d62/re0bz1S
+    Replit-Helium-Checkpoint-Created: true
+
+[33mcommit c01ad1d2ef0f9bc74962318b7677fbdb8bc78bd1[m
+Author: Replit Agent <agent@replit.com>
+Date:   Sat Jun 27 03:09:54 2026 +0000
+
+    Improve application responsiveness and performance under weak network conditions
+    
+    Apply aggressive service worker caching, preconnect hints, debounced network requests, and component optimizations to enhance offline performance and UI responsiveness.
+    
+    Replit-Commit-Author: Agent
+    Replit-Commit-Session-Id: 77ac93e6-413a-4322-9d65-09497a2c7d62
+    Replit-Commit-Checkpoint-Type: full_checkpoint
+    Replit-Commit-Event-Id: 363e08cd-788b-432e-88b4-e1e5d957f810
+    Replit-Commit-Screenshot-Url: https://storage.googleapis.com/screenshot-production-us-central1/8a522775-99ec-4756-8eaa-bc0655619938/77ac93e6-413a-4322-9d65-09497a2c7d62/re0bz1S
+    Replit-Helium-Checkpoint-Created: true
+
+[33mcommit 27857c7fff53a1312584002878825490a8ba196e[m[33m ([m[1;34mgrafted[m[33m)[m
+Author: Replit Agent <agent@replit.com>
+Date:   Wed Jun 24 10:38:04 2026 +0000
+
+    Improve navigation by preventing unwanted long-press menus
+    
+    Update navigation components and global styles to use buttons and disable context menus, resolving an issue with long-press actions triggering unwanted UI elements.
+    
+    Replit-Commit-Author: Agent
+    Replit-Commit-Session-Id: 87d0687c-5cf2-4cc2-81b1-515819f4d696
+    Replit-Commit-Checkpoint-Type: full_checkpoint
+    Replit-Commit-Event-Id: fa7449b6-8a9d-4c9c-9ec9-ff9620f8a64e
+    Replit-Commit-Screenshot-Url: https://storage.googleapis.com/screenshot-production-us-central1/6276a5b3-4fce-4cf3-8f45-ebd490f960e1/87d0687c-5cf2-4cc2-81b1-515819f4d696/PqclvFs
+    Replit-Helium-Checkpoint-Created: true
