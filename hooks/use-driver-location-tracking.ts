@@ -98,7 +98,7 @@ export function useDriverLocationTracking(driverPhone: string | null, isDriverMo
       },
       {
         enableHighAccuracy: true,
-        timeout: 10000,
+        timeout: 5000,
         maximumAge: 0,
       }
     )

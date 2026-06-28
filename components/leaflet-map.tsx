@@ -668,6 +668,23 @@ if (typeof document !== "undefined") {
         will-change: transform;
         filter: drop-shadow(0 0 5px currentColor);
       }
+      /* GPU-accelerated panning/zooming — forces composited layer for tile pane */
+      .leaflet-map-pane,
+      .leaflet-tile-pane,
+      .leaflet-overlay-pane,
+      .leaflet-marker-pane,
+      .leaflet-shadow-pane,
+      .leaflet-popup-pane {
+        will-change: transform;
+        transform: translate3d(0,0,0);
+        backface-visibility: hidden;
+        -webkit-backface-visibility: hidden;
+      }
+      .leaflet-tile {
+        will-change: transform;
+        backface-visibility: hidden;
+        -webkit-backface-visibility: hidden;
+      }
     `
     document.head.appendChild(style)
   }
@@ -1155,6 +1172,9 @@ const { subStations } = useRouteSubStations(selectedRoute)
       minZoom: 10,
       maxZoom: 18,
       preferCanvas: false, // SVG mode required for CSS stroke-dashoffset animation
+      zoomAnimation: true,
+      fadeAnimation: true,
+      markerZoomAnimation: true,
     })
 
     mapRef.current = map
@@ -2046,7 +2066,7 @@ const marker = L.marker(subStation.coords, {
 
   return (
     <div className="relative h-full w-full">
-      <div ref={containerRef} className="h-full w-full" style={{ background: isDark ? "#1a2235" : "#e8e0d8", minHeight: "200px" }} />
+      <div ref={containerRef} className="h-full w-full" style={{ background: isDark ? "#1a2235" : "#e8e0d8", minHeight: "200px", willChange: "transform", transform: "translate3d(0,0,0)" }} />
 
       {/* Tile loading indicator — shown until map fires its first "load" event */}
       {!tilesLoaded && (
