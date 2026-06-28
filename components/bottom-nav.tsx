@@ -55,6 +55,9 @@ export function BottomNav() {
 
   useEffect(() => {
     setHasMounted(true)
+    // Prefetch all main routes so transitions are instant
+    const routes = ["/", "/stations", "/trips", "/account"]
+    routes.forEach((route) => router.prefetch(route))
   }, [])
 
   const handleOpenModal = () => {

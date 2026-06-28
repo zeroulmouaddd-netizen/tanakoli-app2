@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Bell, Menu, Moon, Sun, MapPin, Clock, Settings, HelpCircle, Info, ChevronLeft, ScanLine, Loader2, AlertCircle, X } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { motion, AnimatePresence } from "framer-motion"
@@ -25,6 +25,13 @@ export function AppHeader() {
   const router = useRouter()
   const [isOpen, setIsOpen] = useState(false)
   const [notifOpen, setNotifOpen] = useState(false)
+
+  useEffect(() => {
+    // Prefetch all sidebar-reachable routes on mount
+    const routes = ["/stations", "/trips", "/settings", "/help", "/about"]
+    routes.forEach((route) => router.prefetch(route))
+  }, [])
+
   const { theme, toggleTheme, isDark } = useTheme()
   const { enterDriverMode, isAuthorizedDriver, isCheckingRole, roleError, clearRoleError } = useDriverMode()
   const { unreadCount } = useNotifications()
