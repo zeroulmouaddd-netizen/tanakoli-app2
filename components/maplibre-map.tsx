@@ -757,7 +757,8 @@ function MapLibreRenderer({ trackingLineId, isFullscreen }: MapProps) {
             const busInner = el.firstElementChild as HTMLElement | null
             const pos = getSimPos(coords, initialProgress, cache)
             // Rotate only the inner SVG wrapper — MapLibre owns transform on the outer el
-            if (busInner) busInner.style.transform = `rotate(${pos.heading}deg)`
+            // Subtract map bearing so the icon stays aligned with the route regardless of viewport rotation
+            if (busInner) busInner.style.transform = `rotate(${pos.heading - map.getBearing()}deg)`
             const marker = new maplibregl.Marker({ element: el, anchor: "center" })
               .setLngLat([pos.lng, pos.lat])
               .addTo(map)
@@ -780,7 +781,7 @@ function MapLibreRenderer({ trackingLineId, isFullscreen }: MapProps) {
               const pos = getSimPos(bd.coords, bd.progress, bd.cache)
               simEntry.marker.setLngLat([pos.lng, pos.lat])
               const inner = simEntry.marker.getElement()?.firstElementChild as HTMLElement | null
-              if (inner) inner.style.transform = `rotate(${pos.heading}deg)`
+              if (inner) inner.style.transform = `rotate(${pos.heading - map.getBearing()}deg)`
             })
           } catch { /* marker removed mid-frame — next frame will be fine */ }
           busRafRef.current = requestAnimationFrame(animBus)
