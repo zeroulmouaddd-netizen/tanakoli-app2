@@ -2,81 +2,85 @@
 
 import { useState } from "react"
 import { AdminLayout } from "@/components/admin-layout"
-import { AdminDriverMap } from "@/components/admin-driver-map"
+import { AdminKPICards } from "@/components/admin-kpi-cards"
+import { AdminRevenueChart } from "@/components/admin-revenue-chart"
+import { AdminActivityFeed } from "@/components/admin-activity-feed"
+import { AdminFleetTable } from "@/components/admin-fleet-table"
+import { AdminLiveMap } from "@/components/admin-live-map"
+import { AdminFinancePanel } from "@/components/admin-finance-panel"
+import { AdminRoutesPanel } from "@/components/admin-routes-panel"
 import { AdminSendMoneyForm } from "@/components/admin-send-money-form"
-import { AdminTransactionsLog } from "@/components/admin-transactions-log"
-import { Grid3x3, Users, TrendingUp } from "lucide-react"
+import type { AdminSection } from "@/components/admin-sidebar"
 
 export default function AdminPage() {
-  const [selectedDriver, setSelectedDriver] = useState<string>("")
+  const [selectedDriver, setSelectedDriver] = useState("")
 
   return (
     <AdminLayout>
-      {/* Page Header */}
-      <div className="mb-8">
-        <h2 className="text-3xl font-bold text-white mb-2">Dashboard Overview</h2>
-        <p className="text-slate-400">
-          Monitor drivers, manage transactions, and send payments in real-time
-        </p>
-      </div>
+      {(activeSection: AdminSection, onDriverSelect: (phone: string) => void) => {
 
-      {/* Stats Grid (Optional) */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-        <div className="bg-slate-800 rounded-lg border border-slate-700 p-6 shadow-lg">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-slate-400 text-sm font-medium">Active Drivers</p>
-              <p className="text-3xl font-bold text-blue-400 mt-1">—</p>
+        const handleDriverSelect = (phone: string) => {
+          setSelectedDriver(phone)
+          onDriverSelect(phone)
+        }
+
+        if (activeSection === "overview") {
+          return (
+            <div className="space-y-6 max-w-[1400px]">
+              <AdminKPICards />
+              <div className="grid grid-cols-1 xl:grid-cols-3 gap-5">
+                <div className="xl:col-span-2">
+                  <AdminRevenueChart />
+                </div>
+                <div className="xl:col-span-1">
+                  <AdminActivityFeed />
+                </div>
+              </div>
             </div>
-            <Users className="w-8 h-8 text-blue-500/50" />
-          </div>
-        </div>
+          )
+        }
 
-        <div className="bg-slate-800 rounded-lg border border-slate-700 p-6 shadow-lg">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-slate-400 text-sm font-medium">Today's Volume</p>
-              <p className="text-3xl font-bold text-emerald-400 mt-1">—</p>
+        if (activeSection === "fleet") {
+          return (
+            <div className="space-y-6 max-w-[1400px]">
+              <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+                <div className="xl:col-span-2">
+                  <AdminFleetTable onDriverSelect={handleDriverSelect} />
+                </div>
+                <div className="xl:col-span-1">
+                  <AdminSendMoneyForm preselectedDriver={selectedDriver} />
+                </div>
+              </div>
             </div>
-            <TrendingUp className="w-8 h-8 text-emerald-500/50" />
-          </div>
-        </div>
+          )
+        }
 
-        <div className="bg-slate-800 rounded-lg border border-slate-700 p-6 shadow-lg">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-slate-400 text-sm font-medium">Total Transactions</p>
-              <p className="text-3xl font-bold text-cyan-400 mt-1">—</p>
+        if (activeSection === "map") {
+          return (
+            <div className="max-w-[1400px]">
+              <AdminLiveMap />
             </div>
-            <Grid3x3 className="w-8 h-8 text-cyan-500/50" />
-          </div>
-        </div>
-      </div>
+          )
+        }
 
-      {/* Main Content Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
-        {/* Left Column: Map */}
-        <div className="lg:col-span-2">
-          <AdminDriverMap onDriverSelect={setSelectedDriver} />
-        </div>
+        if (activeSection === "finance") {
+          return (
+            <div className="max-w-[1400px]">
+              <AdminFinancePanel />
+            </div>
+          )
+        }
 
-        {/* Right Column: Send Money Form */}
-        <div className="lg:col-span-1">
-          <AdminSendMoneyForm preselectedDriver={selectedDriver} />
-        </div>
-      </div>
+        if (activeSection === "routes") {
+          return (
+            <div className="max-w-[1400px]">
+              <AdminRoutesPanel />
+            </div>
+          )
+        }
 
-      {/* Full Width: Transactions Log */}
-      <div className="mb-8">
-        <AdminTransactionsLog />
-      </div>
-
-      {/* Info Box */}
-      <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4">
-        <p className="text-sm text-blue-300">
-          <span className="font-semibold">💡 Tip:</span> Click on drivers in the map or list to quickly select them for money transfers. All transactions are recorded in real-time.
-        </p>
-      </div>
+        return null
+      }}
     </AdminLayout>
   )
 }

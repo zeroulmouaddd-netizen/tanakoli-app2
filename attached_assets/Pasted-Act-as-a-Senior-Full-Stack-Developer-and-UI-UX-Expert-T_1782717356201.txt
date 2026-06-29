@@ -1,0 +1,38 @@
+Act as a Senior Full-Stack Developer and UI/UX Expert. The current Admin Dashboard needs a complete, world-class redesign to efficiently manage a live bus tracking, public transit, and passenger payment ecosystem ("Tanakoli"). 
+
+Build a premium, production-ready, and highly professional Admin Dashboard layout (e.g., under `/admin` or updating the existing admin directory) using Next.js/React, Tailwind CSS, Lucide icons, and chart libraries (like Recharts if available, or clean functional equivalents). Ensure all components are modular, tightly integrated with Firebase/Firestore, and defensively coded against missing data.
+
+### CRITICAL CONSTRAINTS:
+1. DO NOT touch or break any passenger-facing application routes, styles, or logic.
+2. Work locally only. Do not perform any git commit or push commands.
+3. Ensure all backend hooks or state management parameters to Firestore/Firebase are live and properly wired.
+
+### IMPLEMENT THE FOLLOWING CORE MODULES IN THE REDESIGN:
+
+1. **Global Dashboard Overview (Analytics & Live KPIs):**
+   - High-impact metrics cards: Active Buses on Road, Total Live Passengers, Daily Revenue/Fares Collected, and Active System Alerts.
+   - Interactive charts showing Passenger Traffic Trends and Revenue Analytics over time.
+   - A "Live Activity Feed" showing system events (e.g., "Driver X started Line 2", "Subscription renewed by User Y").
+
+2. **Advanced Driver & Fleet Resource Management:**
+   - A highly functional Data Table displaying all drivers with search, status filters (Active, On Break, Offline, Suspended), and sorting.
+   - Profile management panels detailing Driver ID, assigned Vehicle Number, active Route Line, and performance ratings.
+   - Actionable modals to easily assign/re-assign a driver to a specific transit line or bus.
+
+3. **Live Dispatcher Map (Real-Time Operations Control):**
+   - A dedicated administrative Leaflet map centered on operations.
+   - Smoothly displays live-tracked buses using real-time Firestore coordinates, distinct custom markers, and tooltips displaying the driver's name, current speed, and delay status.
+
+4. **Transit Fare, Payment & Subscription Management:**
+   - Financial ledger panel showing a searchable list of all digital transactions, QR code ticket scans, and subscription plans.
+   - Revenue analytics breakdown (Cashless ticketing vs. Subscription passes) with exportable UI representations.
+
+5. **Route, Line & Station Configuration Management:**
+   - A dedicated view to list, manage, and edit transit routes (e.g., Khenchela to El Hamma), including station stop orders, geofence radiuses, and scheduled timetables.
+
+### DESIGN & CODE QUALITY STANDARDS:
+- Modern, clean, dashboard layout with a responsive, collapsible sidebar, rich hover states, and smooth transition animations.
+- Use a professional dark/light theme structure that feels premium, clear, and highly readable for continuous operation.
+- Implement proper loading skeletons, clean state management, and strict TypeScript/JavaScript error handling.
+
+Review the existing admin code/schema, then execute this comprehensive visual and functional overhaul locally.
