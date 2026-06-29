@@ -1,0 +1,30 @@
+The user wants to enhance the Fleet & Driver Management view by adding clear, professional financial tracking for each driver, specifically focused on "Daily Net Profit" (صافي الربح اليومي) and "Remaining Balance/Payout" (المتبقي للسائق). 
+
+The core requirement is a clean, beautiful, uncluttered UI by default, with an optional "Deep Dive" view for precise complexity if the admin wants to inspect detailed data.
+
+### STRICT CONSTRAINTS:
+1. Work LOCALLY only. Do NOT perform any git commit or push commands.
+2. DO NOT touch or break any passenger-facing application code, maps, or styles.
+3. Maintain the visual theme and styling established in "1000084996.jpg".
+
+### IMPLEMENTATION REQUIREMENTS:
+
+1. **Default Clean View (Organized & Beautiful):**
+   - Inside the Driver Data Table or individual driver row/card, add two distinct, minimalist metric badges:
+     * **Today's Net Profit (صافي ربح اليوم):** Displays the calculated net earnings for the current day (e.g., calculated dynamically from today's completed rides/transactions in Firestore minus any system percentage).
+     * **Remaining Balance (المتبقي في المحفظة):** Displays the driver's current wallet balance waiting to be settled or withdrawn.
+   - Use clean, premium typography and subtle background badges (e.g., light green for profit, light blue for balance) to keep the default layout highly organized and elegant.
+
+2. **Secondary Complex View (Detailed Breakdown Option):**
+   - Add an elegant "Details" icon button (like an arrow or a "View Breakdown" link) next to each driver's financial row.
+   - When clicked, it smoothly expands an accordion or opens a clean modal containing the precise mathematical breakdown for that driver:
+     * Gross fares collected today.
+     * System fee/commission deducted.
+     * Total distance/trips completed today.
+     * A micro-list of today's individual fare transactions.
+
+3. **Backend & Firestore Wiring:**
+   - Fetch today's transactions securely from Firestore, filtering by the driver's ID and the current date timestamp.
+   - Aggregate the sums dynamically in the frontend state, ensuring that if a driver has zero transactions today, it gracefully displays `0 د.ج` instead of breaking or showing blank spaces.
+
+Ensure all loading and empty states match the professional layout without cluttering the screen.
