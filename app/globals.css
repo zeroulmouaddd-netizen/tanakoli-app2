@@ -7,6 +7,9 @@ button, a, [role="button"] { -webkit-touch-callout: none; }
 @custom-variant dark (&:is(.dark *));
 
 :root {
+  /* Self-hosted Arabic UI font (loaded via @fontsource in app/layout.tsx) */
+  --font-arabic: 'Noto Sans Arabic', system-ui, sans-serif;
+
   --background: oklch(0.98 0.005 145);
   --foreground: oklch(0.2 0.02 145);
   --card: oklch(1 0 0);
@@ -474,4 +477,485 @@ button, a, [role="button"] { -webkit-touch-callout: none; }
   background: transparent;
   border: none;
   box-shadow: none;
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   TANAOLI ADMIN — design system
+   Dark, layered, government-grade console. Scoped under .admin-root so it
+   never leaks into the rider app. All motion is transform/opacity only.
+   ════════════════════════════════════════════════════════════════════════════ */
+
+.admin-root {
+  /* ── Color tokens ─────────────────────────────────────────────────────── */
+  --admin-bg: #05080f;
+  --admin-bg-2: #090f1a;
+  --admin-surface: rgba(11, 17, 30, 0.82);
+  --admin-surface-2: rgba(16, 24, 41, 0.66);
+  --admin-surface-3: rgba(30, 41, 59, 0.38);
+  --admin-border: rgba(148, 163, 184, 0.14);
+  --admin-border-strong: rgba(148, 163, 184, 0.3);
+  --admin-highlight: rgba(255, 255, 255, 0.14);
+  --admin-text: #f1f5f9;
+  --admin-text-2: #9fb0c3;
+  --admin-text-3: #64748b;
+  --admin-primary: #10b981;
+  --admin-primary-deep: #059669;
+  --admin-accent: #38bdf8;
+  --admin-blue: #60a5fa;
+  --admin-cyan: #22d3ee;
+  --admin-success: #34d399;
+  --admin-warning: #fbbf24;
+  --admin-danger: #f87171;
+  --admin-glow: rgba(16, 185, 129, 0.45);
+  --admin-glow-soft: rgba(16, 185, 129, 0.16);
+
+  /* ── Shape / space / type ─────────────────────────────────────────────── */
+  --admin-radius-sm: 10px;
+  --admin-radius-md: 14px;
+  --admin-radius-lg: 18px;
+  --admin-radius-xl: 24px;
+  --admin-shadow: 0 1px 0 rgba(255, 255, 255, 0.03) inset,
+    0 12px 32px -14px rgba(0, 0, 0, 0.65);
+  --admin-ease: cubic-bezier(0.22, 1, 0.36, 1);
+
+  position: relative;
+  min-height: 100dvh;
+  background:
+    radial-gradient(1100px 520px at 85% -10%, rgba(16, 185, 129, 0.07), transparent 60%),
+    radial-gradient(900px 480px at -10% 30%, rgba(56, 189, 248, 0.055), transparent 60%),
+    var(--admin-bg);
+  color: var(--admin-text);
+  font-family: 'Inter Variable', 'Cairo', 'Noto Sans Arabic', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  overflow-x: hidden;
+}
+
+/* Ambient drifting glow (decorative only) */
+.admin-ambient {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  overflow: hidden;
+}
+.admin-ambient::before,
+.admin-ambient::after {
+  content: "";
+  position: absolute;
+  width: 60vw;
+  height: 60vw;
+  max-width: 780px;
+  max-height: 780px;
+  border-radius: 50%;
+  filter: blur(90px);
+  opacity: 0.5;
+  will-change: transform;
+}
+.admin-ambient::before {
+  top: -22%;
+  inset-inline-end: -18%;
+  background: radial-gradient(circle, rgba(16, 185, 129, 0.11), transparent 65%);
+  animation: admin-drift-a 26s var(--admin-ease) infinite alternate;
+}
+.admin-ambient::after {
+  bottom: -30%;
+  inset-inline-start: -16%;
+  background: radial-gradient(circle, rgba(56, 189, 248, 0.09), transparent 65%);
+  animation: admin-drift-b 34s var(--admin-ease) infinite alternate;
+}
+@keyframes admin-drift-a {
+  from { transform: translate3d(0, 0, 0) scale(1); }
+  to   { transform: translate3d(-6%, 8%, 0) scale(1.12); }
+}
+@keyframes admin-drift-b {
+  from { transform: translate3d(0, 0, 0) scale(1.08); }
+  to   { transform: translate3d(7%, -6%, 0) scale(0.96); }
+}
+
+/* Component classes live in the `components` layer so Tailwind utilities
+   in markup can still override them (same pattern as the rest of the app). */
+@layer components {
+/* ── Surfaces ───────────────────────────────────────────────────────────── */
+.admin-card {
+  position: relative;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0.012) 40%, rgba(255, 255, 255, 0.004)),
+    var(--admin-surface);
+  border: 1px solid var(--admin-border);
+  border-radius: var(--admin-radius-lg);
+  box-shadow: var(--admin-shadow);
+}
+.admin-card::before {
+  /* fine 1px top-edge highlight */
+  content: "";
+  position: absolute;
+  inset-inline: 12%;
+  top: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--admin-highlight), transparent);
+  pointer-events: none;
+}
+.admin-card-hover {
+  transition:
+    transform 0.2s var(--admin-ease),
+    border-color 0.2s var(--admin-ease),
+    box-shadow 0.2s var(--admin-ease);
+}
+.admin-card-hover:hover {
+  transform: translateY(-2px);
+  border-color: var(--admin-border-strong);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.04) inset,
+    0 18px 40px -16px rgba(0, 0, 0, 0.7),
+    0 0 0 1px rgba(148, 163, 184, 0.05),
+    0 8px 30px -12px var(--admin-glow-soft);
+}
+.admin-card-hover:active {
+  transform: translateY(0) scale(0.995);
+}
+
+/* ── Icon badges ────────────────────────────────────────────────────────── */
+.admin-icon-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  border-radius: var(--admin-radius-sm);
+  background: var(--badge-bg, rgba(148, 163, 184, 0.1));
+  border: 1px solid var(--badge-border, rgba(148, 163, 184, 0.18));
+  color: var(--badge-color, var(--admin-text-2));
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.06) inset;
+}
+
+/* ── Labels & numerals ──────────────────────────────────────────────────── */
+.admin-label {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--admin-text-3);
+}
+.admin-num {
+  font-variant-numeric: tabular-nums lining-nums;
+}
+
+/* ── Inputs ─────────────────────────────────────────────────────────────── */
+.admin-input {
+  width: 100%;
+  height: 44px;
+  padding-inline: 16px;
+  border-radius: var(--admin-radius-md);
+  background: rgba(6, 11, 21, 0.72);
+  border: 1px solid var(--admin-border);
+  color: var(--admin-text);
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+  transition: border-color 0.18s var(--admin-ease), box-shadow 0.18s var(--admin-ease),
+    background-color 0.18s var(--admin-ease);
+}
+.admin-input::placeholder {
+  color: var(--admin-text-3);
+}
+.admin-input:hover:not(:disabled) {
+  border-color: var(--admin-border-strong);
+}
+.admin-input:focus {
+  outline: none;
+  border-color: rgba(16, 185, 129, 0.55);
+  background: rgba(8, 14, 26, 0.9);
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.14);
+}
+.admin-input:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+select.admin-input {
+  appearance: none;
+  -webkit-appearance: none;
+  cursor: pointer;
+}
+
+/* ── Buttons ────────────────────────────────────────────────────────────── */
+.admin-btn-primary {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 48px;
+  padding-inline: 20px;
+  border-radius: var(--admin-radius-md);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: linear-gradient(135deg, #12c48b 0%, #0da271 55%, #059669 100%);
+  color: #fff;
+  font-size: 14.5px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.28) inset,
+    0 10px 26px -10px var(--admin-glow);
+  transition: transform 0.16s var(--admin-ease), box-shadow 0.2s var(--admin-ease),
+    filter 0.2s var(--admin-ease);
+}
+.admin-btn-primary:hover:not(:disabled) {
+  transform: translateY(-1px);
+  filter: brightness(1.06);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.3) inset,
+    0 14px 32px -10px var(--admin-glow);
+}
+.admin-btn-primary:active:not(:disabled) {
+  transform: translateY(0) scale(0.985);
+  filter: brightness(0.97);
+}
+.admin-btn-primary:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.admin-btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 44px;
+  padding-inline: 14px;
+  border-radius: var(--admin-radius-md);
+  border: 1px solid var(--admin-border);
+  background: var(--admin-surface-3);
+  color: var(--admin-text-2);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.18s var(--admin-ease);
+}
+.admin-btn-ghost:hover {
+  border-color: rgba(16, 185, 129, 0.45);
+  color: var(--admin-text);
+  background: rgba(16, 185, 129, 0.08);
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.08);
+}
+.admin-btn-ghost:active {
+  transform: scale(0.97);
+}
+
+/* ── Quick-select chips ─────────────────────────────────────────────────── */
+.admin-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  border-radius: var(--admin-radius-sm);
+  border: 1px solid var(--admin-border);
+  background: var(--admin-surface-2);
+  color: var(--admin-text-2);
+  font-size: 13px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  transition: all 0.16s var(--admin-ease);
+}
+.admin-chip:hover:not(:disabled) {
+  border-color: rgba(16, 185, 129, 0.5);
+  color: var(--admin-text);
+  transform: translateY(-1px);
+}
+.admin-chip:active:not(:disabled) {
+  transform: scale(0.96);
+}
+.admin-chip[data-active="true"] {
+  border-color: rgba(16, 185, 129, 0.65);
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.24), rgba(5, 150, 105, 0.18));
+  color: #a7f3d0;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1), 0 6px 18px -8px var(--admin-glow);
+}
+.admin-chip:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+/* ── Status pills ───────────────────────────────────────────────────────── */
+.admin-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 22px;
+  padding-inline: 9px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+.admin-pill-success {
+  background: rgba(52, 211, 153, 0.12);
+  border: 1px solid rgba(52, 211, 153, 0.28);
+  color: #6ee7b7;
+}
+.admin-pill-warn {
+  background: rgba(251, 191, 36, 0.12);
+  border: 1px solid rgba(251, 191, 36, 0.3);
+  color: #fcd34d;
+}
+
+/* ── Live status dot ────────────────────────────────────────────────────── */
+.live-dot {
+  position: relative;
+  width: 8px;
+  height: 8px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: var(--admin-success);
+  box-shadow: 0 0 6px rgba(52, 211, 153, 0.8);
+}
+.live-dot::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: var(--admin-success);
+  animation: admin-ping 2.2s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+.live-dot-idle {
+  background: var(--admin-text-3);
+  box-shadow: none;
+}
+.live-dot-idle::after {
+  display: none;
+}
+@keyframes admin-ping {
+  0% { transform: scale(1); opacity: 0.65; }
+  70%, 100% { transform: scale(2.6); opacity: 0; }
+}
+
+/* ── Skeleton shimmer ───────────────────────────────────────────────────── */
+.admin-skeleton {
+  position: relative;
+  overflow: hidden;
+  border-radius: 8px;
+  background: rgba(148, 163, 184, 0.09);
+}
+.admin-skeleton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.07), transparent);
+  animation: admin-shimmer 1.8s var(--admin-ease) infinite;
+}
+@keyframes admin-shimmer {
+  100% { transform: translateX(100%); }
+}
+
+/* ── New-data flash ─────────────────────────────────────────────────────── */
+.tx-flash {
+  animation: admin-flash 1.4s var(--admin-ease) 1;
+}
+@keyframes admin-flash {
+  0% { background-color: rgba(16, 185, 129, 0.16); }
+  100% { background-color: transparent; }
+}
+
+/* ── Error shake (password gate) ────────────────────────────────────────── */
+.admin-shake {
+  animation: admin-shake 0.4s var(--admin-ease) 1;
+}
+@keyframes admin-shake {
+  10%, 90% { transform: translateX(-1px); }
+  20%, 80% { transform: translateX(2px); }
+  30%, 50%, 70% { transform: translateX(-3px); }
+  40%, 60% { transform: translateX(3px); }
+}
+
+/* ── Segmented control (transaction filters) ────────────────────────────── */
+.admin-seg-track {
+  position: relative;
+  display: inline-flex;
+  gap: 2px;
+  padding: 4px;
+  border-radius: 999px;
+  background: rgba(6, 11, 21, 0.72);
+  border: 1px solid var(--admin-border);
+}
+.admin-seg-tab {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 36px;
+  padding-inline: 14px;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--admin-text-2);
+  font-size: 12.5px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: color 0.18s var(--admin-ease);
+}
+/* expanded hit area: 36px visual + 4px per side = 44px touch target */
+.admin-seg-tab::before {
+  content: "";
+  position: absolute;
+  inset: -4px;
+  z-index: -1;
+}
+.admin-seg-tab:hover {
+  color: var(--admin-text);
+}
+.admin-seg-tab[data-active="true"] {
+  color: #fff;
+}
+.admin-seg-indicator {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  border-radius: 999px;
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.3), rgba(13, 148, 136, 0.22));
+  border: 1px solid rgba(16, 185, 129, 0.4);
+  box-shadow: 0 4px 14px -6px var(--admin-glow);
+}
+
+/* ── Misc utilities ─────────────────────────────────────────────────────── */
+.no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* Accessible focus ring scoped to admin */
+.admin-root :focus-visible {
+  outline: 2px solid rgba(52, 211, 153, 0.75);
+  outline-offset: 2px;
+}
+.admin-root ::selection {
+  background: rgba(16, 185, 129, 0.32);
+  color: #fff;
+}
+} /* end @layer components */
+
+/* Honor prefers-reduced-motion: kill decorative animation */
+@media (prefers-reduced-motion: reduce) {
+  .admin-ambient::before,
+  .admin-ambient::after,
+  .live-dot::after,
+  .admin-skeleton::after,
+  .tx-flash,
+  .admin-shake,
+  .admin-card-hover,
+  .admin-btn-primary,
+  .admin-chip {
+    animation: none !important;
+    transition: none !important;
+  }
 }

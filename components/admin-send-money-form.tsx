@@ -1,12 +1,15 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect } from "react"
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion"
 import { fetchAllDrivers, sendMoneyToDriver, type DriverRecord } from "@/lib/admin-utils"
 import { Send, AlertCircle, CheckCircle, X, ChevronDown, Loader2, Wallet } from "lucide-react"
 
 interface SendMoneyFormProps {
   preselectedDriver?: string
 }
+
+const EASE: [number, number, number, number] = [0.22, 1, 0.36, 1]
 
 // ─── Inline toast ─────────────────────────────────────────────────────────────
 interface ToastProps {
@@ -17,6 +20,7 @@ interface ToastProps {
 }
 
 function Toast({ type, title, body, onDismiss }: ToastProps) {
+  const reduced = useReducedMotion()
   useEffect(() => {
     const t = setTimeout(onDismiss, 4500)
     return () => clearTimeout(t)
@@ -24,32 +28,38 @@ function Toast({ type, title, body, onDismiss }: ToastProps) {
 
   const isSuccess = type === "success"
   return (
-    <div
-      className={`flex items-start gap-3 rounded-xl border p-4 shadow-xl transition-all ${
+    <motion.div
+      initial={reduced ? false : { opacity: 0, y: 8, scale: 0.98 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      exit={{ opacity: 0, y: 6, scale: 0.98 }}
+      transition={{ duration: 0.25, ease: EASE }}
+      className={`flex items-start gap-3 rounded-[14px] border p-3.5 shadow-[0_16px_40px_-12px_rgba(0,0,0,0.6)] backdrop-blur-md ${
         isSuccess
-          ? "bg-emerald-950/80 border-emerald-500/30"
-          : "bg-red-950/80 border-red-500/30"
+          ? "border-[rgba(52,211,153,0.35)] bg-[rgba(6,44,32,0.92)]"
+          : "border-[rgba(248,113,113,0.35)] bg-[rgba(54,18,22,0.92)]"
       }`}
     >
-      <div className={`flex-shrink-0 mt-0.5 ${isSuccess ? "text-emerald-400" : "text-red-400"}`}>
-        {isSuccess
-          ? <CheckCircle className="w-4 h-4" />
-          : <AlertCircle className="w-4 h-4" />
-        }
+      <div className={`mt-0.5 flex-shrink-0 ${isSuccess ? "text-emerald-400" : "text-red-400"}`}>
+        {isSuccess ? (
+          <CheckCircle className="h-4 w-4" />
+        ) : (
+          <AlertCircle className="h-4 w-4" />
+        )}
       </div>
-      <div className="flex-1 min-w-0">
-        <p className={`text-sm font-semibold ${isSuccess ? "text-emerald-300" : "text-red-300"}`}>
+      <div className="min-w-0 flex-1">
+        <p className={`text-[13px] font-semibold ${isSuccess ? "text-emerald-300" : "text-red-300"}`}>
           {title}
         </p>
-        <p className="text-xs text-slate-400 mt-0.5 break-words">{body}</p>
+        <p className="mt-0.5 break-words text-xs leading-relaxed text-slate-400">{body}</p>
       </div>
       <button
         onClick={onDismiss}
-        className="flex-shrink-0 text-slate-500 hover:text-slate-300 transition-colors"
+        aria-label="Dismiss"
+        className="flex-shrink-0 rounded-md p-1 text-slate-500 transition-colors hover:bg-white/5 hover:text-slate-300"
       >
-        <X className="w-3.5 h-3.5" />
+        <X className="h-3.5 w-3.5" />
       </button>
-    </div>
+    </motion.div>
   )
 }
 
@@ -64,6 +74,9 @@ export function AdminSendMoneyForm({ preselectedDriver }: SendMoneyFormProps) {
   const [isLoading, setIsLoading] = useState(false)
 
   const [toast, setToast] = useState<Omit<ToastProps, "onDismiss"> | null>(null)
+  // Presentational success flash on the submit button (no logic change)
+  const [sentFlash, setSentFlash] = useState(false)
+  const reduced = useReducedMotion()
 
   // Load all drivers from Firestore
   useEffect(() => {
@@ -121,6 +134,8 @@ export function AdminSendMoneyForm({ preselectedDriver }: SendMoneyFormProps) {
         })
         setAmount("")
         setNote("")
+        setSentFlash(true)
+        setTimeout(() => setSentFlash(false), 1800)
         // Keep driver selected for follow-up transfers
       } else {
         setToast({
@@ -143,88 +158,117 @@ export function AdminSendMoneyForm({ preselectedDriver }: SendMoneyFormProps) {
   const PRESETS = [100, 200, 500, 1000]
 
   return (
-    <div className="rounded-xl border border-slate-800/60 bg-slate-900/60 p-6 shadow-lg">
+    <div
+      className="admin-card p-4 sm:p-5"
+      style={{
+        background:
+          "radial-gradient(420px 140px at 50% -40px, rgba(16,185,129,0.1), transparent 70%), linear-gradient(180deg, rgba(255,255,255,0.045), rgba(255,255,255,0.008)), var(--admin-surface)",
+      }}
+    >
       {/* Header */}
-      <div className="flex items-center gap-2 mb-6">
-        <div className="p-2 rounded-lg bg-emerald-500/15">
-          <Send className="w-4 h-4 text-emerald-400" />
-        </div>
+      <div className="mb-5 flex items-center gap-3">
+        <span
+          className="admin-icon-badge"
+          style={
+            {
+              "--badge-bg": "rgba(16,185,129,0.13)",
+              "--badge-border": "rgba(16,185,129,0.32)",
+              "--badge-color": "#34d399",
+            } as React.CSSProperties
+          }
+        >
+          <Send className="h-4 w-4" strokeWidth={2.2} />
+        </span>
         <div>
-          <h3 className="text-sm font-semibold text-white">Send Money to Driver</h3>
-          <p className="text-xs text-slate-500">Instant wallet top-up</p>
+          <h3 className="text-[14px] font-bold leading-tight tracking-tight text-[var(--admin-text)]">
+            Send Money to Driver
+          </h3>
+          <p className="text-[11.5px] leading-tight text-[var(--admin-text-3)]">Instant wallet top-up</p>
         </div>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-5">
         {/* Driver selection */}
         <div>
-          <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wide mb-2">
+          <label htmlFor="admin-driver-select" className="admin-label mb-2">
             Select Driver
           </label>
 
           {driversLoading ? (
-            <div className="flex items-center gap-2 px-4 py-3 rounded-lg bg-slate-800 border border-slate-700">
-              <Loader2 className="w-4 h-4 text-emerald-400 animate-spin flex-shrink-0" />
-              <span className="text-xs text-slate-400">Loading drivers from Firestore…</span>
+            <div className="flex items-center gap-2.5 rounded-[12px] border border-[var(--admin-border)] bg-[var(--admin-surface-2)] px-4 py-3">
+              <Loader2 className="h-4 w-4 flex-shrink-0 animate-spin text-emerald-400" />
+              <span className="text-xs text-[var(--admin-text-2)]">Loading drivers from Firestore…</span>
             </div>
           ) : (
             <div className="relative">
               <select
+                id="admin-driver-select"
                 value={driverPhone}
                 onChange={(e) => {
                   setDriverPhone(e.target.value)
                   setToast(null)
                 }}
                 disabled={isLoading}
-                className="w-full appearance-none px-4 py-2.5 pr-10 bg-slate-800 border border-slate-700 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="admin-input bg-[#0a1120] pe-10 text-sm"
               >
-                <option value="">— Choose a driver —</option>
+                <option value="" className="bg-[#0d1524]">— Choose a driver —</option>
                 {drivers.map((d) => (
-                  <option key={d.id || d.phone} value={d.phone}>
+                  <option key={d.id || d.phone} value={d.phone} className="bg-[#0d1524]">
                     {d.name !== d.phone ? `${d.name}  ·  ${d.phone}` : d.phone}
                     {d.isLive ? "  🟢" : ""}
                   </option>
                 ))}
               </select>
-              <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500 pointer-events-none" />
+              <ChevronDown className="pointer-events-none absolute end-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--admin-text-3)]" />
             </div>
           )}
 
           {!driversLoading && drivers.length === 0 && (
-            <p className="text-xs text-amber-400 mt-1.5 flex items-center gap-1">
-              <AlertCircle className="w-3 h-3" />
+            <p className="mt-2 flex items-center gap-1.5 text-xs text-amber-400">
+              <AlertCircle className="h-3 w-3 flex-shrink-0" />
               No drivers found in Firestore. Check the users collection.
             </p>
           )}
 
           {/* Selected driver card */}
-          {selectedDriver && (
-            <div className="mt-2 flex items-center gap-3 px-3 py-2.5 rounded-lg bg-slate-800/60 border border-slate-700/50">
-              <div className="h-8 w-8 rounded-full bg-emerald-500/20 flex items-center justify-center text-sm font-bold text-emerald-400 flex-shrink-0">
-                {selectedDriver.name.charAt(0).toUpperCase()}
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-xs font-semibold text-slate-200 truncate">{selectedDriver.name}</p>
-                <p className="text-[11px] text-slate-500">{selectedDriver.phone}</p>
-              </div>
-              <div className="flex-shrink-0 text-right">
-                <p className="text-xs font-bold text-emerald-400">{selectedDriver.balance.toFixed(0)} د.ج</p>
-                <p className="text-[10px] text-slate-600">current</p>
-              </div>
-              {selectedDriver.isLive && (
-                <span className="flex-shrink-0 h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
-              )}
-            </div>
-          )}
+          <AnimatePresence>
+            {selectedDriver && (
+              <motion.div
+                key={selectedDriver.phone}
+                initial={reduced ? false : { opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.25, ease: EASE }}
+                className="mt-2.5 flex items-center gap-3 rounded-[12px] border border-[var(--admin-border)] bg-[var(--admin-surface-2)] px-3 py-2.5"
+              >
+                <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full border border-[rgba(16,185,129,0.35)] bg-[rgba(16,185,129,0.14)] text-[13px] font-bold text-emerald-300">
+                  {selectedDriver.name.charAt(0).toUpperCase()}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-xs font-semibold text-[var(--admin-text)]">
+                    {selectedDriver.name}
+                  </p>
+                  <p className="admin-num text-[11px] text-[var(--admin-text-3)]">{selectedDriver.phone}</p>
+                </div>
+                <div className="flex-shrink-0 text-right">
+                  <p className="admin-num text-xs font-bold text-emerald-300">
+                    {selectedDriver.balance.toFixed(0)} د.ج
+                  </p>
+                  <p className="text-[10px] text-[var(--admin-text-3)]">current</p>
+                </div>
+                {selectedDriver.isLive && <span className="live-dot flex-shrink-0" aria-hidden="true" />}
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
 
         {/* Amount */}
         <div>
-          <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wide mb-2">
+          <label htmlFor="admin-amount-input" className="admin-label mb-2">
             Amount (د.ج)
           </label>
           <div className="relative">
             <input
+              id="admin-amount-input"
               type="number"
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
@@ -233,26 +277,24 @@ export function AdminSendMoneyForm({ preselectedDriver }: SendMoneyFormProps) {
               min="1"
               max="50000"
               step="1"
-              className="w-full pl-4 pr-14 py-2.5 bg-slate-800 border border-slate-700 rounded-lg text-white text-sm placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+              inputMode="numeric"
+              className="admin-input pe-[58px] text-[15px] font-semibold [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
             />
-            <span className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 text-sm font-medium pointer-events-none">
+            <span className="pointer-events-none absolute end-3 top-1/2 -translate-y-1/2 rounded-md border border-[var(--admin-border)] bg-[rgba(148,163,184,0.08)] px-2 py-1 text-[11px] font-semibold text-[var(--admin-text-2)]">
               د.ج
             </span>
           </div>
 
           {/* Presets */}
-          <div className="grid grid-cols-4 gap-1.5 mt-2">
+          <div className="mt-2.5 grid grid-cols-4 gap-2">
             {PRESETS.map((p) => (
               <button
                 key={p}
                 type="button"
                 onClick={() => setAmount(String(p))}
                 disabled={isLoading || !driverPhone}
-                className={`py-1.5 rounded-lg text-xs font-semibold transition-all border ${
-                  amount === String(p)
-                    ? "bg-emerald-500 text-white border-emerald-500"
-                    : "bg-slate-800 text-slate-400 border-slate-700 hover:border-emerald-500/50 hover:text-slate-200"
-                } disabled:opacity-40 disabled:cursor-not-allowed`}
+                data-active={amount === String(p)}
+                className="admin-chip"
               >
                 {p}
               </button>
@@ -262,64 +304,85 @@ export function AdminSendMoneyForm({ preselectedDriver }: SendMoneyFormProps) {
 
         {/* Note (optional) */}
         <div>
-          <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wide mb-2">
-            Note <span className="normal-case text-slate-600">(optional)</span>
+          <label htmlFor="admin-note-input" className="admin-label mb-2">
+            Note <span className="normal-case text-[var(--admin-text-3)]">(optional)</span>
           </label>
           <input
+            id="admin-note-input"
             type="text"
             value={note}
             onChange={(e) => setNote(e.target.value)}
             disabled={isLoading}
             placeholder="e.g. Monthly bonus"
             maxLength={120}
-            className="w-full px-4 py-2.5 bg-slate-800 border border-slate-700 rounded-lg text-white text-sm placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-emerald-500 disabled:opacity-50"
+            className="admin-input text-sm"
           />
         </div>
 
         {/* Preview */}
-        {selectedDriver && amount && parseFloat(amount) > 0 && (
-          <div className="rounded-lg bg-emerald-500/8 border border-emerald-500/20 px-4 py-3">
-            <div className="flex items-center justify-between text-xs">
-              <span className="text-slate-400">Before transfer</span>
-              <span className="text-slate-300 font-mono">{selectedDriver.balance.toFixed(0)} د.ج</span>
-            </div>
-            <div className="flex items-center justify-between text-xs mt-1">
-              <span className="text-slate-400">Transfer amount</span>
-              <span className="text-emerald-400 font-mono">+{parseFloat(amount).toFixed(0)} د.ج</span>
-            </div>
-            <div className="border-t border-slate-700/50 mt-2 pt-2 flex items-center justify-between text-sm">
-              <span className="font-semibold text-slate-300">New balance</span>
-              <span className="font-bold text-emerald-300 font-mono">
-                {(selectedDriver.balance + parseFloat(amount)).toFixed(0)} د.ج
-              </span>
-            </div>
-          </div>
-        )}
+        <AnimatePresence>
+          {selectedDriver && amount && parseFloat(amount) > 0 && (
+            <motion.div
+              key="preview"
+              initial={reduced ? false : { opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 0 }}
+              transition={{ duration: 0.25, ease: EASE }}
+              className="rounded-[14px] border border-[rgba(16,185,129,0.24)] bg-[rgba(16,185,129,0.06)] px-4 py-3.5"
+            >
+              <div className="flex items-center justify-between gap-3 text-xs">
+                <span className="text-[var(--admin-text-2)]">Before transfer</span>
+                <span className="admin-num text-[var(--admin-text-2)]">
+                  {selectedDriver.balance.toFixed(0)} د.ج
+                </span>
+              </div>
+              <div className="mt-1.5 flex items-center justify-between gap-3 text-xs">
+                <span className="text-[var(--admin-text-2)]">Transfer amount</span>
+                <span className="admin-num font-medium text-emerald-300">
+                  +{parseFloat(amount).toFixed(0)} د.ج
+                </span>
+              </div>
+              <div className="mt-2.5 flex items-center justify-between gap-3 border-t border-[rgba(16,185,129,0.18)] pt-2.5">
+                <span className="text-[13px] font-semibold text-[var(--admin-text)]">New balance</span>
+                <span className="admin-num text-[15px] font-bold text-emerald-300">
+                  {(selectedDriver.balance + parseFloat(amount)).toFixed(0)} د.ج
+                </span>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Toast */}
-        {toast && (
-          <Toast
-            type={toast.type}
-            title={toast.title}
-            body={toast.body}
-            onDismiss={() => setToast(null)}
-          />
-        )}
+        <AnimatePresence>
+          {toast && (
+            <Toast
+              type={toast.type}
+              title={toast.title}
+              body={toast.body}
+              onDismiss={() => setToast(null)}
+            />
+          )}
+        </AnimatePresence>
 
         {/* Submit */}
         <button
           type="submit"
           disabled={isLoading || !driverPhone || !amount || driversLoading || parseFloat(amount) <= 0}
-          className="w-full py-3 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white font-semibold rounded-xl transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg shadow-emerald-900/20"
+          className="admin-btn-primary w-full"
         >
           {isLoading ? (
             <>
-              <Loader2 className="w-4 h-4 animate-spin" />
+              <Loader2 className="h-4 w-4 animate-spin" />
               Processing…
+            </>
+          ) : sentFlash ? (
+            <>
+              <CheckCircle className="h-4 w-4" />
+              Sent
             </>
           ) : (
             <>
-              <Wallet className="w-4 h-4" />
+              <Wallet className="h-4 w-4" />
               Send {amount && parseFloat(amount) > 0 ? `${parseFloat(amount).toFixed(0)} د.ج` : "Money"}
             </>
           )}

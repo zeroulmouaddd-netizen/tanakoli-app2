@@ -2,22 +2,20 @@
 
 import { useState } from "react"
 import { AdminPasswordGate } from "./admin-password-gate"
-import { AdminSidebar, type AdminSection } from "./admin-sidebar"
+import { Bus, LogOut } from "lucide-react"
 
 interface AdminLayoutProps {
-  children: (activeSection: AdminSection, onDriverSelect: (phone: string) => void) => React.ReactNode
+  children: React.ReactNode
 }
 
 export function AdminLayout({ children }: AdminLayoutProps) {
   const [isAuthenticated, setIsAuthenticated] = useState(() => {
+    // Check if already authenticated in this session
     if (typeof window !== "undefined") {
       return sessionStorage.getItem("adminAuth") === "true"
     }
     return false
   })
-  const [activeSection, setActiveSection] = useState<AdminSection>("overview")
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
-  const [selectedDriver, setSelectedDriver] = useState("")
 
   const handleLogout = () => {
     sessionStorage.removeItem("adminAuth")
@@ -25,51 +23,66 @@ export function AdminLayout({ children }: AdminLayoutProps) {
   }
 
   if (!isAuthenticated) {
-    return <AdminPasswordGate onAuthenticated={() => setIsAuthenticated(true)} />
+    return (
+      <AdminPasswordGate onAuthenticated={() => setIsAuthenticated(true)} />
+    )
   }
 
   return (
-    <div className="flex min-h-screen bg-slate-950 text-white">
-      <AdminSidebar
-        activeSection={activeSection}
-        onSectionChange={(section) => {
-          setActiveSection(section)
-          // When switching to fleet, pre-select nothing
-        }}
-        onLogout={handleLogout}
-        collapsed={sidebarCollapsed}
-        onToggleCollapse={() => setSidebarCollapsed((c) => !c)}
-      />
+    <div dir="ltr" className="admin-root">
+      {/* Decorative ambient background */}
+      <div className="admin-ambient" aria-hidden="true" />
 
-      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        {/* Top bar */}
-        <header className="flex-shrink-0 flex items-center justify-between px-6 py-4 border-b border-slate-800/60 bg-slate-950/80 backdrop-blur sticky top-0 z-30">
-          <div>
-            <h1 className="text-base font-bold text-white capitalize">
-              {activeSection === "overview"  && "Dashboard Overview"}
-              {activeSection === "fleet"     && "Fleet & Driver Management"}
-              {activeSection === "map"       && "Live Dispatcher Map"}
-              {activeSection === "finance"   && "Finance & Transactions"}
-              {activeSection === "routes"    && "Routes & Line Configuration"}
-            </h1>
-            <p className="text-xs text-slate-500 mt-0.5">Tanakoli Khenchela — Admin Console</p>
+      {/* Header */}
+      <header className="sticky top-0 z-40 border-b border-[var(--admin-border)] bg-[rgba(5,8,15,0.72)] backdrop-blur-xl">
+        <div className="mx-auto flex h-16 max-w-[1200px] items-center justify-between gap-3 px-4 sm:h-[68px] sm:px-6">
+          <div className="flex min-w-0 items-center gap-3">
+            {/* Logo mark */}
+            <div
+              className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-[12px] border border-white/20 shadow-[0_8px_20px_-6px_var(--admin-glow),0_1px_0_rgba(255,255,255,0.25)_inset]"
+              style={{
+                background: "linear-gradient(135deg, #12c48b 0%, #0da271 55%, #0b7a55 100%)",
+              }}
+            >
+              <Bus className="h-5 w-5 text-white" strokeWidth={2.2} />
+            </div>
+            <div className="min-w-0">
+              <h1 className="truncate text-[15px] font-bold leading-tight tracking-tight text-[var(--admin-text)]">
+                Admin Dashboard
+              </h1>
+              <p className="truncate text-[11px] font-medium leading-tight text-[var(--admin-text-3)]">
+                Tanakoli Management System
+              </p>
+            </div>
           </div>
 
-          {/* Live badge */}
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20">
-            <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
-            <span className="text-xs font-medium text-emerald-400">Live</span>
-          </div>
-        </header>
+          <button
+            onClick={handleLogout}
+            className="inline-flex min-h-[44px] flex-shrink-0 items-center gap-2 rounded-[12px] border border-[rgba(248,113,113,0.3)] bg-[rgba(248,113,113,0.08)] px-3.5 text-[13px] font-semibold text-[#fca5a5] transition-all duration-200 hover:border-[rgba(248,113,113,0.55)] hover:bg-[rgba(248,113,113,0.15)] hover:shadow-[0_0_0_3px_rgba(248,113,113,0.1)] active:scale-[0.97]"
+          >
+            <LogOut className="h-4 w-4" />
+            Logout
+          </button>
+        </div>
+      </header>
 
-        {/* Page content */}
-        <main className="flex-1 overflow-y-auto p-6">
-          {children(activeSection, (phone) => {
-            setSelectedDriver(phone)
-            setActiveSection("fleet")
-          })}
-        </main>
-      </div>
+      {/* Main Content */}
+      <main className="relative z-10 mx-auto w-full max-w-[1200px] px-4 py-6 sm:px-6 sm:py-8">
+        {children}
+      </main>
+
+      {/* Footer */}
+      <footer className="relative z-10 border-t border-[var(--admin-border)]">
+        <div className="mx-auto max-w-[1200px] px-4 py-6 sm:px-6">
+          <p className="text-center text-[12.5px] text-[var(--admin-text-3)]">
+            Admin Dashboard
+            <span className="mx-2 text-[rgba(148,163,184,0.35)]">•</span>
+            Secure Session
+            <span className="mx-2 text-[rgba(148,163,184,0.35)]">•</span>
+            Do not share your password
+          </p>
+        </div>
+      </footer>
     </div>
   )
 }

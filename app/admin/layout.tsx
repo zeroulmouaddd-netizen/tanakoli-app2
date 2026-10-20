@@ -1,4 +1,13 @@
 import type { Metadata } from "next"
+// Admin console typography — self-hosted so the build needs no external
+// network. Inter (Latin) + Cairo (Arabic) give a professional mixed-script
+// pairing with tabular numerals for money values.
+import "@fontsource-variable/inter"
+import "@fontsource/cairo/400.css"
+import "@fontsource/cairo/500.css"
+import "@fontsource/cairo/600.css"
+import "@fontsource/cairo/700.css"
+import "@fontsource/cairo/800.css"
 
 export const metadata: Metadata = {
   title: "Admin Dashboard | Tanakoli",
