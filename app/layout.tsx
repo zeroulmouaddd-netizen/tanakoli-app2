@@ -1,6 +1,11 @@
 import type { Metadata, Viewport } from 'next'
-import { Noto_Sans_Arabic } from 'next/font/google'
 import Script from 'next/script'
+// Self-hosted Noto Sans Arabic (identical to the previous next/font setup,
+// bundled locally so the build needs no external network access).
+import '@fontsource/noto-sans-arabic/400.css'
+import '@fontsource/noto-sans-arabic/500.css'
+import '@fontsource/noto-sans-arabic/600.css'
+import '@fontsource/noto-sans-arabic/700.css'
 import { Analytics } from '@vercel/analytics/next'
 import { Toaster } from '@/components/ui/toaster'
 import { TrackingProvider } from '@/lib/tracking-context'
@@ -11,12 +16,6 @@ import { AuthProvider } from '@/lib/auth-context'
 import { AuthGate } from '@/components/auth-gate'
 import { TouchInit } from '@/components/touch-init'
 import './globals.css'
-
-const notoArabic = Noto_Sans_Arabic({ 
-  subsets: ["arabic"],
-  variable: '--font-arabic',
-  weight: ['400', '500', '600', '700']
-});
 
 export const metadata: Metadata = {
   title: 'تنقلي خنشلة - معاذ عبد الودود زروال',
@@ -108,7 +107,7 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body suppressHydrationWarning className={`${notoArabic.variable} font-sans antialiased theme-transition`}>
+      <body suppressHydrationWarning className="font-arabic font-sans antialiased theme-transition">
         <TouchInit />
         <AuthProvider>
           <ThemeProvider>
