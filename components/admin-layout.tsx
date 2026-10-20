@@ -2,6 +2,8 @@
 
 import { useState } from "react"
 import { AdminPasswordGate } from "./admin-password-gate"
+import { AdminLanguageSwitcher } from "./admin-language-switcher"
+import { useAdminI18n } from "@/lib/i18n/admin-i18n"
 import { Bus, LogOut } from "lucide-react"
 
 interface AdminLayoutProps {
@@ -9,6 +11,7 @@ interface AdminLayoutProps {
 }
 
 export function AdminLayout({ children }: AdminLayoutProps) {
+  const { dir, t, isRTL } = useAdminI18n()
   const [isAuthenticated, setIsAuthenticated] = useState(() => {
     // Check if already authenticated in this session
     if (typeof window !== "undefined") {
@@ -29,7 +32,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
   }
 
   return (
-    <div dir="ltr" className="admin-root">
+    <div dir={dir} className="admin-root">
       {/* Decorative ambient background */}
       <div className="admin-ambient" aria-hidden="true" />
 
@@ -48,21 +51,24 @@ export function AdminLayout({ children }: AdminLayoutProps) {
             </div>
             <div className="min-w-0">
               <h1 className="truncate text-[15px] font-bold leading-tight tracking-tight text-[var(--admin-text)]">
-                Admin Dashboard
+                {t("header.title")}
               </h1>
               <p className="truncate text-[11px] font-medium leading-tight text-[var(--admin-text-3)]">
-                Tanakoli Management System
+                {t("header.subtitle")}
               </p>
             </div>
           </div>
 
-          <button
-            onClick={handleLogout}
-            className="inline-flex min-h-[44px] flex-shrink-0 items-center gap-2 rounded-[12px] border border-[rgba(248,113,113,0.3)] bg-[rgba(248,113,113,0.08)] px-3.5 text-[13px] font-semibold text-[#fca5a5] transition-all duration-200 hover:border-[rgba(248,113,113,0.55)] hover:bg-[rgba(248,113,113,0.15)] hover:shadow-[0_0_0_3px_rgba(248,113,113,0.1)] active:scale-[0.97]"
-          >
-            <LogOut className="h-4 w-4" />
-            Logout
-          </button>
+          <div className="flex flex-shrink-0 items-center gap-2 sm:gap-2.5">
+            <AdminLanguageSwitcher />
+            <button
+              onClick={handleLogout}
+              className="inline-flex min-h-[44px] flex-shrink-0 items-center gap-2 rounded-[12px] border border-[rgba(248,113,113,0.3)] bg-[rgba(248,113,113,0.08)] px-3.5 text-[13px] font-semibold text-[#fca5a5] transition-all duration-200 hover:border-[rgba(248,113,113,0.55)] hover:bg-[rgba(248,113,113,0.15)] hover:shadow-[0_0_0_3px_rgba(248,113,113,0.1)] active:scale-[0.97]"
+            >
+              <LogOut className={`h-4 w-4 ${isRTL ? "rtl-flip" : ""}`} />
+              {t("header.logout")}
+            </button>
+          </div>
         </div>
       </header>
 
@@ -75,11 +81,11 @@ export function AdminLayout({ children }: AdminLayoutProps) {
       <footer className="relative z-10 border-t border-[var(--admin-border)]">
         <div className="mx-auto max-w-[1200px] px-4 py-6 sm:px-6">
           <p className="text-center text-[12.5px] text-[var(--admin-text-3)]">
-            Admin Dashboard
+            {t("footer.brand")}
             <span className="mx-2 text-[rgba(148,163,184,0.35)]">•</span>
-            Secure Session
+            {t("footer.secure")}
             <span className="mx-2 text-[rgba(148,163,184,0.35)]">•</span>
-            Do not share your password
+            {t("footer.warning")}
           </p>
         </div>
       </footer>

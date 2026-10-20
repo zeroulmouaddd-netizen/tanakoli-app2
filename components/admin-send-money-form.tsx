@@ -3,6 +3,8 @@
 import { useState, useEffect } from "react"
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion"
 import { fetchAllDrivers, sendMoneyToDriver, type DriverRecord } from "@/lib/admin-utils"
+import { Amount, Bidi } from "@/components/admin-bidi"
+import { useAdminI18n } from "@/lib/i18n/admin-i18n"
 import { Send, AlertCircle, CheckCircle, X, ChevronDown, Loader2, Wallet } from "lucide-react"
 
 interface SendMoneyFormProps {
@@ -20,10 +22,11 @@ interface ToastProps {
 }
 
 function Toast({ type, title, body, onDismiss }: ToastProps) {
+  const { t } = useAdminI18n()
   const reduced = useReducedMotion()
   useEffect(() => {
-    const t = setTimeout(onDismiss, 4500)
-    return () => clearTimeout(t)
+    const timer = setTimeout(onDismiss, 4500)
+    return () => clearTimeout(timer)
   }, [onDismiss])
 
   const isSuccess = type === "success"
@@ -54,7 +57,7 @@ function Toast({ type, title, body, onDismiss }: ToastProps) {
       </div>
       <button
         onClick={onDismiss}
-        aria-label="Dismiss"
+        aria-label={t("send.dismiss")}
         className="flex-shrink-0 rounded-md p-1 text-slate-500 transition-colors hover:bg-white/5 hover:text-slate-300"
       >
         <X className="h-3.5 w-3.5" />
@@ -65,6 +68,7 @@ function Toast({ type, title, body, onDismiss }: ToastProps) {
 
 // ─── Main form ────────────────────────────────────────────────────────────────
 export function AdminSendMoneyForm({ preselectedDriver }: SendMoneyFormProps) {
+  const { t, isRTL } = useAdminI18n()
   const [drivers, setDrivers] = useState<DriverRecord[]>([])
   const [driversLoading, setDriversLoading] = useState(true)
 
@@ -102,23 +106,35 @@ export function AdminSendMoneyForm({ preselectedDriver }: SendMoneyFormProps) {
     setToast(null)
 
     if (!driverPhone.trim()) {
-      setToast({ type: "error", title: "No driver selected", body: "Please choose a driver from the list." })
+      setToast({
+        type: "error",
+        title: t("send.error.noDriver.title"),
+        body: t("send.error.noDriver.body"),
+      })
       return
     }
 
     const amountNum = parseFloat(amount)
     if (isNaN(amountNum) || amountNum <= 0) {
-      setToast({ type: "error", title: "Invalid amount", body: "Enter a positive number greater than 0." })
+      setToast({
+        type: "error",
+        title: t("send.error.invalidAmount.title"),
+        body: t("send.error.invalidAmount.body"),
+      })
       return
     }
     if (amountNum > 50000) {
-      setToast({ type: "error", title: "Amount too large", body: "Single transfer limit is 50,000 د.ج." })
+      setToast({
+        type: "error",
+        title: t("send.error.tooLarge.title"),
+        body: t("send.error.tooLarge.body"),
+      })
       return
     }
 
     const driverLabel = selectedDriver?.name || driverPhone
     const confirmed = window.confirm(
-      `Transfer ${amountNum.toFixed(0)} د.ج to ${driverLabel}?\n\nThis will update their wallet balance immediately.`
+      `${t("send.confirm.title", { amount: amountNum.toFixed(0), name: driverLabel })}\n\n${t("send.confirm.body")}`
     )
     if (!confirmed) return
 
@@ -129,8 +145,12 @@ export function AdminSendMoneyForm({ preselectedDriver }: SendMoneyFormProps) {
       if (result.success) {
         setToast({
           type: "success",
-          title: "Transfer successful",
-          body: `${amountNum.toFixed(0)} د.ج sent to ${result.driverName || driverLabel}. New balance: ${result.newBalance?.toFixed(0)} د.ج`,
+          title: t("send.success.title"),
+          body: t("send.success.body", {
+            amount: amountNum.toFixed(0),
+            name: result.driverName || driverLabel,
+            balance: String(result.newBalance?.toFixed(0)),
+          }),
         })
         setAmount("")
         setNote("")
@@ -140,15 +160,15 @@ export function AdminSendMoneyForm({ preselectedDriver }: SendMoneyFormProps) {
       } else {
         setToast({
           type: "error",
-          title: "Transfer failed",
-          body: result.error || "Unknown error — please try again.",
+          title: t("send.error.failed.title"),
+          body: result.error || t("send.error.failed.body"),
         })
       }
     } catch (err) {
       setToast({
         type: "error",
-        title: "Network error",
-        body: (err as Error).message || "Could not reach Firebase. Check your connection.",
+        title: t("send.error.network.title"),
+        body: (err as Error).message || t("send.error.network.body"),
       })
     } finally {
       setIsLoading(false)
@@ -177,13 +197,13 @@ export function AdminSendMoneyForm({ preselectedDriver }: SendMoneyFormProps) {
             } as React.CSSProperties
           }
         >
-          <Send className="h-4 w-4" strokeWidth={2.2} />
+          <Send className={`h-4 w-4 ${isRTL ? "rtl-flip" : ""}`} strokeWidth={2.2} />
         </span>
         <div>
           <h3 className="text-[14px] font-bold leading-tight tracking-tight text-[var(--admin-text)]">
-            Send Money to Driver
+            {t("send.title")}
           </h3>
-          <p className="text-[11.5px] leading-tight text-[var(--admin-text-3)]">Instant wallet top-up</p>
+          <p className="text-[11.5px] leading-tight text-[var(--admin-text-3)]">{t("send.subtitle")}</p>
         </div>
       </div>
 
@@ -191,13 +211,13 @@ export function AdminSendMoneyForm({ preselectedDriver }: SendMoneyFormProps) {
         {/* Driver selection */}
         <div>
           <label htmlFor="admin-driver-select" className="admin-label mb-2">
-            Select Driver
+            {t("send.selectDriver")}
           </label>
 
           {driversLoading ? (
             <div className="flex items-center gap-2.5 rounded-[12px] border border-[var(--admin-border)] bg-[var(--admin-surface-2)] px-4 py-3">
               <Loader2 className="h-4 w-4 flex-shrink-0 animate-spin text-emerald-400" />
-              <span className="text-xs text-[var(--admin-text-2)]">Loading drivers from Firestore…</span>
+              <span className="text-xs text-[var(--admin-text-2)]">{t("send.loadingDrivers")}</span>
             </div>
           ) : (
             <div className="relative">
@@ -211,10 +231,12 @@ export function AdminSendMoneyForm({ preselectedDriver }: SendMoneyFormProps) {
                 disabled={isLoading}
                 className="admin-input bg-[#0a1120] pe-10 text-sm"
               >
-                <option value="" className="bg-[#0d1524]">— Choose a driver —</option>
+                <option value="" className="bg-[#0d1524]">{t("send.chooseDriver")}</option>
                 {drivers.map((d) => (
                   <option key={d.id || d.phone} value={d.phone} className="bg-[#0d1524]">
-                    {d.name !== d.phone ? `${d.name}  ·  ${d.phone}` : d.phone}
+                    {d.name !== d.phone
+                      ? `${d.name}  ·  \u2066${d.phone}\u2069`
+                      : `\u2066${d.phone}\u2069`}
                     {d.isLive ? "  🟢" : ""}
                   </option>
                 ))}
@@ -226,7 +248,7 @@ export function AdminSendMoneyForm({ preselectedDriver }: SendMoneyFormProps) {
           {!driversLoading && drivers.length === 0 && (
             <p className="mt-2 flex items-center gap-1.5 text-xs text-amber-400">
               <AlertCircle className="h-3 w-3 flex-shrink-0" />
-              No drivers found in Firestore. Check the users collection.
+              {t("send.noDrivers")}
             </p>
           )}
 
@@ -247,13 +269,15 @@ export function AdminSendMoneyForm({ preselectedDriver }: SendMoneyFormProps) {
                   <p className="truncate text-xs font-semibold text-[var(--admin-text)]">
                     {selectedDriver.name}
                   </p>
-                  <p className="admin-num text-[11px] text-[var(--admin-text-3)]">{selectedDriver.phone}</p>
-                </div>
-                <div className="flex-shrink-0 text-right">
-                  <p className="admin-num text-xs font-bold text-emerald-300">
-                    {selectedDriver.balance.toFixed(0)} د.ج
+                  <p className="admin-num text-[11px] text-[var(--admin-text-3)]">
+                    <Bidi>{selectedDriver.phone}</Bidi>
                   </p>
-                  <p className="text-[10px] text-[var(--admin-text-3)]">current</p>
+                </div>
+                <div className="flex-shrink-0 text-end">
+                  <p className="admin-num text-xs font-bold text-emerald-300">
+                    <Amount value={selectedDriver.balance.toFixed(0)} />
+                  </p>
+                  <p className="text-[10px] text-[var(--admin-text-3)]">{t("send.current")}</p>
                 </div>
                 {selectedDriver.isLive && <span className="live-dot flex-shrink-0" aria-hidden="true" />}
               </motion.div>
@@ -264,7 +288,7 @@ export function AdminSendMoneyForm({ preselectedDriver }: SendMoneyFormProps) {
         {/* Amount */}
         <div>
           <label htmlFor="admin-amount-input" className="admin-label mb-2">
-            Amount (د.ج)
+            {t("send.amount")}
           </label>
           <div className="relative">
             <input
@@ -296,7 +320,7 @@ export function AdminSendMoneyForm({ preselectedDriver }: SendMoneyFormProps) {
                 data-active={amount === String(p)}
                 className="admin-chip"
               >
-                {p}
+                <Bidi>{p}</Bidi>
               </button>
             ))}
           </div>
@@ -305,7 +329,8 @@ export function AdminSendMoneyForm({ preselectedDriver }: SendMoneyFormProps) {
         {/* Note (optional) */}
         <div>
           <label htmlFor="admin-note-input" className="admin-label mb-2">
-            Note <span className="normal-case text-[var(--admin-text-3)]">(optional)</span>
+            {t("send.note")}{" "}
+            <span className="normal-case text-[var(--admin-text-3)]">{t("send.optional")}</span>
           </label>
           <input
             id="admin-note-input"
@@ -313,7 +338,7 @@ export function AdminSendMoneyForm({ preselectedDriver }: SendMoneyFormProps) {
             value={note}
             onChange={(e) => setNote(e.target.value)}
             disabled={isLoading}
-            placeholder="e.g. Monthly bonus"
+            placeholder={t("send.notePlaceholder")}
             maxLength={120}
             className="admin-input text-sm"
           />
@@ -331,21 +356,21 @@ export function AdminSendMoneyForm({ preselectedDriver }: SendMoneyFormProps) {
               className="rounded-[14px] border border-[rgba(16,185,129,0.24)] bg-[rgba(16,185,129,0.06)] px-4 py-3.5"
             >
               <div className="flex items-center justify-between gap-3 text-xs">
-                <span className="text-[var(--admin-text-2)]">Before transfer</span>
+                <span className="text-[var(--admin-text-2)]">{t("send.before")}</span>
                 <span className="admin-num text-[var(--admin-text-2)]">
-                  {selectedDriver.balance.toFixed(0)} د.ج
+                  <Amount value={selectedDriver.balance.toFixed(0)} />
                 </span>
               </div>
               <div className="mt-1.5 flex items-center justify-between gap-3 text-xs">
-                <span className="text-[var(--admin-text-2)]">Transfer amount</span>
+                <span className="text-[var(--admin-text-2)]">{t("send.transferAmount")}</span>
                 <span className="admin-num font-medium text-emerald-300">
-                  +{parseFloat(amount).toFixed(0)} د.ج
+                  <Amount value={parseFloat(amount).toFixed(0)} sign="+" signGap={false} />
                 </span>
               </div>
               <div className="mt-2.5 flex items-center justify-between gap-3 border-t border-[rgba(16,185,129,0.18)] pt-2.5">
-                <span className="text-[13px] font-semibold text-[var(--admin-text)]">New balance</span>
+                <span className="text-[13px] font-semibold text-[var(--admin-text)]">{t("send.newBalance")}</span>
                 <span className="admin-num text-[15px] font-bold text-emerald-300">
-                  {(selectedDriver.balance + parseFloat(amount)).toFixed(0)} د.ج
+                  <Amount value={(selectedDriver.balance + parseFloat(amount)).toFixed(0)} />
                 </span>
               </div>
             </motion.div>
@@ -373,17 +398,22 @@ export function AdminSendMoneyForm({ preselectedDriver }: SendMoneyFormProps) {
           {isLoading ? (
             <>
               <Loader2 className="h-4 w-4 animate-spin" />
-              Processing…
+              {t("send.processing")}
             </>
           ) : sentFlash ? (
             <>
               <CheckCircle className="h-4 w-4" />
-              Sent
+              {t("send.sent")}
             </>
           ) : (
             <>
               <Wallet className="h-4 w-4" />
-              Send {amount && parseFloat(amount) > 0 ? `${parseFloat(amount).toFixed(0)} د.ج` : "Money"}
+              {t("send.send")}{" "}
+              {amount && parseFloat(amount) > 0 ? (
+                <Amount value={parseFloat(amount).toFixed(0)} />
+              ) : (
+                t("send.sendMoney")
+              )}
             </>
           )}
         </button>

@@ -5,6 +5,8 @@ import { motion, useReducedMotion } from "framer-motion"
 import { rtdb } from "@/lib/firebase"
 import { ref, onValue } from "firebase/database"
 import { fetchRecentTransactions } from "@/lib/admin-utils"
+import { Amount } from "@/components/admin-bidi"
+import { useAdminI18n } from "@/lib/i18n/admin-i18n"
 import { Users, TrendingUp, Grid3x3, type LucideIcon } from "lucide-react"
 
 // ─── Animated count-up (purely presentational) ──────────────────────────────
@@ -68,6 +70,7 @@ function Sparkline({ id, color, d }: { id: string; color: string; d: string }) {
 
 // ─── Single stat card ────────────────────────────────────────────────────────
 interface StatCardProps {
+  id: string
   label: string
   value: number | null
   expired: boolean
@@ -77,10 +80,11 @@ interface StatCardProps {
   border: string
   spark: string
   format: (n: number) => string
+  currency?: string
   index: number
 }
 
-function StatCard({ label, value, expired, icon: Icon, color, tint, border, spark, format, index }: StatCardProps) {
+function StatCard({ id, label, value, expired, icon: Icon, color, tint, border, spark, format, currency, index }: StatCardProps) {
   const animated = useCountUp(value)
   const reduced = useReducedMotion()
 
@@ -104,10 +108,10 @@ function StatCard({ label, value, expired, icon: Icon, color, tint, border, spar
         >
           <Icon className="h-[18px] w-[18px]" strokeWidth={2.2} />
         </span>
-        <Sparkline id={label.replace(/\s/g, "")} color={color} d={spark} />
+        <Sparkline id={id} color={color} d={spark} />
       </div>
 
-      <p className="mt-4 text-[12px] font-semibold uppercase tracking-[0.08em] text-[var(--admin-text-3)]">
+      <p className="admin-overline mt-4 text-[12px] font-semibold uppercase tracking-[0.08em] text-[var(--admin-text-3)]">
         {label}
       </p>
 
@@ -122,7 +126,8 @@ function StatCard({ label, value, expired, icon: Icon, color, tint, border, spar
           className="admin-num mt-1.5 text-[30px] font-bold leading-none tracking-tight"
           style={{ color }}
         >
-          {format(animated ?? 0)}
+          {/* empty string keeps the currency slot off for plain counts */}
+          <Amount value={format(animated ?? 0)} currency={currency ?? ""} />
         </p>
       )}
     </motion.div>
@@ -133,6 +138,7 @@ function StatCard({ label, value, expired, icon: Icon, color, tint, border, spar
 // Read-only subscriptions mirroring the data already displayed on this page
 // (RTDB `drivers` node + Firestore `transactions` feed, last 50).
 export function AdminStatsCards() {
+  const { t } = useAdminI18n()
   const [activeDrivers, setActiveDrivers] = useState<number | null>(null)
   const [todayVolume, setTodayVolume] = useState<number | null>(null)
   const [totalTx, setTotalTx] = useState<number | null>(null)
@@ -176,7 +182,8 @@ export function AdminStatsCards() {
     <div className="grid grid-cols-1 gap-4 min-[480px]:grid-cols-3 sm:gap-5">
       <StatCard
         index={0}
-        label="Active Drivers"
+        id="activeDrivers"
+        label={t("stats.activeDrivers")}
         value={activeDrivers}
         expired={expired}
         icon={Users}
@@ -188,7 +195,8 @@ export function AdminStatsCards() {
       />
       <StatCard
         index={1}
-        label="Today's Volume"
+        id="todayVolume"
+        label={t("stats.todayVolume")}
         value={todayVolume}
         expired={expired}
         icon={TrendingUp}
@@ -196,11 +204,13 @@ export function AdminStatsCards() {
         tint="rgba(52,211,153,0.12)"
         border="rgba(52,211,153,0.3)"
         spark="M1 17 C7 15, 11 17, 18 13 S 30 6, 38 9 S 52 12, 63 5"
-        format={(n) => `${Math.round(n).toLocaleString("en-US")} د.ج`}
+        format={(n) => Math.round(n).toLocaleString("en-US")}
+        currency="د.ج"
       />
       <StatCard
         index={2}
-        label="Total Transactions"
+        id="totalTransactions"
+        label={t("stats.totalTransactions")}
         value={totalTx}
         expired={expired}
         icon={Grid3x3}

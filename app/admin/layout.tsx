@@ -8,6 +8,7 @@ import "@fontsource/cairo/500.css"
 import "@fontsource/cairo/600.css"
 import "@fontsource/cairo/700.css"
 import "@fontsource/cairo/800.css"
+import { AdminI18nProvider } from "@/lib/i18n/admin-i18n"
 
 export const metadata: Metadata = {
   title: "Admin Dashboard | Tanakoli",
@@ -23,5 +24,5 @@ export default function AdminLayout({
 }: {
   children: React.ReactNode
 }) {
-  return children
+  return <AdminI18nProvider>{children}</AdminI18nProvider>
 }
