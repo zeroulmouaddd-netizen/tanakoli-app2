@@ -4,6 +4,8 @@ import { useEffect, useState } from "react"
 import { motion, useReducedMotion } from "framer-motion"
 import { rtdb } from "@/lib/firebase"
 import { ref, onValue } from "firebase/database"
+import { Bidi } from "@/components/admin-bidi"
+import { useAdminI18n } from "@/lib/i18n/admin-i18n"
 import { Users, Bus, MapPin } from "lucide-react"
 
 interface DriverLocation {
@@ -39,6 +41,7 @@ function avatarGradient(phone: string) {
 const FRESH_MS = 5 * 60 * 1000
 
 export function AdminDriverMap({ onDriverSelect }: AdminDriverListProps) {
+  const { t, formatTimeOfDay } = useAdminI18n()
   const [drivers, setDrivers] = useState<Driver[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const reduced = useReducedMotion()
@@ -85,12 +88,8 @@ export function AdminDriverMap({ onDriverSelect }: AdminDriverListProps) {
   }, [])
 
   const formatTime = (timestamp?: number) => {
-    if (!timestamp) return "N/A"
-    return new Date(timestamp).toLocaleTimeString("en-US", {
-      hour: "2-digit",
-      minute: "2-digit",
-      second: "2-digit",
-    })
+    if (!timestamp) return t("common.na")
+    return formatTimeOfDay(timestamp)
   }
 
   return (
@@ -110,7 +109,7 @@ export function AdminDriverMap({ onDriverSelect }: AdminDriverListProps) {
           <Users className="h-[18px] w-[18px]" strokeWidth={2.2} />
         </span>
         <h3 className="text-[15px] font-bold tracking-tight text-[var(--admin-text)] sm:text-base">
-          Active Drivers ({drivers.length})
+          {t("drivers.title")} (<Bidi>{drivers.length}</Bidi>)
         </h3>
       </div>
 
@@ -143,7 +142,7 @@ export function AdminDriverMap({ onDriverSelect }: AdminDriverListProps) {
             <MapPin className="h-6 w-6 text-[#60a5fa]" />
           </span>
           <p className="text-sm font-medium text-[var(--admin-text-2)]">
-            No active drivers at the moment
+            {t("drivers.empty")}
           </p>
         </div>
       )}
@@ -173,9 +172,9 @@ export function AdminDriverMap({ onDriverSelect }: AdminDriverListProps) {
                 {/* Details */}
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
-                    <span className="admin-num truncate text-[14px] font-semibold tracking-wide text-[var(--admin-text)]">
+                    <Bidi className="admin-num truncate text-[14px] font-semibold tracking-wide text-[var(--admin-text)]">
                       {driver.phone}
-                    </span>
+                    </Bidi>
                     <span
                       className={`live-dot ${isFresh ? "" : "live-dot-idle"}`}
                       aria-hidden="true"
@@ -184,7 +183,9 @@ export function AdminDriverMap({ onDriverSelect }: AdminDriverListProps) {
                   <p className="admin-num mt-1 flex items-center gap-1.5 text-[11px] text-[var(--admin-text-3)]">
                     <MapPin className="h-3 w-3 flex-shrink-0 opacity-70" />
                     <span className="truncate">
-                      Lat {driver.location.lat.toFixed(6)} · Lng {driver.location.lng.toFixed(6)}
+                      {t("drivers.lat")} <Bidi>{driver.location.lat.toFixed(6)}</Bidi>
+                      {" · "}
+                      {t("drivers.lng")} <Bidi>{driver.location.lng.toFixed(6)}</Bidi>
                     </span>
                   </p>
                   <p className="admin-num mt-0.5 text-[11px] text-[var(--admin-text-3)]">
@@ -198,7 +199,7 @@ export function AdminDriverMap({ onDriverSelect }: AdminDriverListProps) {
                     onClick={() => onDriverSelect(driver.phone)}
                     className="admin-btn-ghost rounded-[10px] px-3.5 text-[12px]"
                   >
-                    Select
+                    {t("drivers.select")}
                   </button>
                 )}
               </motion.div>

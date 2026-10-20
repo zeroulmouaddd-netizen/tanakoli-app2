@@ -8,6 +8,7 @@ import { AdminStatsCards } from "@/components/admin-stats-cards"
 import { AdminDriverMap } from "@/components/admin-driver-map"
 import { AdminSendMoneyForm } from "@/components/admin-send-money-form"
 import { AdminTransactionsLog } from "@/components/admin-transactions-log"
+import { useAdminI18n } from "@/lib/i18n/admin-i18n"
 
 const EASE: [number, number, number, number] = [0.22, 1, 0.36, 1]
 
@@ -34,6 +35,7 @@ function Reveal({
 }
 
 export default function AdminPage() {
+  const { t } = useAdminI18n()
   const [selectedDriver, setSelectedDriver] = useState<string>("")
 
   return (
@@ -42,10 +44,10 @@ export default function AdminPage() {
       <Reveal delay={0}>
         <div className="mb-6 sm:mb-8">
           <h2 className="text-[26px] font-bold leading-tight tracking-tight text-[var(--admin-text)] sm:text-3xl">
-            Dashboard Overview
+            {t("page.title")}
           </h2>
           <p className="mt-1.5 text-[13.5px] text-[var(--admin-text-2)] sm:text-sm">
-            Monitor drivers, manage transactions, and send payments in real-time
+            {t("page.subtitle")}
           </p>
         </div>
       </Reveal>
@@ -96,9 +98,8 @@ export default function AdminPage() {
             <Lightbulb className="h-4 w-4" strokeWidth={2.2} />
           </span>
           <p className="text-[13px] leading-relaxed text-[#bae6fd] sm:text-sm">
-            <span className="font-semibold text-[#e0f2fe]">Tip:</span> Click on drivers in the map
-            or list to quickly select them for money transfers. All transactions are recorded in
-            real-time.
+            <span className="font-semibold text-[#e0f2fe]">{t("tip.label")}</span>{" "}
+            {t("tip.body")}
           </p>
         </div>
       </Reveal>

@@ -3,11 +3,14 @@
 import { useEffect, useRef, useState } from "react"
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion"
 import { fetchRecentTransactions, type Transaction } from "@/lib/admin-utils"
+import { Amount, Bidi } from "@/components/admin-bidi"
+import { useAdminI18n } from "@/lib/i18n/admin-i18n"
 import { Activity, TrendingUp, TrendingDown, Inbox } from "lucide-react"
 
 const EASE: [number, number, number, number] = [0.22, 1, 0.36, 1]
 
 export function AdminTransactionsLog() {
+  const { t, formatRelative } = useAdminI18n()
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [filter, setFilter] = useState<string>("all")
@@ -52,18 +55,8 @@ export function AdminTransactionsLog() {
     }
   }, [transactions, isLoading])
 
-  // Get transaction type display
-  const getTypeLabel = (type: string) => {
-    const labels: Record<string, string> = {
-      fare_deduction: "Fare Deduction",
-      balance_recharge: "Driver Recharge",
-      ticket_purchase: "Ticket Purchase",
-      admin_transfer: "Admin Transfer",
-      payment: "Payment",
-      topup: "Top-up",
-    }
-    return labels[type] || type
-  }
+  // Get transaction type display (label only — the raw type stays untouched)
+  const getTypeLabel = (type: string) => t(`type.${type}`, undefined, type)
 
   // Get transaction icon
   const getTypeIcon = (type: string) => {
@@ -75,36 +68,15 @@ export function AdminTransactionsLog() {
 
   const isDebit = (type: string) => type.includes("deduction") || type.includes("purchase")
 
-  // Format timestamp
-  const formatTime = (timestamp: any) => {
-    if (!timestamp) return "N/A"
-
-    try {
-      const date = timestamp.toDate?.() || new Date(timestamp)
-      const now = new Date()
-      const diff = now.getTime() - date.getTime()
-
-      if (diff < 60000) return "Just now"
-      if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`
-      if (diff < 86400000) return `${Math.floor(diff / 3600000)}h ago`
-
-      return date.toLocaleDateString("en-US", {
-        month: "short",
-        day: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
-      })
-    } catch {
-      return "N/A"
-    }
-  }
+  // Format timestamp (display only — locale aware)
+  const formatTime = (timestamp: any) => formatRelative(timestamp)
 
   const transactionTypes = [
-    { value: "all", label: "All Transactions" },
-    { value: "fare_deduction", label: "Fare Deductions" },
-    { value: "balance_recharge", label: "Driver Recharges" },
-    { value: "admin_transfer", label: "Admin Transfers" },
-    { value: "ticket_purchase", label: "Ticket Purchases" },
+    { value: "all", label: t("filter.all") },
+    { value: "fare_deduction", label: t("filter.fare_deduction") },
+    { value: "balance_recharge", label: t("filter.balance_recharge") },
+    { value: "admin_transfer", label: t("filter.admin_transfer") },
+    { value: "ticket_purchase", label: t("filter.ticket_purchase") },
   ]
 
   // ── Row content pieces (shared by table + mobile cards) ──────────────────
@@ -119,7 +91,7 @@ export function AdminTransactionsLog() {
     <span
       className={`admin-pill ${status === "completed" ? "admin-pill-success" : "admin-pill-warn"}`}
     >
-      {status}
+      {t(`status.${status}`, undefined, status)}
     </span>
   )
 
@@ -141,20 +113,22 @@ export function AdminTransactionsLog() {
             <Activity className="h-[18px] w-[18px]" strokeWidth={2.2} />
           </span>
           <h3 className="text-[15px] font-bold tracking-tight text-[var(--admin-text)] sm:text-base">
-            Recent Transactions
+            {t("tx.title")}
           </h3>
           <span className="rounded-full border border-[var(--admin-border)] bg-[var(--admin-surface-3)] px-2.5 py-0.5 text-[11px] font-semibold text-[var(--admin-text-2)]">
-            Last 50
+            {t("tx.last50")}
           </span>
         </div>
         {!isLoading && (
-          <p className="text-xs text-[var(--admin-text-3)]">{filteredTransactions.length} transactions</p>
+          <p className="text-xs text-[var(--admin-text-3)]">
+            {t("tx.count", { n: filteredTransactions.length })}
+          </p>
         )}
       </div>
 
       {/* Filter Tabs — segmented control with sliding indicator */}
       <div className="no-scrollbar -mx-1 mb-4 overflow-x-auto px-1 pb-0.5">
-        <div className="admin-seg-track" role="tablist" aria-label="Transaction filters">
+        <div className="admin-seg-track" role="tablist" aria-label={t("tx.filters")}>
           {transactionTypes.map((type) => (
             <button
               key={type.value}
@@ -199,20 +173,20 @@ export function AdminTransactionsLog() {
           <table className="w-full min-w-[620px] text-sm">
             <thead>
               <tr className="border-b border-[var(--admin-border)]">
-                <th className="sticky top-[69px] z-10 bg-[#0b1322] px-3 py-2.5 text-start text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--admin-text-3)]">
-                  Type
+                <th className="admin-overline sticky top-[69px] z-10 bg-[#0b1322] px-3 py-2.5 text-start text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--admin-text-3)]">
+                  {t("tx.th.type")}
                 </th>
-                <th className="sticky top-[69px] z-10 bg-[#0b1322] px-3 py-2.5 text-start text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--admin-text-3)]">
-                  User
+                <th className="admin-overline sticky top-[69px] z-10 bg-[#0b1322] px-3 py-2.5 text-start text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--admin-text-3)]">
+                  {t("tx.th.user")}
                 </th>
-                <th className="sticky top-[69px] z-10 bg-[#0b1322] px-3 py-2.5 text-end text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--admin-text-3)]">
-                  Amount
+                <th className="admin-overline sticky top-[69px] z-10 bg-[#0b1322] px-3 py-2.5 text-end text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--admin-text-3)]">
+                  {t("tx.th.amount")}
                 </th>
-                <th className="sticky top-[69px] z-10 bg-[#0b1322] px-3 py-2.5 text-start text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--admin-text-3)]">
-                  Status
+                <th className="admin-overline sticky top-[69px] z-10 bg-[#0b1322] px-3 py-2.5 text-start text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--admin-text-3)]">
+                  {t("tx.th.status")}
                 </th>
-                <th className="sticky top-[69px] z-10 bg-[#0b1322] px-3 py-2.5 text-end text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--admin-text-3)]">
-                  Time
+                <th className="admin-overline sticky top-[69px] z-10 bg-[#0b1322] px-3 py-2.5 text-end text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--admin-text-3)]">
+                  {t("tx.th.time")}
                 </th>
               </tr>
             </thead>
@@ -250,11 +224,15 @@ export function AdminTransactionsLog() {
                       <td className="max-w-[220px] px-3 py-3">
                         <div className="min-w-0">
                           <span className="block truncate text-[13px] font-medium text-[var(--admin-text)]">
-                            {tx.userName || tx.userId.slice(0, 8)}...
+                            {tx.userName ? (
+                              `${tx.userName}...`
+                            ) : (
+                              <Bidi>{`${tx.userId.slice(0, 8)}...`}</Bidi>
+                            )}
                           </span>
                           {tx.driverPhone && (
                             <span className="admin-num block truncate text-[11px] text-[var(--admin-text-3)]">
-                              Driver: {tx.driverPhone}
+                              {t("tx.driver")} <Bidi>{tx.driverPhone}</Bidi>
                             </span>
                           )}
                         </div>
@@ -263,12 +241,14 @@ export function AdminTransactionsLog() {
                       {/* Amount */}
                       <td className="whitespace-nowrap px-3 py-3 text-end">
                         <span className={`admin-num text-[13.5px] font-bold ${amountClass(tx.type)}`}>
-                          {isDebit(tx.type) ? "-" : "+"}{" "}
-                          {tx.amount.toFixed(2)} د.ج
+                          <Amount
+                            value={tx.amount.toFixed(2)}
+                            sign={isDebit(tx.type) ? "-" : "+"}
+                          />
                         </span>
                         {tx.newBalance !== undefined && (
                           <span className="admin-num mt-0.5 block text-[11px] text-[var(--admin-text-3)]">
-                            New: {tx.newBalance.toFixed(2)} د.ج
+                            {t("tx.new")} <Amount value={tx.newBalance.toFixed(2)} />
                           </span>
                         )}
                       </td>
@@ -322,22 +302,29 @@ export function AdminTransactionsLog() {
                         {getTypeLabel(tx.type)}
                       </p>
                       <p className="mt-0.5 truncate text-xs text-[var(--admin-text-2)]">
-                        {tx.userName || tx.userId.slice(0, 8)}...
+                        {tx.userName ? (
+                          `${tx.userName}...`
+                        ) : (
+                          <Bidi>{`${tx.userId.slice(0, 8)}...`}</Bidi>
+                        )}
                       </p>
                       {tx.driverPhone && (
                         <p className="admin-num mt-0.5 truncate text-[11px] text-[var(--admin-text-3)]">
-                          Driver: {tx.driverPhone}
+                          {t("tx.driver")} <Bidi>{tx.driverPhone}</Bidi>
                         </p>
                       )}
                     </div>
                     <div className="flex-shrink-0 text-end">
                       <p className={`admin-num text-[15px] font-bold ${amountClass(tx.type)}`}>
-                        {isDebit(tx.type) ? "-" : "+"}{" "}
-                        {tx.amount.toFixed(2)} <span className="text-[12px] font-semibold">د.ج</span>
+                        <Amount
+                          value={tx.amount.toFixed(2)}
+                          sign={isDebit(tx.type) ? "-" : "+"}
+                          currencyClassName="text-[12px] font-semibold"
+                        />
                       </p>
                       {tx.newBalance !== undefined && (
                         <p className="admin-num mt-0.5 text-[11px] text-[var(--admin-text-3)]">
-                          New: {tx.newBalance.toFixed(2)} د.ج
+                          {t("tx.new")} <Amount value={tx.newBalance.toFixed(2)} />
                         </p>
                       )}
                     </div>
@@ -362,7 +349,7 @@ export function AdminTransactionsLog() {
               >
                 <Inbox className="h-6 w-6 text-[#22d3ee]" />
               </span>
-              <p className="text-sm font-medium text-[var(--admin-text-2)]">No transactions found</p>
+              <p className="text-sm font-medium text-[var(--admin-text-2)]">{t("tx.empty")}</p>
             </div>
           )}
         </div>
@@ -372,25 +359,27 @@ export function AdminTransactionsLog() {
       {!isLoading && filteredTransactions.length > 0 && (
         <div className="mt-5 grid grid-cols-3 gap-2.5 border-t border-[var(--admin-border)] pt-5 sm:gap-4">
           <div className="rounded-[12px] border border-[var(--admin-border)] bg-[var(--admin-surface-2)] px-3 py-2.5 sm:px-4">
-            <p className="text-[10.5px] font-semibold uppercase tracking-[0.08em] text-[var(--admin-text-3)] sm:text-[11px]">
-              Total Transactions
+            <p className="admin-overline text-[10.5px] font-semibold uppercase tracking-[0.08em] text-[var(--admin-text-3)] sm:text-[11px]">
+              {t("summary.totalTransactions")}
             </p>
             <p className="admin-num mt-1 text-[15px] font-bold text-[var(--admin-text)] sm:text-lg">
               {filteredTransactions.length}
             </p>
           </div>
           <div className="rounded-[12px] border border-[var(--admin-border)] bg-[var(--admin-surface-2)] px-3 py-2.5 sm:px-4">
-            <p className="text-[10.5px] font-semibold uppercase tracking-[0.08em] text-[var(--admin-text-3)] sm:text-[11px]">
-              Total Volume
+            <p className="admin-overline text-[10.5px] font-semibold uppercase tracking-[0.08em] text-[var(--admin-text-3)] sm:text-[11px]">
+              {t("summary.totalVolume")}
             </p>
             <p className="admin-num mt-1 truncate text-[13px] font-bold text-emerald-400 sm:text-[15px]">
-              +
-              {filteredTransactions.reduce((sum, tx) => sum + tx.amount, 0).toFixed(2)} د.ج
+              <Amount
+                value={filteredTransactions.reduce((sum, tx) => sum + tx.amount, 0).toFixed(2)}
+                sign="+"
+              />
             </p>
           </div>
           <div className="rounded-[12px] border border-[var(--admin-border)] bg-[var(--admin-surface-2)] px-3 py-2.5 sm:px-4">
-            <p className="text-[10.5px] font-semibold uppercase tracking-[0.08em] text-[var(--admin-text-3)] sm:text-[11px]">
-              Last Activity
+            <p className="admin-overline text-[10.5px] font-semibold uppercase tracking-[0.08em] text-[var(--admin-text-3)] sm:text-[11px]">
+              {t("summary.lastActivity")}
             </p>
             <p className="admin-num mt-1 truncate text-[11.5px] font-medium leading-[26px] text-[var(--admin-text-2)] sm:text-[13px]">
               {formatTime(filteredTransactions[0]?.timestamp)}
@@ -403,6 +392,7 @@ export function AdminTransactionsLog() {
 }
 
 function EmptyRow() {
+  const { t } = useAdminI18n()
   return (
     <tr>
       <td colSpan={5} className="py-10 text-center">
@@ -416,7 +406,7 @@ function EmptyRow() {
           >
             <Inbox className="h-6 w-6 text-[#22d3ee]" />
           </span>
-          <p className="text-sm font-medium text-[var(--admin-text-2)]">No transactions found</p>
+          <p className="text-sm font-medium text-[var(--admin-text-2)]">{t("tx.empty")}</p>
         </div>
       </td>
     </tr>

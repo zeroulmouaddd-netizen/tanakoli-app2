@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { useAdminI18n } from "@/lib/i18n/admin-i18n"
 import { Bus, Lock, Eye, EyeOff } from "lucide-react"
 
 const ADMIN_PASSWORD = "admin123"
@@ -10,15 +11,16 @@ interface AdminPasswordGateProps {
 }
 
 export function AdminPasswordGate({ onAuthenticated }: AdminPasswordGateProps) {
+  const { dir, t } = useAdminI18n()
   const [password, setPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
-  const [error, setError] = useState("")
+  const [error, setError] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [attempts, setAttempts] = useState(0)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setError("")
+    setError(false)
     setIsLoading(true)
 
     // Simulate a small delay for security feel
@@ -29,7 +31,7 @@ export function AdminPasswordGate({ onAuthenticated }: AdminPasswordGateProps) {
       sessionStorage.setItem("adminAuth", "true")
       onAuthenticated()
     } else {
-      setError("Invalid password")
+      setError(true)
       setPassword("")
       setAttempts((n) => n + 1)
       setIsLoading(false)
@@ -37,7 +39,7 @@ export function AdminPasswordGate({ onAuthenticated }: AdminPasswordGateProps) {
   }
 
   return (
-    <div dir="ltr" className="admin-root flex items-center justify-center px-4">
+    <div dir={dir} className="admin-root flex items-center justify-center px-4">
       {/* Decorative ambient background */}
       <div className="admin-ambient" aria-hidden="true" />
 
@@ -56,10 +58,10 @@ export function AdminPasswordGate({ onAuthenticated }: AdminPasswordGateProps) {
           </div>
 
           <h1 className="mb-1.5 text-center text-[22px] font-bold tracking-tight text-[var(--admin-text)]">
-            Admin Dashboard
+            {t("header.title")}
           </h1>
           <p className="mb-7 text-center text-[13.5px] text-[var(--admin-text-2)]">
-            Enter your password to continue
+            {t("gate.subtitle")}
           </p>
 
           {/* Form */}
@@ -72,7 +74,7 @@ export function AdminPasswordGate({ onAuthenticated }: AdminPasswordGateProps) {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   disabled={isLoading}
-                  placeholder="Enter admin password"
+                  placeholder={t("gate.placeholder")}
                   className="admin-input h-[52px] ps-11 pe-12 text-[15px]"
                   autoFocus
                 />
@@ -80,7 +82,7 @@ export function AdminPasswordGate({ onAuthenticated }: AdminPasswordGateProps) {
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
                   disabled={isLoading}
-                  aria-label={showPassword ? "Hide password" : "Show password"}
+                  aria-label={showPassword ? t("gate.hidePassword") : t("gate.showPassword")}
                   className="absolute end-3 top-1/2 -translate-y-1/2 rounded-lg p-1.5 text-[var(--admin-text-3)] transition-colors hover:bg-white/5 hover:text-[var(--admin-text-2)] disabled:opacity-50"
                 >
                   {showPassword ? (
@@ -94,22 +96,22 @@ export function AdminPasswordGate({ onAuthenticated }: AdminPasswordGateProps) {
               {error && (
                 <p className="mt-2.5 flex items-center gap-1.5 text-[13px] font-medium text-red-400">
                   <Lock className="h-3.5 w-3.5 flex-shrink-0" />
-                  {error}
+                  {t("gate.invalid")}
                 </p>
               )}
             </div>
 
             {/* Submit Button */}
             <button type="submit" disabled={isLoading || !password} className="admin-btn-primary w-full h-[50px]">
-              {isLoading ? "Verifying..." : "Unlock Admin Panel"}
+              {isLoading ? t("gate.verifying") : t("gate.submit")}
             </button>
           </form>
 
           {/* Footer */}
           <p className="mt-8 text-center text-xs text-[var(--admin-text-3)]">
-            Secure Session
+            {t("gate.footer.secure")}
             <span className="mx-2 text-[rgba(148,163,184,0.35)]">•</span>
-            Session-only authentication
+            {t("gate.footer.sessionOnly")}
           </p>
         </div>
       </div>
