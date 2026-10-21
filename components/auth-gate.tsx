@@ -6,11 +6,14 @@ import { usePathname } from "next/navigation"
 import { OnboardingScreen } from "./onboarding-screen"
 import { LoadingScreen } from "./loading-screen"
 import { IntroOnboarding } from "./intro-onboarding"
+import { CinematicAuthDemo } from "./cinematic-auth-demo"
+import { useDemoMode } from "@/lib/demo-mode-context"
 
 const STORAGE_KEY = "tanakoli_intro_seen"
 
 export function AuthGate({ children }: { children: React.ReactNode }) {
   const { currentUser, isAuthLoading } = useAuth()
+  const { isActive: isDemoActive, demoPhase, completeAuthDemo, stopDemo } = useDemoMode()
   const pathname = usePathname()
   const [introSeen, setIntroSeen] = useState<boolean | null>(null)
 
@@ -39,6 +42,15 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
 
   // Skip auth gate for admin routes — they have their own password protection
   if (pathname?.startsWith("/admin")) {
+    return <>{children}</>
+  }
+
+  if (isDemoActive && demoPhase === "auth") {
+    return <CinematicAuthDemo onComplete={completeAuthDemo} onExit={stopDemo} />
+  }
+
+  // Keep the main app visible during a demo-only session, without signing in or writing credentials.
+  if (isDemoActive && demoPhase === "tour") {
     return <>{children}</>
   }
 

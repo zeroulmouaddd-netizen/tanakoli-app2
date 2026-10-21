@@ -14,15 +14,18 @@ import { usePathname, useRouter } from "next/navigation"
 
 export type DemoStep = 1 | 2 | 3 | 4 | 5 | 6 | 7
 export type DemoStep6Phase = "past" | "upcoming" | "history"
+export type DemoPhase = "auth" | "tour"
 
 interface DemoModeContextValue {
   isActive: boolean
+  demoPhase: DemoPhase
   isPreparing: boolean
   step: DemoStep | null
   stepStartedAt: number | null
   step6Phase: DemoStep6Phase
   setStep6Phase: (phase: DemoStep6Phase) => void
   startDemo: () => void
+  completeAuthDemo: () => void
   stopDemo: () => void
   setHomeMapReady: (ready: boolean) => void
 }
@@ -34,17 +37,20 @@ export function DemoModeProvider({ children }: { children: ReactNode }) {
   const pathname = usePathname()
   const router = useRouter()
   const [isActive, setIsActive] = useState(false)
+  const [demoPhase, setDemoPhase] = useState<DemoPhase>("tour")
   const [step, setStep] = useState<DemoStep | null>(null)
   const [stepStartedAt, setStepStartedAt] = useState<number | null>(null)
   const [step6Phase, setStep6Phase] = useState<DemoStep6Phase>("past")
-  const [pendingStart, setPendingStart] = useState(false)
   const mapReadyRef = useRef(false)
+  const demoPhaseRef = useRef<DemoPhase>("tour")
   const activeRef = useRef(false)
   const waitingForMapRef = useRef(false)
   const stepRouteNavigationRef = useRef<{ step: DemoStep; path: string } | null>(null)
 
   const beginPresentation = useCallback(() => {
     activeRef.current = true
+    demoPhaseRef.current = "tour"
+    setDemoPhase("tour")
     setStep6Phase("past")
     setIsActive(true)
     if (mapReadyRef.current) {
@@ -59,32 +65,54 @@ export function DemoModeProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const startDemo = useCallback(() => {
-    setPendingStart(false)
-    if (pathname !== "/") {
-      setPendingStart(true)
-      router.push("/")
-      return
-    }
+    activeRef.current = true
+    waitingForMapRef.current = false
+    mapReadyRef.current = false
+    demoPhaseRef.current = "auth"
+    stepRouteNavigationRef.current = null
+    setDemoPhase("auth")
+    setStep6Phase("past")
+    setIsActive(true)
+    setStep(null)
+    setStepStartedAt(null)
+    if (pathname !== "/") router.replace("/")
+  }, [pathname, router])
+
+  const completeAuthDemo = useCallback(() => {
+    if (!activeRef.current) return
+    if (pathname !== "/") router.replace("/")
     beginPresentation()
   }, [beginPresentation, pathname, router])
-
-  useEffect(() => {
-    if (!pendingStart || pathname !== "/") return
-    setPendingStart(false)
-    beginPresentation()
-  }, [beginPresentation, pathname, pendingStart])
 
   const stopDemo = useCallback(() => {
     activeRef.current = false
     waitingForMapRef.current = false
-    setPendingStart(false)
+    demoPhaseRef.current = "tour"
+    setDemoPhase("tour")
     setIsActive(false)
     setStep(null)
     setStepStartedAt(null)
     setStep6Phase("past")
   }, [])
 
+  const loopToAuth = useCallback(() => {
+    activeRef.current = true
+    waitingForMapRef.current = false
+    mapReadyRef.current = false
+    demoPhaseRef.current = "auth"
+    stepRouteNavigationRef.current = null
+    setDemoPhase("auth")
+    setStep(null)
+    setStepStartedAt(null)
+    setStep6Phase("past")
+    if (pathname !== "/") router.replace("/")
+  }, [pathname, router])
+
   const setHomeMapReady = useCallback((ready: boolean) => {
+    if (demoPhaseRef.current !== "tour") {
+      mapReadyRef.current = false
+      return
+    }
     mapReadyRef.current = ready
     if (ready && activeRef.current && waitingForMapRef.current) {
       waitingForMapRef.current = false
@@ -95,7 +123,7 @@ export function DemoModeProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const destination = step === 5 ? "/stations" : step === 6 ? "/trips" : step === 7 ? "/account" : null
-    if (!isActive || step === null || !destination) {
+    if (!isActive || demoPhase !== "tour" || step === null || !destination) {
       stepRouteNavigationRef.current = null
       return
     }
@@ -104,16 +132,15 @@ export function DemoModeProvider({ children }: { children: ReactNode }) {
     if (navigation?.step === step && navigation.path === destination) return
 
     stepRouteNavigationRef.current = { step, path: destination }
-    if (pathname !== destination) router.push(destination)
-  }, [isActive, pathname, router, step])
+    if (pathname !== destination) router.replace(destination)
+  }, [demoPhase, isActive, pathname, router, step])
 
   useEffect(() => {
-    if (!isActive || step === null) return
+    if (!isActive || demoPhase !== "tour" || step === null) return
 
     const timer = window.setTimeout(() => {
       if (step === 7) {
-        stopDemo()
-        router.push("/")
+        loopToAuth()
         return
       }
       setStep((step + 1) as DemoStep)
@@ -121,7 +148,7 @@ export function DemoModeProvider({ children }: { children: ReactNode }) {
     }, STEP_DURATION_MS)
 
     return () => window.clearTimeout(timer)
-  }, [isActive, router, step, stopDemo])
+  }, [demoPhase, isActive, loopToAuth, step])
 
   useEffect(() => {
     if (!isActive) return
@@ -138,15 +165,17 @@ export function DemoModeProvider({ children }: { children: ReactNode }) {
 
   const value = useMemo<DemoModeContextValue>(() => ({
     isActive,
-    isPreparing: isActive && step === null,
+    demoPhase,
+    isPreparing: isActive && demoPhase === "tour" && step === null,
     step,
     stepStartedAt,
     step6Phase,
     setStep6Phase,
     startDemo,
+    completeAuthDemo,
     stopDemo,
     setHomeMapReady,
-  }), [isActive, step, stepStartedAt, step6Phase, startDemo, stopDemo, setHomeMapReady, setStep6Phase])
+  }), [isActive, demoPhase, step, stepStartedAt, step6Phase, startDemo, completeAuthDemo, stopDemo, setHomeMapReady, setStep6Phase])
 
   return <DemoModeContext.Provider value={value}>{children}</DemoModeContext.Provider>
 }

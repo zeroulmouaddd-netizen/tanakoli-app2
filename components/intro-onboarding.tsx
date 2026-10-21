@@ -2,6 +2,8 @@
 
 import { useState, useRef, useCallback } from "react"
 import { motion, AnimatePresence } from "framer-motion"
+import { Play } from "lucide-react"
+import { useDemoMode } from "@/lib/demo-mode-context"
 
 interface IntroOnboardingProps {
   onDone: () => void
@@ -29,6 +31,7 @@ const slides = [
 ]
 
 export function IntroOnboarding({ onDone }: IntroOnboardingProps) {
+  const { startDemo } = useDemoMode()
   const [current, setCurrent] = useState(0)
   const [direction, setDirection] = useState(1)
   const dragStartX = useRef<number | null>(null)
@@ -94,6 +97,16 @@ export function IntroOnboarding({ onDone }: IntroOnboardingProps) {
           تخطي
         </motion.button>
       )}
+      <motion.button
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        onClick={startDemo}
+        className="absolute top-14 right-5 z-20 flex items-center gap-1.5 rounded-full border border-emerald-300/20 bg-emerald-400/10 px-3 py-1.5 text-xs font-medium text-emerald-100/75 backdrop-blur-sm transition-colors hover:bg-emerald-400/20 hover:text-emerald-50"
+        aria-label="ابدأ الجولة السينمائية"
+      >
+        <Play className="h-3 w-3 fill-current" aria-hidden="true" />
+        <span>عرض سينمائي</span>
+      </motion.button>
 
       {/* Slide content */}
       <div className="absolute inset-0 flex flex-col items-center justify-between px-6 pt-20 pb-10">

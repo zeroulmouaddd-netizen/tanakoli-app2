@@ -217,7 +217,7 @@ function connectorPath(card: DOMRect, target: DOMRect, step: DemoStep) {
 }
 
 export function DemoPresentationOverlay() {
-  const { isActive, isPreparing, step, stepStartedAt, step6Phase, stopDemo } = useDemoMode()
+  const { isActive, demoPhase, isPreparing, step, stepStartedAt, step6Phase, stopDemo } = useDemoMode()
   const pathname = usePathname()
   const pathRef = useRef<SVGPathElement>(null)
   const glowPathRef = useRef<SVGPathElement>(null)
@@ -233,7 +233,7 @@ export function DemoPresentationOverlay() {
   }, [stepStartedAt])
 
   useEffect(() => {
-    if (!isActive || !step || !stepStartedAt) {
+    if (!isActive || demoPhase !== "tour" || !step || !stepStartedAt) {
       setSecondsLeft(5)
       return
     }
@@ -246,7 +246,7 @@ export function DemoPresentationOverlay() {
     updateCountdown()
     const timer = window.setInterval(updateCountdown, 1_000)
     return () => window.clearInterval(timer)
-  }, [isActive, step, stepStartedAt])
+  }, [demoPhase, isActive, step, stepStartedAt])
 
   useEffect(() => {
     const hideConnector = () => {
@@ -258,7 +258,7 @@ export function DemoPresentationOverlay() {
       targetDotRef.current?.setAttribute("opacity", "0")
     }
 
-    if (!isActive || !step) {
+    if (!isActive || demoPhase !== "tour" || !step) {
       hideConnector()
       return
     }
@@ -460,9 +460,9 @@ export function DemoPresentationOverlay() {
       window.removeEventListener("resize", scheduleRefresh)
       window.removeEventListener("scroll", scheduleRefresh, true)
     }
-  }, [isActive, step, isPreparing])
+  }, [demoPhase, isActive, step, isPreparing])
 
-  const isStep6HistoryPhase = isActive && step === 6 && step6Phase === "history"
+  const isStep6HistoryPhase = isActive && demoPhase === "tour" && step === 6 && step6Phase === "history"
 
   useEffect(() => {
     const destination = step === 5
@@ -479,7 +479,7 @@ export function DemoPresentationOverlay() {
       : step === 7
       ? "account-overview"
       : null
-    if (!isActive || !destination || !targetName || pathname !== destination) return
+    if (!isActive || demoPhase !== "tour" || !destination || !targetName || pathname !== destination) return
 
     let previousTarget: HTMLElement | null = null
     let firstScrollFrame = 0
@@ -543,7 +543,7 @@ export function DemoPresentationOverlay() {
       if (firstScrollFrame) window.cancelAnimationFrame(firstScrollFrame)
       if (secondScrollFrame) window.cancelAnimationFrame(secondScrollFrame)
     }
-  }, [isActive, pathname, step, isStep6HistoryPhase])
+  }, [demoPhase, isActive, pathname, step, isStep6HistoryPhase])
 
   const copy = useMemo(() => {
     if (!step) return null
@@ -570,7 +570,7 @@ export function DemoPresentationOverlay() {
 
   return (
     <AnimatePresence>
-      {isActive && (
+      {isActive && demoPhase === "tour" && (
         <motion.div
           key="demo-presentation-overlay"
           className="demo-presentation-overlay"
