@@ -1320,14 +1320,8 @@ select.admin-input {
   border: 1px solid rgba(110, 231, 183, 0.9);
   border-radius: inherit;
   box-shadow: 0 0 0 1px rgba(16, 185, 129, 0.2), 0 0 13px rgba(16, 185, 129, 0.45);
+  opacity: 0.9;
   pointer-events: none;
-  animation: demo-step6-ring-pulse 1.2s cubic-bezier(0.2, 0.8, 0.2, 1) infinite;
-  will-change: transform, opacity;
-  backface-visibility: hidden;
-}
-@keyframes demo-step6-ring-pulse {
-  0% { transform: translate3d(0, 0, 0) scale(0.92); opacity: 0.88; }
-  100% { transform: translate3d(0, 0, 0) scale(1.16); opacity: 0; }
 }
 @keyframes demo-connector-dash { to { stroke-dashoffset: -34; } }
 
@@ -1682,8 +1676,7 @@ select.admin-input {
   .demo-map-anchor::after,
   .demo-route-selector-active::after,
   .demo-payment-entry-active::after,
-  .demo-trips-demo-active .demo-trip-time--departed,
-  .demo-step6-ring-focus::after {
+  .demo-trips-demo-active .demo-trip-time--departed {
     animation: none !important;
   }
   .demo-launch-button::before,
