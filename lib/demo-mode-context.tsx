@@ -12,7 +12,7 @@ import {
 } from "react"
 import { usePathname, useRouter } from "next/navigation"
 
-export type DemoStep = 1 | 2 | 3 | 4 | 5
+export type DemoStep = 1 | 2 | 3 | 4 | 5 | 6
 
 interface DemoModeContextValue {
   isActive: boolean
@@ -37,7 +37,7 @@ export function DemoModeProvider({ children }: { children: ReactNode }) {
   const mapReadyRef = useRef(false)
   const activeRef = useRef(false)
   const waitingForMapRef = useRef(false)
-  const stepFiveNavigationStartedRef = useRef(false)
+  const stepRouteNavigationRef = useRef<{ step: DemoStep; path: string } | null>(null)
 
   const beginPresentation = useCallback(() => {
     activeRef.current = true
@@ -88,25 +88,24 @@ export function DemoModeProvider({ children }: { children: ReactNode }) {
   }, [])
 
   useEffect(() => {
-    if (!isActive || step !== 5) {
-      stepFiveNavigationStartedRef.current = false
+    const destination = step === 5 ? "/stations" : step === 6 ? "/trips" : null
+    if (!isActive || step === null || !destination) {
+      stepRouteNavigationRef.current = null
       return
     }
-    if (pathname === "/stations") {
-      stepFiveNavigationStartedRef.current = true
-      return
-    }
-    if (stepFiveNavigationStartedRef.current) return
 
-    stepFiveNavigationStartedRef.current = true
-    router.push("/stations")
+    const navigation = stepRouteNavigationRef.current
+    if (navigation?.step === step && navigation.path === destination) return
+
+    stepRouteNavigationRef.current = { step, path: destination }
+    if (pathname !== destination) router.push(destination)
   }, [isActive, pathname, router, step])
 
   useEffect(() => {
     if (!isActive || step === null) return
 
     const timer = window.setTimeout(() => {
-      if (step === 5) {
+      if (step === 6) {
         stopDemo()
         return
       }

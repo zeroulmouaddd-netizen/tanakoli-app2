@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from "framer-motion"
 import { AppHeader } from "@/components/app-header"
 import { BottomNav } from "@/components/bottom-nav"
 import { TripsBackground } from "@/components/trips-background"
-import { Clock, Bus, ArrowLeft, Ticket, Calendar, History, MapPin, QrCode, Navigation, ArrowUpCircle, ArrowDownCircle, Wallet } from "lucide-react"
+import { Clock, Bus, ArrowLeft, Ticket, Calendar, History, MapPin, QrCode, Navigation, ArrowUpCircle, ArrowDownCircle, Wallet, Search } from "lucide-react"
 import { ErrorBoundary } from "@/components/error-boundary"
 import { TripCardSkeleton } from "@/components/skeleton-loader"
 import { useTripsCache, type Trip } from "@/hooks/use-trips-cache"
@@ -14,6 +14,7 @@ import { usePassengerTransactions } from "@/hooks/use-passenger-transactions"
 import { PageTransition } from "@/components/page-transition"
 import { Button } from "@/components/ui/button"
 import { useTracking } from "@/lib/tracking-context"
+import { useDemoMode } from "@/lib/demo-mode-context"
 import { useRoutesByCategory } from "@/hooks/use-routes"
 import { calculateNextArrival, generateSchedule } from "@/lib/schedule-utils"
 
@@ -75,14 +76,30 @@ const mockActiveTrip = {
 
 export default function TripsPage() {
   const [activeTab, setActiveTab] = useState<"schedule" | "history">("schedule")
+  const [scheduleSearch, setScheduleSearch] = useState("")
   const [hasActiveTrip, setHasActiveTrip] = useState(false)
   const [hasMounted, setHasMounted] = useState(false)
   const router = useRouter()
   const { startTracking } = useTracking()
+  const { isActive: isDemoActive, step: demoStep } = useDemoMode()
+  const isDemoTripsStep = isDemoActive && demoStep === 6
   
   const { trips, isLoading: loading } = useTripsCache()
   const { transactions, isLoading: transactionsLoading } = usePassengerTransactions("0775453629")
   const { routes: urbanRoutes, isLoading: routesLoading } = useRoutesByCategory("urban")
+  const searchTerm = scheduleSearch.trim().toLowerCase()
+  const filteredUrbanRoutes = searchTerm
+    ? urbanRoutes.filter((route) => {
+        const searchableText = [
+          route.name,
+          route.nameEn,
+          route.lineNumber,
+          ...route.stops.flatMap((stop) => [stop.name, stop.nameEn]),
+          ...(route.sub_stations ?? []).flatMap((station) => [station.name, station.nameEn]),
+        ].join(" ").toLowerCase()
+        return searchableText.includes(searchTerm)
+      })
+    : urbanRoutes
   
   const handleTrackBus = (lineId: string, lineName: string) => {
     startTracking(lineId, lineName)
@@ -132,7 +149,7 @@ export default function TripsPage() {
   return (
     <ErrorBoundary>
       <PageTransition>
-        <main className="relative min-h-screen bg-background pb-32 sm:pb-40">
+        <main className={`relative min-h-screen bg-background pb-32 sm:pb-40${isDemoTripsStep ? " demo-trips-demo-active" : ""}`}>
           {/* Animated Background */}
           <TripsBackground />
           
@@ -140,7 +157,7 @@ export default function TripsPage() {
           <div className="relative z-10">
           <AppHeader />
         
-          <div className="px-3 sm:px-4 md:px-6 pt-16 sm:pt-20">
+          <div className="px-3 sm:px-4 md:px-6 pt-16 sm:pt-20 demo-trips-content">
             {/* Page Header */}
             <motion.div
               className="mb-4 flex items-center gap-2 sm:gap-3"
@@ -157,9 +174,29 @@ export default function TripsPage() {
               </div>
             </motion.div>
 
+            {/* Schedule search */}
+            <motion.div
+              data-demo-target={isDemoTripsStep ? "trip-search-card" : undefined}
+              className="relative mb-4 rounded-xl border border-border/70 bg-card/80 px-3 py-2.5 shadow-sm backdrop-blur-md"
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.24, delay: 0.04 }}
+            >
+              <Search className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
+              <input
+                type="text"
+                value={scheduleSearch}
+                onChange={(event) => setScheduleSearch(event.target.value)}
+                placeholder="ابحث عن خط أو محطة..."
+                aria-label="ابحث عن خط أو محطة"
+                dir="auto"
+                className="w-full bg-transparent py-1 pr-7 text-sm text-foreground outline-none placeholder:text-muted-foreground"
+              />
+            </motion.div>
+
             {/* Active Trip Section */}
             <motion.div
-              className="mb-4"
+              className={`mb-4${isDemoTripsStep ? " demo-trip-active-section" : ""}`}
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.05 }}
@@ -326,8 +363,12 @@ export default function TripsPage() {
                           </div>
                         ))}
                       </div>
+                    ) : filteredUrbanRoutes.length === 0 ? (
+                      <div className="rounded-2xl border border-border/70 bg-card/80 px-4 py-8 text-center text-sm text-muted-foreground">
+                        لا توجد مواعيد مطابقة للبحث
+                      </div>
                     ) : (
-                      urbanRoutes.map((route) => {
+                      filteredUrbanRoutes.map((route) => {
                         const subStations = route.sub_stations || route.stops.map(s => ({ id: s.id, name: s.name }))
                         const firstStop = subStations[0]?.name || route.stops[0]?.name || ""
                         const lastStop = subStations[subStations.length - 1]?.name || route.stops[route.stops.length - 1]?.name || ""

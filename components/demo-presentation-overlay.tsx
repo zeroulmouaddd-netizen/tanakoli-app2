@@ -37,6 +37,12 @@ const STEP_COPY: Record<DemoStep, { ar: string; fr: string; bodyAr: string; body
     bodyAr: "تعرّف على المحطات القريبة وخيارات النقل الحضري لتخطط رحلتك بسهولة.",
     bodyFr: "Repérez les arrêts proches et les options de transport urbain pour organiser vos déplacements.",
   },
+  6: {
+    ar: "جدولة الرحلات والمواعيد",
+    fr: "Planification et Horaires des Voyages",
+    bodyAr: "ابحث عن مواعيد الخطوط وتابع أوقات الانطلاق والوصول لحظة بلحظة.",
+    bodyFr: "Recherchez un itinéraire et consultez ses horaires en temps réel.",
+  },
 }
 
 const QR_SPOTLIGHT_PADDING = 8
@@ -48,6 +54,7 @@ function targetNames(step: DemoStep | null) {
   if (step === 3) return ["route-selector"]
   if (step === 4) return ["payment-qr"]
   if (step === 5) return ["first-route-card"]
+  if (step === 6) return ["trip-search-card"]
   return []
 }
 
@@ -108,6 +115,30 @@ function connectorPath(card: DOMRect, target: DOMRect, step: DemoStep) {
   if (step === 5) {
     // Join the first route card's upper-right edge from the banner.
     const targetX = target.right - Math.min(24, target.width * 0.08)
+    const targetY = target.top
+    const startX = Math.max(card.left + 24, Math.min(card.right - 24, targetX))
+    const startY = targetY < card.top ? card.top : card.bottom
+    const dx = targetX - startX
+    const dy = targetY - startY
+    const bend = Math.min(96, Math.max(24, Math.hypot(dx, dy) * 0.16))
+    const mostlyHorizontal = Math.abs(dx) > Math.abs(dy)
+    const directionX = dx >= 0 ? 1 : -1
+    const directionY = dy >= 0 ? 1 : -1
+    const control1X = startX + (mostlyHorizontal ? directionX * bend : dx * 0.18)
+    const control1Y = startY + (mostlyHorizontal ? dy * 0.18 : directionY * bend)
+    const control2X = targetX - (mostlyHorizontal ? directionX * bend : dx * 0.18)
+    const control2Y = targetY - (mostlyHorizontal ? dy * 0.18 : directionY * bend)
+
+    return {
+      d: `M ${startX} ${startY} C ${control1X} ${control1Y}, ${control2X} ${control2Y}, ${targetX} ${targetY}`,
+      x: targetX,
+      y: targetY,
+    }
+  }
+
+  if (step === 6) {
+    // Approach the search card's left edge, clear of its icon and text.
+    const targetX = target.left + Math.min(24, target.width * 0.08)
     const targetY = target.top
     const startX = Math.max(card.left + 24, Math.min(card.right - 24, targetX))
     const startY = targetY < card.top ? card.top : card.bottom
@@ -326,9 +357,9 @@ export function DemoPresentationOverlay() {
         return
       }
 
-      if (step === 5) {
-        // Step 05 navigates to another route. Keep sampling until its first
-        // card mounts and its entrance/scroll transition have settled.
+      if (step === 5 || step === 6) {
+        // Cross-route steps keep sampling until their target mounts and its
+        // entrance/scroll transition has settled.
         if (now - sampleAt >= 33) {
           const target = drawConnector()
           sampleAt = now
@@ -370,13 +401,15 @@ export function DemoPresentationOverlay() {
   }, [isActive, step, isPreparing])
 
   useEffect(() => {
-    if (!isActive || step !== 5 || pathname !== "/stations") return
+    const destination = step === 5 ? "/stations" : step === 6 ? "/trips" : null
+    const targetName = step === 5 ? "first-route-card" : step === 6 ? "trip-search-card" : null
+    if (!isActive || !destination || !targetName || pathname !== destination) return
 
     let didScroll = false
     let scrollFrame = 0
-    const scrollToFirstRoute = () => {
+    const scrollToDemoTarget = () => {
       if (didScroll) return
-      const target = document.querySelector<HTMLElement>('[data-demo-target="first-route-card"]')
+      const target = document.querySelector<HTMLElement>(`[data-demo-target="${targetName}"]`)
       if (!target) return
 
       didScroll = true
@@ -385,9 +418,9 @@ export function DemoPresentationOverlay() {
       })
     }
 
-    const observer = new MutationObserver(scrollToFirstRoute)
+    const observer = new MutationObserver(scrollToDemoTarget)
     observer.observe(document.body, { childList: true, subtree: true })
-    scrollToFirstRoute()
+    scrollToDemoTarget()
 
     return () => {
       observer.disconnect()
@@ -423,7 +456,7 @@ export function DemoPresentationOverlay() {
             <motion.section
               key={step ?? "preparing"}
               id="demo-callout-card"
-              className={`demo-callout-card${step === 3 ? " demo-callout-card--route" : ""}${step === 4 ? " demo-callout-card--payment" : ""}${step === 5 ? " demo-callout-card--stations" : ""}${isPreparing ? " demo-callout-card--preparing" : ""}`}
+              className={`demo-callout-card${step === 3 ? " demo-callout-card--route" : ""}${step === 4 ? " demo-callout-card--payment" : ""}${step === 5 ? " demo-callout-card--stations" : ""}${step === 6 ? " demo-callout-card--trips" : ""}${isPreparing ? " demo-callout-card--preparing" : ""}`}
               initial={{ opacity: 0, y: 12, scale: 0.985 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: -6, scale: 0.99 }}
@@ -455,7 +488,7 @@ export function DemoPresentationOverlay() {
                     <p className="demo-copy-fr" dir="ltr" lang="fr">{copy.bodyFr}</p>
                   </div>
                   <div className="demo-progress-meta" dir="ltr">
-                    <span>ÉTAPE {String(step).padStart(2, "0")} <span className="demo-meta-divider">/</span> 05</span>
+                    <span>ÉTAPE {String(step).padStart(2, "0")} <span className="demo-meta-divider">/</span> 06</span>
                     <span className="demo-countdown">00:0{secondsLeft}</span>
                   </div>
                   <div className="demo-progress-track" dir="ltr" aria-hidden="true">
