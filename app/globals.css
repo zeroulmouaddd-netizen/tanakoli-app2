@@ -1048,3 +1048,46 @@ select.admin-input {
 .admin-root[dir="rtl"] .rtl-flip {
   transform: scaleX(-1);
 }
+
+/* ════════════════════════════════════════════════════════════════════════════
+   Admin insights — chart motion (display only)
+   Subtle ambient pulse on the leading point, segment hover easing and tooltip
+   fade. All decorative; reduced-motion users get static, final-state visuals.
+   ════════════════════════════════════════════════════════════════════════════ */
+
+.insight-pulse {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: insight-pulse 2.6s var(--admin-ease) infinite;
+  pointer-events: none;
+}
+@keyframes insight-pulse {
+  0% { transform: scale(0.55); opacity: 0.6; }
+  70%, 100% { transform: scale(1.9); opacity: 0; }
+}
+
+.insight-seg {
+  transition: stroke-width 0.35s var(--admin-ease), opacity 0.35s var(--admin-ease),
+    filter 0.35s var(--admin-ease);
+}
+
+.insight-tip {
+  animation: insight-tip-in 0.18s var(--admin-ease) both;
+}
+@keyframes insight-tip-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .insight-pulse {
+    animation: none;
+    opacity: 0.25;
+    transform: none;
+  }
+  .insight-seg,
+  .insight-tip {
+    transition: none;
+    animation: none;
+  }
+}
