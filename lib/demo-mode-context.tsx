@@ -37,6 +37,7 @@ export function DemoModeProvider({ children }: { children: ReactNode }) {
   const mapReadyRef = useRef(false)
   const activeRef = useRef(false)
   const waitingForMapRef = useRef(false)
+  const stepFiveNavigationStartedRef = useRef(false)
 
   const beginPresentation = useCallback(() => {
     activeRef.current = true
@@ -85,6 +86,21 @@ export function DemoModeProvider({ children }: { children: ReactNode }) {
       setStepStartedAt(Date.now())
     }
   }, [])
+
+  useEffect(() => {
+    if (!isActive || step !== 5) {
+      stepFiveNavigationStartedRef.current = false
+      return
+    }
+    if (pathname === "/stations") {
+      stepFiveNavigationStartedRef.current = true
+      return
+    }
+    if (stepFiveNavigationStartedRef.current) return
+
+    stepFiveNavigationStartedRef.current = true
+    router.push("/stations")
+  }, [isActive, pathname, router, step])
 
   useEffect(() => {
     if (!isActive || step === null) return

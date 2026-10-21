@@ -1,6 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { usePathname } from "next/navigation"
 import { AnimatePresence, motion } from "framer-motion"
 import { X } from "lucide-react"
 import { useDemoMode, type DemoStep } from "@/lib/demo-mode-context"
@@ -46,7 +47,7 @@ function targetNames(step: DemoStep | null) {
   if (step === 2) return ["live-bus", "live-bus-fallback"]
   if (step === 3) return ["route-selector"]
   if (step === 4) return ["payment-qr"]
-  if (step === 5) return ["nearby-stations"]
+  if (step === 5) return ["first-route-card"]
   return []
 }
 
@@ -105,7 +106,7 @@ function connectorPath(card: DOMRect, target: DOMRect, step: DemoStep) {
   }
 
   if (step === 5) {
-    // Join the upper-right edge of the nearby-stations section from the banner.
+    // Join the first route card's upper-right edge from the banner.
     const targetX = target.right - Math.min(24, target.width * 0.08)
     const targetY = target.top
     const startX = Math.max(card.left + 24, Math.min(card.right - 24, targetX))
@@ -160,6 +161,7 @@ function connectorPath(card: DOMRect, target: DOMRect, step: DemoStep) {
 
 export function DemoPresentationOverlay() {
   const { isActive, isPreparing, step, stepStartedAt, stopDemo } = useDemoMode()
+  const pathname = usePathname()
   const pathRef = useRef<SVGPathElement>(null)
   const glowPathRef = useRef<SVGPathElement>(null)
   const qrDimPathRef = useRef<SVGPathElement>(null)
@@ -208,6 +210,7 @@ export function DemoPresentationOverlay() {
     let refreshFrame = 0
     let sampleAt = 0
     let qrTargetSeenAt: number | null = null
+    let routeTargetSeenAt: number | null = null
     const entranceEndsAt = performance.now() + 380
     let observedTarget: Element | null = null
 
@@ -323,6 +326,27 @@ export function DemoPresentationOverlay() {
         return
       }
 
+      if (step === 5) {
+        // Step 05 navigates to another route. Keep sampling until its first
+        // card mounts and its entrance/scroll transition have settled.
+        if (now - sampleAt >= 33) {
+          const target = drawConnector()
+          sampleAt = now
+          if (target) {
+            if (routeTargetSeenAt === null) routeTargetSeenAt = now
+          } else {
+            routeTargetSeenAt = null
+          }
+        }
+        if (routeTargetSeenAt === null || now - routeTargetSeenAt < 650) {
+          frame = window.requestAnimationFrame(animateConnector)
+        } else {
+          drawConnector()
+          frame = 0
+        }
+        return
+      }
+
       // Follow the banner's entrance transform, then let resize/scroll/mutation
       // observers request one-off updates for the remaining static steps.
       if (now <= entranceEndsAt) {
@@ -346,17 +370,30 @@ export function DemoPresentationOverlay() {
   }, [isActive, step, isPreparing])
 
   useEffect(() => {
-    if (!isActive || step !== 5) return
+    if (!isActive || step !== 5 || pathname !== "/stations") return
 
-    const frame = window.requestAnimationFrame(() => {
-      document.querySelector<HTMLElement>('[data-demo-target="nearby-stations"]')?.scrollIntoView({
-        behavior: "smooth",
-        block: "start",
+    let didScroll = false
+    let scrollFrame = 0
+    const scrollToFirstRoute = () => {
+      if (didScroll) return
+      const target = document.querySelector<HTMLElement>('[data-demo-target="first-route-card"]')
+      if (!target) return
+
+      didScroll = true
+      scrollFrame = window.requestAnimationFrame(() => {
+        target.scrollIntoView({ behavior: "smooth", block: "nearest" })
       })
-    })
+    }
 
-    return () => window.cancelAnimationFrame(frame)
-  }, [isActive, step])
+    const observer = new MutationObserver(scrollToFirstRoute)
+    observer.observe(document.body, { childList: true, subtree: true })
+    scrollToFirstRoute()
+
+    return () => {
+      observer.disconnect()
+      if (scrollFrame) window.cancelAnimationFrame(scrollFrame)
+    }
+  }, [isActive, pathname, step])
 
   const copy = useMemo(() => (step ? STEP_COPY[step] : null), [step])
 

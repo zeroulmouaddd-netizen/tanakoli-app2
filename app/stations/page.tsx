@@ -11,6 +11,7 @@ import { ErrorBoundary } from "@/components/error-boundary"
 import { Skeleton } from "@/components/skeleton-loader"
 import { PageTransition } from "@/components/page-transition"
 import { useRouteSearch } from "@/hooks/use-routes"
+import { useDemoMode } from "@/lib/demo-mode-context"
 import type { BusRoute, RouteCategory } from "@/lib/types/routes"
 
 // Animation variants
@@ -191,9 +192,10 @@ function RouteDetailView({ route, onClose }: { route: BusRoute; onClose: () => v
 }
 
 // Urban Route Card Component
-function UrbanRouteCard({ route, onSelect }: { route: BusRoute; onSelect: () => void }) {
+function UrbanRouteCard({ route, onSelect, demoTarget }: { route: BusRoute; onSelect: () => void; demoTarget?: string }) {
   return (
     <motion.div
+      data-demo-target={demoTarget}
       className="overflow-hidden rounded-2xl bg-card shadow-sm transition-shadow hover:shadow-md"
       variants={itemVariants}
       layout
@@ -259,13 +261,15 @@ export default function StationsPage() {
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedRoute, setSelectedRoute] = useState<BusRoute | null>(null)
   const [activeCategory, setActiveCategory] = useState<RouteCategory>("urban")
+  const { isActive: isDemoActive, step: demoStep } = useDemoMode()
+  const isDemoStationsStep = isDemoActive && demoStep === 5
   
   const { matchedRoutes, isLoading } = useRouteSearch(searchQuery, "urban")
 
   return (
     <ErrorBoundary>
       <PageTransition>
-        <main className="relative min-h-screen bg-background pb-28 md:pb-32">
+        <main className={`relative min-h-screen bg-background pb-28 md:pb-32${isDemoStationsStep ? " demo-stations-demo-active" : ""}`}>
           {/* Animated Background */}
           <StopsBackground />
           
@@ -273,7 +277,7 @@ export default function StationsPage() {
           <div className="relative z-10">
             <AppHeader />
           
-            <div className="px-4 pt-20">
+            <div className="px-4 pt-20 demo-stations-content">
             {/* Header */}
             <motion.div
               className="mb-4 flex items-center gap-3"
@@ -361,11 +365,12 @@ export default function StationsPage() {
                     animate="visible"
                     exit="hidden"
                   >
-                    {matchedRoutes.map((route) => (
-                      <UrbanRouteCard 
-                        key={route.id} 
-                        route={route} 
+                    {matchedRoutes.map((route, index) => (
+                      <UrbanRouteCard
+                        key={route.id}
+                        route={route}
                         onSelect={() => setSelectedRoute(route)}
+                        demoTarget={isDemoStationsStep && index === 0 ? "first-route-card" : undefined}
                       />
                     ))}
                   </motion.div>

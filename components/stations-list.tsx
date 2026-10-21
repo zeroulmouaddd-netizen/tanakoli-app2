@@ -354,7 +354,7 @@ export function StationsList() {
   const { position, status } = useUserLocation()
 
   return (
-    <div id="nearby-stations" data-demo-target="nearby-stations" className="relative demo-nearby-stations-target">
+    <div className="relative">
       <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-border/50 to-transparent" />
 
       <div className="px-3 sm:px-4 md:px-6 py-3 sm:py-4 pb-[100px]">
