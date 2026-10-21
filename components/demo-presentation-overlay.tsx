@@ -140,7 +140,7 @@ function connectorPath(card: DOMRect, target: DOMRect, step: DemoStep) {
   }
 
   if (step === 6) {
-    // Follow Step 06's active target via the page gutter, then approach above its label.
+    // Follow Step 06's active target via the page gutter and meet its top edge outside content.
     const targetX = target.left + Math.min(24, target.width * 0.08)
     const targetY = target.top
     const startX = card.left + Math.min(20, card.width * 0.08)
@@ -433,9 +433,15 @@ export function DemoPresentationOverlay() {
     }
   }, [isActive, step, isPreparing])
 
+  const isStep6HistoryPhase = isActive && step === 6 && step6Phase === "history"
+
   useEffect(() => {
     const destination = step === 5 ? "/stations" : step === 6 ? "/trips" : null
-    const targetName = step === 5 ? "first-route-card" : step === 6 ? "trip-search-card" : null
+    const targetName = step === 5
+      ? "first-route-card"
+      : step === 6
+      ? isStep6HistoryPhase ? "trip-history-first-card" : "trip-search-card"
+      : null
     if (!isActive || !destination || !targetName || pathname !== destination) return
 
     let didScroll = false
@@ -447,23 +453,42 @@ export function DemoPresentationOverlay() {
 
       didScroll = true
       scrollFrame = window.requestAnimationFrame(() => {
-        target.scrollIntoView({ behavior: "smooth", block: "nearest" })
+        const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches
+        target.scrollIntoView({
+          behavior: prefersReducedMotion ? "auto" : "smooth",
+          block: isStep6HistoryPhase ? "center" : "nearest",
+        })
       })
     }
 
     const observer = new MutationObserver(scrollToDemoTarget)
-    observer.observe(document.body, { childList: true, subtree: true })
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      attributeFilter: ["data-demo-target"],
+    })
     scrollToDemoTarget()
 
     return () => {
       observer.disconnect()
       if (scrollFrame) window.cancelAnimationFrame(scrollFrame)
     }
-  }, [isActive, pathname, step])
+  }, [isActive, pathname, step, isStep6HistoryPhase])
 
   const copy = useMemo(() => {
     if (!step) return null
     if (step !== 6) return STEP_COPY[step]
+
+    if (step6Phase === "history") {
+      return {
+        ...STEP_COPY[6],
+        ar: "سجل الرحلات والمعاملات",
+        fr: "Historique des Trajets & Transactions",
+        bodyAr: "تُسجَّل رحلاتك ومعاملاتك لحظة بلحظة.",
+        bodyFr: "Vos trajets et transactions sont enregistrés en temps réel.",
+      }
+    }
 
     return {
       ...STEP_COPY[6],

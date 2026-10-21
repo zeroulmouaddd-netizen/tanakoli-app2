@@ -13,7 +13,7 @@ import {
 import { usePathname, useRouter } from "next/navigation"
 
 export type DemoStep = 1 | 2 | 3 | 4 | 5 | 6
-export type DemoStep6Phase = "past" | "upcoming"
+export type DemoStep6Phase = "past" | "upcoming" | "history"
 
 interface DemoModeContextValue {
   isActive: boolean

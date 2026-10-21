@@ -1287,6 +1287,11 @@ select.admin-input {
   filter: drop-shadow(0 0 10px rgba(16, 185, 129, 0.38));
   transform-origin: center;
 }
+.demo-step6-history-panel,
+.demo-step6-history-card {
+  will-change: transform, opacity;
+  backface-visibility: hidden;
+}
 .demo-step6-ring-focus::after {
   content: "";
   position: absolute;
