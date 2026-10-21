@@ -179,12 +179,11 @@ export function DemoToggleButton() {
 
   return (
     <motion.div
-      className="flex h-10 w-10 items-center justify-center rounded-full"
+      className="relative z-[9999] pointer-events-auto flex h-10 w-10 items-center justify-center rounded-full"
       animate={{
         boxShadow: ["0 0 0 0 rgba(16,185,129,0.50)", "0 0 0 18px rgba(16,185,129,0)"],
       }}
       transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
-      style={{ pointerEvents: "none" }}
     >
       <Button
         onClick={handleClick}
