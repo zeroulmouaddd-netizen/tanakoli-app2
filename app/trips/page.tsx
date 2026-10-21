@@ -141,6 +141,8 @@ export default function TripsPage() {
     : isDemoTripsStep
     ? demoHistoryTransactions
     : []
+  const historySpotlightTransactionId = historyTransactions.find((transaction) => transaction.type === "fare_deduction")?.id
+    ?? historyTransactions[0]?.id
   const historyIsLoading = transactionsLoading && historyTransactions.length === 0
   const searchTerm = scheduleSearch.trim().toLowerCase()
   const filteredUrbanRoutes = searchTerm
@@ -706,7 +708,7 @@ export default function TripsPage() {
                         initial={prefersReducedMotion ? false : "hidden"}
                         animate={prefersReducedMotion ? { opacity: 1 } : "visible"}
                       >
-                        {historyTransactions.map((transaction, transactionIndex) => {
+                        {historyTransactions.map((transaction) => {
                           const isRecharge = transaction.type === "balance_recharge"
                           const timestamp = transaction.driverTimestamp?.toDate?.()
                           const dateString = timestamp 
@@ -724,9 +726,9 @@ export default function TripsPage() {
                           return (
                             <motion.div
                               key={transaction.id}
-                              data-demo-focus-target={isDemoTripsHistoryStep && transactionIndex === 0 ? "history-transaction" : undefined}
-                              data-demo-target={isDemoTripsHistoryStep && transactionIndex === 0 ? "trip-history-first-card" : undefined}
-                              className={`flex items-center gap-4 rounded-2xl bg-card p-4 shadow-sm${isDemoTripsHistoryStep && transactionIndex === 0 ? " demo-step6-history-card" : ""}`}
+                              data-demo-focus-target={isDemoTripsHistoryStep && transaction.id === historySpotlightTransactionId ? "history-transaction" : undefined}
+                              data-demo-target={isDemoTripsHistoryStep && transaction.id === historySpotlightTransactionId ? "trip-history-first-card" : undefined}
+                              className={`flex items-center gap-4 rounded-2xl bg-card p-4 shadow-sm${isDemoTripsHistoryStep && transaction.id === historySpotlightTransactionId ? " demo-step6-history-card" : ""}`}
                               variants={prefersReducedMotion ? undefined : isDemoTripsHistoryStep ? demoHistoryItemVariants : itemVariants}
                               initial={prefersReducedMotion ? false : undefined}
                               animate={prefersReducedMotion ? { opacity: 1, y: 0 } : undefined}

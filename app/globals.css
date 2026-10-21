@@ -1202,6 +1202,7 @@ select.admin-input {
   z-index: 10002;
   inset: 0;
   overflow: hidden;
+  isolation: isolate;
   pointer-events: none;
   contain: layout style;
   transform: translate3d(0, 0, 0);
@@ -1287,8 +1288,16 @@ select.admin-input {
   filter: drop-shadow(0 0 10px rgba(16, 185, 129, 0.38));
   transform-origin: center;
 }
-.demo-step6-history-panel,
+.demo-step6-history-panel {
+  position: relative;
+  z-index: 12;
+  isolation: isolate;
+  will-change: transform, opacity;
+  backface-visibility: hidden;
+}
 .demo-step6-history-card {
+  position: relative;
+  z-index: 1;
   will-change: transform, opacity;
   backface-visibility: hidden;
 }
@@ -1513,6 +1522,7 @@ select.admin-input {
   padding: 11px 12px 10px;
   border-radius: 17px;
 }
+.demo-callout-card--trips { z-index: 3; }
 .demo-callout-card--stations,
 .demo-callout-card--trips {
   top: clamp(76px, 9vh, 94px);

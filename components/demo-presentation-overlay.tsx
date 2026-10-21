@@ -444,19 +444,50 @@ export function DemoPresentationOverlay() {
       : null
     if (!isActive || !destination || !targetName || pathname !== destination) return
 
-    let didScroll = false
-    let scrollFrame = 0
+    let previousTarget: HTMLElement | null = null
+    let firstScrollFrame = 0
+    let secondScrollFrame = 0
     const scrollToDemoTarget = () => {
-      if (didScroll) return
       const target = document.querySelector<HTMLElement>(`[data-demo-target="${targetName}"]`)
-      if (!target) return
+      if (!target) {
+        previousTarget = null
+        return
+      }
+      if (target === previousTarget) return
 
-      didScroll = true
-      scrollFrame = window.requestAnimationFrame(() => {
-        const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches
-        target.scrollIntoView({
-          behavior: prefersReducedMotion ? "auto" : "smooth",
-          block: isStep6HistoryPhase ? "center" : "nearest",
+      previousTarget = target
+      if (firstScrollFrame) window.cancelAnimationFrame(firstScrollFrame)
+      if (secondScrollFrame) window.cancelAnimationFrame(secondScrollFrame)
+      firstScrollFrame = window.requestAnimationFrame(() => {
+        firstScrollFrame = 0
+        secondScrollFrame = window.requestAnimationFrame(() => {
+          secondScrollFrame = 0
+          const currentTarget = document.querySelector<HTMLElement>(`[data-demo-target="${targetName}"]`)
+          if (!currentTarget) {
+            previousTarget = null
+            return
+          }
+          if (currentTarget !== previousTarget) return
+
+          const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches
+          if (isStep6HistoryPhase) {
+            const targetBounds = currentTarget.getBoundingClientRect()
+            const bannerBottom = document.getElementById("demo-callout-card")?.getBoundingClientRect().bottom ?? 0
+            const desiredTop = Math.max(24, bannerBottom + 18)
+            const bottomSafeTop = Math.max(24, window.innerHeight - targetBounds.height - 96)
+            const visibleTop = Math.min(desiredTop, bottomSafeTop)
+
+            window.scrollTo({
+              top: Math.max(0, window.scrollY + targetBounds.top - visibleTop),
+              behavior: prefersReducedMotion ? "auto" : "smooth",
+            })
+            return
+          }
+
+          currentTarget.scrollIntoView({
+            behavior: prefersReducedMotion ? "auto" : "smooth",
+            block: "nearest",
+          })
         })
       })
     }
@@ -472,7 +503,8 @@ export function DemoPresentationOverlay() {
 
     return () => {
       observer.disconnect()
-      if (scrollFrame) window.cancelAnimationFrame(scrollFrame)
+      if (firstScrollFrame) window.cancelAnimationFrame(firstScrollFrame)
+      if (secondScrollFrame) window.cancelAnimationFrame(secondScrollFrame)
     }
   }, [isActive, pathname, step, isStep6HistoryPhase])
 
@@ -485,8 +517,8 @@ export function DemoPresentationOverlay() {
         ...STEP_COPY[6],
         ar: "سجل الرحلات والمعاملات",
         fr: "Historique des Trajets & Transactions",
-        bodyAr: "تُسجَّل رحلاتك ومعاملاتك لحظة بلحظة.",
-        bodyFr: "Vos trajets et transactions sont enregistrés en temps réel.",
+        bodyAr: "يُسجَّل اقتطاع الأجرة وكل معاملة تلقائيًا فور تنفيذها.",
+        bodyFr: "Les déductions de trajet et les transactions sont enregistrées automatiquement en temps réel.",
       }
     }
 
@@ -548,11 +580,11 @@ export function DemoPresentationOverlay() {
 
               {copy ? (
                 <>
-                  <div className="demo-title-block">
+                  <div key={step === 6 ? `step6-title-${step6Phase}` : undefined} className="demo-title-block">
                     <h2 className="demo-title-ar">{copy.ar}</h2>
                     <p className="demo-title-fr" dir="ltr" lang="fr">{copy.fr}</p>
                   </div>
-                  <div className="demo-copy-block">
+                  <div key={step === 6 ? `step6-copy-${step6Phase}` : undefined} className="demo-copy-block">
                     <p className="demo-copy-ar">{copy.bodyAr}</p>
                     <p className="demo-copy-fr" dir="ltr" lang="fr">{copy.bodyFr}</p>
                   </div>
