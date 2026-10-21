@@ -6,7 +6,8 @@ import { motion, AnimatePresence } from "framer-motion"
 import { auth, db } from "@/lib/firebase"
 import { signInWithPhoneNumber, RecaptchaVerifier, signInAnonymously, type ConfirmationResult } from "firebase/auth"
 import { doc, setDoc, getDoc } from "firebase/firestore"
-import { User, Phone, Shield, ArrowRight, Loader2, Check, Mail } from "lucide-react"
+import { User, Phone, Shield, ArrowRight, Loader2, Check, Mail, Play } from "lucide-react"
+import { useDemoMode } from "@/lib/demo-mode-context"
 
 type Step = "splash" | "step1" | "step2" | "otp"
 type AuthMethod = "phone" | "email"
@@ -24,6 +25,7 @@ interface OnboardingScreenProps {
 
 export function OnboardingScreen({ onShowIntro }: OnboardingScreenProps = {}) {
   const router = useRouter()
+  const { startDemo } = useDemoMode()
   const [step, setStep] = useState<Step>("step1")
   const [showSplashButton, setShowSplashButton] = useState(false)
   const [authMethod, setAuthMethod] = useState<AuthMethod | null>("phone")
@@ -814,13 +816,26 @@ export function OnboardingScreen({ onShowIntro }: OnboardingScreenProps = {}) {
 
       </AnimatePresence>
 
-      {onShowIntro && step === "step1" && (
-        <button
-          onClick={onShowIntro}
-          className="absolute bottom-6 inset-x-0 mx-auto w-fit z-10 text-xs text-white/25 hover:text-white/50 transition-colors duration-200"
-        >
-          عرض مقدمة التطبيق
-        </button>
+      {step === "step1" && (
+        <div className="absolute bottom-5 inset-x-0 z-10 flex items-center justify-center gap-4 px-4">
+          {onShowIntro && (
+            <button
+              onClick={onShowIntro}
+              className="text-xs text-white/35 transition-colors duration-200 hover:text-white/60"
+            >
+              عرض مقدمة التطبيق
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={startDemo}
+            className="flex items-center gap-2 rounded-full border border-emerald-300/25 bg-emerald-400/10 px-4 py-2 text-xs font-semibold text-emerald-100 backdrop-blur-sm transition-colors hover:bg-emerald-400/20"
+            aria-label="ابدأ الجولة السينمائية"
+          >
+            <Play className="h-3.5 w-3.5 fill-current" aria-hidden="true" />
+            <span>جولة سينمائية</span>
+          </button>
+        </div>
       )}
     </motion.div>
   )

@@ -1,19 +1,21 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { useRouter } from "next/navigation"
-import { motion, AnimatePresence } from "framer-motion"
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion"
+import { Timestamp } from "firebase/firestore"
 import { AppHeader } from "@/components/app-header"
 import { BottomNav } from "@/components/bottom-nav"
 import { TripsBackground } from "@/components/trips-background"
-import { Clock, Bus, ArrowLeft, Ticket, Calendar, History, MapPin, QrCode, Navigation, ArrowUpCircle, ArrowDownCircle, Wallet } from "lucide-react"
+import { Clock, Bus, ArrowLeft, Ticket, Calendar, History, MapPin, QrCode, Navigation, ArrowUpCircle, ArrowDownCircle, Wallet, Search } from "lucide-react"
 import { ErrorBoundary } from "@/components/error-boundary"
 import { TripCardSkeleton } from "@/components/skeleton-loader"
 import { useTripsCache, type Trip } from "@/hooks/use-trips-cache"
-import { usePassengerTransactions } from "@/hooks/use-passenger-transactions"
+import { usePassengerTransactions, type PassengerTransaction } from "@/hooks/use-passenger-transactions"
 import { PageTransition } from "@/components/page-transition"
 import { Button } from "@/components/ui/button"
 import { useTracking } from "@/lib/tracking-context"
+import { useDemoMode } from "@/lib/demo-mode-context"
 import { useRoutesByCategory } from "@/hooks/use-routes"
 import { calculateNextArrival, generateSchedule } from "@/lib/schedule-utils"
 
@@ -62,6 +64,16 @@ const itemVariants = {
   },
 }
 
+const demoHistoryListVariants = {
+  hidden: { opacity: 0 },
+  visible: { opacity: 1, transition: { staggerChildren: 0.035 } },
+}
+
+const demoHistoryItemVariants = {
+  hidden: { opacity: 0, y: 10 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.22, ease: [0.22, 1, 0.36, 1] } },
+}
+
 // Mock active trip data
 const mockActiveTrip = {
   id: "active-1",
@@ -75,14 +87,76 @@ const mockActiveTrip = {
 
 export default function TripsPage() {
   const [activeTab, setActiveTab] = useState<"schedule" | "history">("schedule")
+  const [scheduleSearch, setScheduleSearch] = useState("")
   const [hasActiveTrip, setHasActiveTrip] = useState(false)
   const [hasMounted, setHasMounted] = useState(false)
+  const [step6Focus, setStep6Focus] = useState<"track" | "past" | "current" | "next" | "history">("track")
   const router = useRouter()
   const { startTracking } = useTracking()
+  const { isActive: isDemoActive, step: demoStep, setStep6Phase } = useDemoMode()
+  const prefersReducedMotion = useReducedMotion()
+  const isDemoTripsStep = isDemoActive && demoStep === 6
+  const isDemoTripsHistoryStep = isDemoTripsStep && step6Focus === "history"
   
   const { trips, isLoading: loading } = useTripsCache()
   const { transactions, isLoading: transactionsLoading } = usePassengerTransactions("0775453629")
   const { routes: urbanRoutes, isLoading: routesLoading } = useRoutesByCategory("urban")
+  const demoHistoryTransactions = useMemo<PassengerTransaction[]>(() => {
+    const now = Date.now()
+    return [
+      {
+        id: "demo-fare-1",
+        type: "fare_deduction",
+        amount: 1000,
+        previousBalance: 5000,
+        newBalance: 4000,
+        passengerName: "مسافر تجريبي",
+        driverTimestamp: Timestamp.fromDate(new Date(now - 8 * 60_000)),
+        status: "completed",
+      },
+      {
+        id: "demo-recharge-1",
+        type: "balance_recharge",
+        amount: 2000,
+        previousBalance: 4000,
+        newBalance: 6000,
+        passengerName: "مسافر تجريبي",
+        driverTimestamp: Timestamp.fromDate(new Date(now - 58 * 60_000)),
+        status: "completed",
+      },
+      {
+        id: "demo-fare-2",
+        type: "fare_deduction",
+        amount: 1000,
+        previousBalance: 6000,
+        newBalance: 5000,
+        passengerName: "مسافر تجريبي",
+        driverTimestamp: Timestamp.fromDate(new Date(now - 3 * 60 * 60_000)),
+        status: "completed",
+      },
+    ]
+  }, [])
+  const historyTransactions = transactions.length > 0
+    ? transactions
+    : isDemoTripsStep
+    ? demoHistoryTransactions
+    : []
+  const historySpotlightTransactionId = historyTransactions.find((transaction) => transaction.type === "fare_deduction")?.id
+    ?? historyTransactions[0]?.id
+  const historyIsLoading = transactionsLoading && historyTransactions.length === 0
+  const searchTerm = scheduleSearch.trim().toLowerCase()
+  const filteredUrbanRoutes = searchTerm
+    ? urbanRoutes.filter((route) => {
+        const searchableText = [
+          route.name,
+          route.nameEn,
+          route.lineNumber,
+          ...route.stops.flatMap((stop) => [stop.name, stop.nameEn]),
+          ...(route.sub_stations ?? []).flatMap((station) => [station.name, station.nameEn]),
+        ].join(" ").toLowerCase()
+        return searchableText.includes(searchTerm)
+      })
+    : urbanRoutes
   
   const handleTrackBus = (lineId: string, lineName: string) => {
     startTracking(lineId, lineName)
@@ -94,6 +168,36 @@ export default function TripsPage() {
     const storedActiveTrip = typeof window !== 'undefined' && localStorage.getItem('activeTrip')
     setHasActiveTrip(!!storedActiveTrip)
   }, [])
+
+  useEffect(() => {
+    if (!isDemoTripsStep) {
+      setStep6Focus("track")
+      setStep6Phase("past")
+      return
+    }
+
+    setStep6Focus("track")
+    setStep6Phase("past")
+    if (routesLoading) return
+
+    const pastDepartureTimer = window.setTimeout(() => setStep6Focus("past"), 700)
+    const upcomingPhaseTimer = window.setTimeout(() => {
+      setStep6Focus("current")
+      setStep6Phase("upcoming")
+    }, 1_500)
+    const nextDepartureTimer = window.setTimeout(() => setStep6Focus("next"), 2_250)
+    const historyTabTimer = window.setTimeout(() => {
+      setActiveTab("history")
+      setStep6Focus("history")
+      setStep6Phase("history")
+    }, 3_000)
+    return () => {
+      window.clearTimeout(pastDepartureTimer)
+      window.clearTimeout(upcomingPhaseTimer)
+      window.clearTimeout(nextDepartureTimer)
+      window.clearTimeout(historyTabTimer)
+    }
+  }, [isDemoTripsStep, routesLoading, setStep6Phase])
 
   const formatDate = (trip: Trip) => {
     if (trip.timestamp) {
@@ -132,7 +236,7 @@ export default function TripsPage() {
   return (
     <ErrorBoundary>
       <PageTransition>
-        <main className="relative min-h-screen bg-background pb-32 sm:pb-40">
+        <main className={`relative min-h-screen bg-background pb-32 sm:pb-40${isDemoTripsStep ? " demo-trips-demo-active" : ""}`}>
           {/* Animated Background */}
           <TripsBackground />
           
@@ -140,7 +244,7 @@ export default function TripsPage() {
           <div className="relative z-10">
           <AppHeader />
         
-          <div className="px-3 sm:px-4 md:px-6 pt-16 sm:pt-20">
+          <div className="px-3 sm:px-4 md:px-6 pt-16 sm:pt-20 demo-trips-content">
             {/* Page Header */}
             <motion.div
               className="mb-4 flex items-center gap-2 sm:gap-3"
@@ -157,9 +261,29 @@ export default function TripsPage() {
               </div>
             </motion.div>
 
+            {/* Schedule search */}
+            <motion.div
+              data-demo-target={isDemoTripsStep ? "trip-search-card" : undefined}
+              className="relative mb-4 rounded-xl border border-border/70 bg-card/80 px-3 py-2.5 shadow-sm backdrop-blur-md"
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.24, delay: 0.04 }}
+            >
+              <Search className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
+              <input
+                type="text"
+                value={scheduleSearch}
+                onChange={(event) => setScheduleSearch(event.target.value)}
+                placeholder="ابحث عن خط أو محطة..."
+                aria-label="ابحث عن خط أو محطة"
+                dir="auto"
+                className="w-full bg-transparent py-1 pr-7 text-sm text-foreground outline-none placeholder:text-muted-foreground"
+              />
+            </motion.div>
+
             {/* Active Trip Section */}
             <motion.div
-              className="mb-4"
+              className={`mb-4${isDemoTripsStep ? " demo-trip-active-section" : ""}`}
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.05 }}
@@ -326,13 +450,35 @@ export default function TripsPage() {
                           </div>
                         ))}
                       </div>
+                    ) : filteredUrbanRoutes.length === 0 ? (
+                      <div className="rounded-2xl border border-border/70 bg-card/80 px-4 py-8 text-center text-sm text-muted-foreground">
+                        لا توجد مواعيد مطابقة للبحث
+                      </div>
                     ) : (
-                      urbanRoutes.map((route) => {
+                      filteredUrbanRoutes.map((route, routeIndex) => {
                         const subStations = route.sub_stations || route.stops.map(s => ({ id: s.id, name: s.name }))
                         const firstStop = subStations[0]?.name || route.stops[0]?.name || ""
                         const lastStop = subStations[subStations.length - 1]?.name || route.stops[route.stops.length - 1]?.name || ""
                         const schedule = generateSchedule(route.workingHours, route.frequency)
+                        const lastDepartedIndex = schedule.reduce(
+                          (lastIndex, slot, index) => slot.status === "departed" ? index : lastIndex,
+                          -1,
+                        )
+                        const currentDepartureIndex = schedule.findIndex((slot) => slot.status === "current")
+                        const firstUpcomingIndex = schedule.findIndex((slot, index) =>
+                          slot.status === "upcoming" && (currentDepartureIndex < 0 || index > currentDepartureIndex),
+                        )
+                        const currentFocusIndex = currentDepartureIndex >= 0
+                          ? currentDepartureIndex
+                          : firstUpcomingIndex >= 0
+                          ? firstUpcomingIndex
+                          : Math.max(0, schedule.length - 1)
+                        const nextUpcomingIndex = schedule.findIndex((slot, index) =>
+                          index > currentFocusIndex && slot.status === "upcoming",
+                        )
+                        const nextFocusIndex = nextUpcomingIndex >= 0 ? nextUpcomingIndex : currentFocusIndex
                         const nextArrival = calculateNextArrival(route.workingHours, route.frequency)
+                        const isTrackFocus = isDemoTripsStep && routeIndex === 0 && step6Focus === "track"
                         
                         return (
                           <motion.div
@@ -366,11 +512,12 @@ export default function TripsPage() {
                                   </div>
                                   <Button
                                     size="sm"
+                                    data-demo-focus-target={isTrackFocus ? "trip-track-button" : undefined}
                                     onClick={(e) => {
                                       e.stopPropagation()
                                       handleTrackBus("line-" + route.lineNumber, route.name)
                                     }}
-                                    className="h-9 gap-1.5 rounded-full bg-primary px-4 text-xs font-semibold text-primary-foreground shadow-md hover:bg-primary/90"
+                                    className={`h-9 gap-1.5 rounded-full bg-primary px-4 text-xs font-semibold text-primary-foreground shadow-md hover:bg-primary/90${isTrackFocus ? " demo-step6-ring-focus" : ""}`}
                                   >
                                     <Navigation className="h-3.5 w-3.5" />
                                     تتبع
@@ -415,21 +562,57 @@ export default function TripsPage() {
                               <div>
                                 <div className="mb-2 text-xs font-medium text-muted-foreground">أوقات اليوم:</div>
                                 <div className="flex flex-wrap gap-2">
-                                  {schedule.map((slot, index) => (
-                                    <motion.span
-                                      key={index}
-                                      className={`rounded-lg px-3 py-1.5 text-sm font-medium ${
-                                        slot.status === "departed"
-                                          ? "bg-muted text-muted-foreground line-through"
-                                          : slot.status === "current"
-                                          ? "bg-primary text-primary-foreground"
-                                          : "bg-primary/10 text-primary"
-                                      }`}
-                                      whileTap={{ scale: 0.95 }}
-                                    >
-                                      {slot.time}
-                                    </motion.span>
-                                  ))}
+                                  {schedule.map((slot, index) => {
+                                    const isPastFocus = isDemoTripsStep
+                                      && routeIndex === 0
+                                      && step6Focus === "past"
+                                      && index === lastDepartedIndex
+                                    const isCurrentFocus = isDemoTripsStep
+                                      && routeIndex === 0
+                                      && step6Focus === "current"
+                                      && index === currentFocusIndex
+                                    const isNextFocus = isDemoTripsStep
+                                      && routeIndex === 0
+                                      && step6Focus === "next"
+                                      && index === nextFocusIndex
+                                    const isDepartureFocus = isPastFocus || isCurrentFocus || isNextFocus
+                                    const isDepartedDuringDemo = isDemoTripsStep
+                                      && routeIndex === 0
+                                      && slot.status === "departed"
+                                      && !isDepartureFocus
+                                    const animateDeparture = isDepartureFocus && !prefersReducedMotion
+                                    const focusTargetName = isPastFocus
+                                      ? "past-departure"
+                                      : isCurrentFocus
+                                      ? "current-departure"
+                                      : isNextFocus
+                                      ? "next-departure"
+                                      : undefined
+
+                                    return (
+                                      <motion.span
+                                        key={index}
+                                        data-demo-focus-target={focusTargetName}
+                                        className={`inline-flex items-center rounded-lg px-3 py-1.5 text-sm font-medium ${
+                                          slot.status === "departed"
+                                            ? "bg-muted text-muted-foreground line-through"
+                                            : slot.status === "current"
+                                            ? "bg-primary text-primary-foreground"
+                                            : "bg-primary/10 text-primary"
+                                        }${isDepartedDuringDemo ? " demo-trip-time--departed" : ""}${isDepartureFocus ? " demo-step6-ring-focus demo-step6-time-zoom-focus" : ""}`}
+                                        animate={animateDeparture ? { y: -2, scale: 1.2 } : { y: 0, scale: 1 }}
+                                        transition={prefersReducedMotion
+                                          ? { duration: 0 }
+                                          : animateDeparture
+                                          ? { duration: 0.38, ease: [0.22, 1, 0.36, 1] }
+                                          : { duration: 0.34, ease: [0.22, 1, 0.36, 1] }}
+                                        transformTemplate={({ y = 0, scale = 1 }) => `translate3d(0, ${y}px, 0) scale3d(${scale}, ${scale}, 1)`}
+                                        whileTap={prefersReducedMotion ? undefined : { scale: 0.95 }}
+                                      >
+                                        {slot.time}
+                                      </motion.span>
+                                    )
+                                  })}
                                 </div>
                               </div>
                             </div>
@@ -445,13 +628,15 @@ export default function TripsPage() {
               {activeTab === "history" && (
                 <motion.div
                   key="history"
-                  variants={tabContentVariants}
-                  initial="hidden"
-                  animate="visible"
-                  exit="exit"
+                  className={isDemoTripsHistoryStep ? "demo-step6-history-panel" : undefined}
+                  variants={prefersReducedMotion ? undefined : tabContentVariants}
+                  initial={prefersReducedMotion ? false : "hidden"}
+                  animate={prefersReducedMotion ? { opacity: 1, x: 0 } : "visible"}
+                  exit={prefersReducedMotion ? undefined : "exit"}
+                  transformTemplate={({ x = 0, scale = 1 }) => `translate3d(${x}px, 0, 0) scale3d(${scale}, ${scale}, 1)`}
                 >
                   <div className="space-y-3">
-                    {transactionsLoading ? (
+                    {historyIsLoading ? (
                       <motion.div
                         className="space-y-3"
                         initial={{ opacity: 0 }}
@@ -461,7 +646,7 @@ export default function TripsPage() {
                           <TripCardSkeleton key={i} />
                         ))}
                       </motion.div>
-                    ) : transactions.length === 0 ? (
+                    ) : historyTransactions.length === 0 ? (
                       <motion.div
                         className="flex flex-col items-center justify-center rounded-2xl bg-card px-6 py-12 shadow-sm"
                         initial={{ opacity: 0, scale: 0.95 }}
@@ -519,12 +704,13 @@ export default function TripsPage() {
                     ) : (
                       <motion.div
                         className="space-y-3"
-                        variants={listVariants}
-                        initial="hidden"
-                        animate="visible"
+                        variants={prefersReducedMotion ? undefined : isDemoTripsHistoryStep ? demoHistoryListVariants : listVariants}
+                        initial={prefersReducedMotion ? false : "hidden"}
+                        animate={prefersReducedMotion ? { opacity: 1 } : "visible"}
                       >
-                        {transactions.map((transaction) => {
+                        {historyTransactions.map((transaction) => {
                           const isRecharge = transaction.type === "balance_recharge"
+                          const isHistorySpotlight = isDemoTripsHistoryStep && transaction.id === historySpotlightTransactionId
                           const timestamp = transaction.driverTimestamp?.toDate?.()
                           const dateString = timestamp 
                             ? timestamp.toLocaleDateString("ar-DZ", {
@@ -541,9 +727,29 @@ export default function TripsPage() {
                           return (
                             <motion.div
                               key={transaction.id}
-                              className="flex items-center gap-4 rounded-2xl bg-card p-4 shadow-sm"
-                              variants={itemVariants}
-                              whileTap={{ scale: 0.98 }}
+                              data-demo-focus-target={isHistorySpotlight ? "history-transaction" : undefined}
+                              data-demo-target={isHistorySpotlight ? "trip-history-first-card" : undefined}
+                              className={`flex items-center gap-4 rounded-2xl bg-card p-4 shadow-sm${isHistorySpotlight ? " demo-step6-history-card" : ""}`}
+                              variants={prefersReducedMotion ? undefined : isDemoTripsHistoryStep ? demoHistoryItemVariants : itemVariants}
+                              initial={prefersReducedMotion
+                                ? false
+                                : isHistorySpotlight
+                                ? { opacity: 0, y: 10, scale: 1 }
+                                : undefined}
+                              animate={prefersReducedMotion
+                                ? { opacity: 1, y: 0 }
+                                : isHistorySpotlight
+                                ? { opacity: 1, y: 0, scale: [1, 1.08, 1.08, 1] }
+                                : undefined}
+                              transition={isHistorySpotlight && !prefersReducedMotion
+                                ? {
+                                    opacity: { duration: 0.22 },
+                                    y: { duration: 0.22, ease: [0.22, 1, 0.36, 1] },
+                                    scale: { duration: 1.45, times: [0, 0.2, 0.56, 1], ease: [0.22, 1, 0.36, 1] },
+                                  }
+                                : undefined}
+                              transformTemplate={({ y = 0, scale = 1 }) => `translate3d(0, ${y}px, 0) scale3d(${scale}, ${scale}, 1)`}
+                              whileTap={prefersReducedMotion ? undefined : { scale: 0.98 }}
                             >
                               <div className={`flex h-12 w-12 items-center justify-center rounded-xl ${
                                 isRecharge ? "bg-green-500/10" : "bg-red-500/10"
@@ -581,8 +787,11 @@ export default function TripsPage() {
                               <div className="text-left">
                                 <span className={`text-lg font-bold ${
                                   isRecharge ? "text-green-500" : "text-destructive"
-                                }`} dir="ltr">
+                                }${isHistorySpotlight && !isRecharge ? " demo-step6-fare-amount" : ""}`} dir="ltr">
                                   {isRecharge ? "+" : "-"}{transaction.amount} د.ج
+                                  {isHistorySpotlight && !isRecharge && !prefersReducedMotion && (
+                                    <span className="demo-step6-fare-scan" aria-hidden="true" />
+                                  )}
                                 </span>
                                 <p className="text-xs text-muted-foreground">
                                   الرصيد: {transaction.newBalance} د.ج

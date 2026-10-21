@@ -14,6 +14,8 @@ import { BusSimulationProvider } from '@/lib/bus-simulation'
 import { DriverModeProvider } from '@/lib/driver-mode-context'
 import { AuthProvider } from '@/lib/auth-context'
 import { AuthGate } from '@/components/auth-gate'
+import { DemoModeProvider } from '@/lib/demo-mode-context'
+import { DemoPresentationOverlay } from '@/components/demo-presentation-overlay'
 import { TouchInit } from '@/components/touch-init'
 import './globals.css'
 
@@ -114,9 +116,12 @@ export default function RootLayout({
             <DriverModeProvider>
               <BusSimulationProvider>
                 <TrackingProvider>
-                  <AuthGate>
-                    {children}
-                  </AuthGate>
+                  <DemoModeProvider>
+                    <AuthGate>
+                      {children}
+                    </AuthGate>
+                    <DemoPresentationOverlay />
+                  </DemoModeProvider>
                 </TrackingProvider>
               </BusSimulationProvider>
             </DriverModeProvider>

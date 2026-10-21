@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Bell, Menu, Moon, Sun, MapPin, Clock, Settings, HelpCircle, Info, ChevronLeft, ScanLine, Loader2, AlertCircle, X } from "lucide-react"
+import { Bell, Menu, Moon, Sun, MapPin, Clock, Settings, HelpCircle, Info, ChevronLeft, ScanLine, Loader2, AlertCircle, X, Play } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { motion, AnimatePresence } from "framer-motion"
 import { Button } from "@/components/ui/button"
@@ -11,7 +11,7 @@ import { useTheme } from "@/lib/theme-context"
 import { useDriverMode } from "@/lib/driver-mode-context"
 import { useNotifications } from "@/hooks/use-notifications"
 import { NotificationsDrawer } from "@/components/notifications-drawer"
-import { TankoliLogoIcon } from "@/components/tanakoli-logo"
+import { useDemoMode } from "@/lib/demo-mode-context"
 
 const menuItems = [
   { icon: MapPin, label: "المحطات القريبة", href: "/stations" },
@@ -33,8 +33,20 @@ export function AppHeader() {
   }, [])
 
   const { theme, toggleTheme, isDark } = useTheme()
-  const { enterDriverMode, isAuthorizedDriver, isCheckingRole, roleError, clearRoleError } = useDriverMode()
+  const { enterDriverMode, exitDriverMode, isDriverMode, isAuthorizedDriver, isCheckingRole, roleError, clearRoleError } = useDriverMode()
   const { unreadCount } = useNotifications()
+  const { isActive: isDemoActive, startDemo, stopDemo } = useDemoMode()
+
+  const handleStartDemo = () => {
+    setIsOpen(false)
+    setNotifOpen(false)
+    if (isDemoActive) {
+      stopDemo()
+      return
+    }
+    if (isDriverMode) exitDriverMode()
+    startDemo()
+  }
 
   const handleEnterDriverMode = async () => {
     const success = await enterDriverMode()
@@ -257,6 +269,23 @@ export function AppHeader() {
           <img src="/logo-new.png" alt="تنقلي خنشلة" className="h-full w-full object-cover" />
         </div>
       </div>
+
+      <motion.button
+        type="button"
+        className={`demo-launch-button${isDemoActive ? " demo-launch-button--active" : ""}`}
+        onClick={handleStartDemo}
+        whileHover={{ y: -1, scale: 1.025 }}
+        whileTap={{ scale: 0.97 }}
+        transformTemplate={({ y = 0, scale = 1 }) => `translate3d(0, ${y}px, 0) scale(${scale})`}
+        aria-label={isDemoActive ? "إيقاف العرض التوضيحي — Stop demo" : "عرض توضيحي — Demo Presentation"}
+        title="عرض توضيحي / Demo Presentation"
+      >
+        <span className="demo-launch-icon" aria-hidden="true"><Play fill="currentColor" /></span>
+        <span className="demo-launch-copy">
+          <span className="demo-launch-ar">عرض توضيحي</span>
+          <span className="demo-launch-fr" dir="ltr">Demo Presentation</span>
+        </span>
+      </motion.button>
 
       <Button
         variant="ghost"

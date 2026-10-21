@@ -1,10 +1,11 @@
 "use client"
 
-import { useEffect, useState, useId } from "react"
+import { useCallback, useEffect, useState, useId } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import dynamic from "next/dynamic"
 import { MapSkeleton } from "./skeleton-loader"
 import { useTracking } from "@/lib/tracking-context"
+import { useDemoMode } from "@/lib/demo-mode-context"
 import { Navigation, X, Maximize2, Minimize2 } from "lucide-react"
 import { signalMapReady } from "./app-wrapper"
 
@@ -19,20 +20,34 @@ export function MapSection() {
   const [isFullscreen, setIsFullscreen] = useState(false)
   const mapId = useId()
   const { trackingState, stopTracking } = useTracking()
+  const { isActive: isDemoActive, step: demoStep, setHomeMapReady } = useDemoMode()
+
+  const handleMapReady = useCallback(() => {
+    setIsMapReady(true)
+    signalMapReady()
+    setHomeMapReady(true)
+  }, [setHomeMapReady])
 
   useEffect(() => {
     setIsMounted(true)
-    // Simulate map loading with a slight delay for smoother transition
-    const timer = setTimeout(() => {
-      setIsMapReady(true)
-      // Signal to AppWrapper that map is ready
-      signalMapReady()
-    }, 500)
-    return () => clearTimeout(timer)
-  }, [])
+    setHomeMapReady(false)
+    return () => setHomeMapReady(false)
+  }, [setHomeMapReady])
+
+  useEffect(() => {
+    window.dispatchEvent(new CustomEvent("mapFullscreenChange", { detail: { isFullscreen } }))
+  }, [isFullscreen])
+
+  useEffect(() => {
+    if (!isDemoActive || demoStep === null) {
+      if (!isDemoActive) setIsFullscreen(false)
+      return
+    }
+    setIsFullscreen(demoStep < 4)
+  }, [isDemoActive, demoStep])
 
   const handleFullscreen = () => {
-    setIsFullscreen(!isFullscreen)
+    setIsFullscreen((current) => !current)
   }
 
   if (!isMounted) {
@@ -42,7 +57,7 @@ export function MapSection() {
   return (
     <>
       <motion.div
-        className={`relative w-full overflow-hidden transition-all duration-300 ${
+        className={`map-section-motion relative w-full overflow-hidden ${
           isFullscreen 
             ? "fixed inset-0 z-[9998] rounded-none" 
             : "rounded-b-2xl sm:rounded-b-3xl"
@@ -51,6 +66,7 @@ export function MapSection() {
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4, ease: "easeOut" }}
+        transformTemplate={({ y = 0 }) => `translate3d(0, ${y}px, 0)`}
       >
         {/* Map container — always rendered so Leaflet/MapLibre can measure dimensions */}
         <div style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }}>
@@ -58,15 +74,40 @@ export function MapSection() {
             key={mapId} 
             trackingLineId={trackingState.busLineId}
             isFullscreen={isFullscreen}
+            demoStep={isDemoActive ? demoStep : null}
+            onReady={handleMapReady}
           />
         </div>
+
+        {isDemoActive && demoStep === 1 && (
+          <motion.div
+            className="demo-map-anchor"
+            data-demo-target="map-overview"
+            style={{ left: "54%", top: "52%" }}
+            initial={{ opacity: 0, scale: 0.7 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transformTemplate={({ scale = 1 }) => `translate3d(0, 0, 0) scale(${scale})`}
+            aria-hidden="true"
+          />
+        )}
+        {isDemoActive && demoStep === 2 && (
+          <motion.div
+            className="demo-map-anchor demo-map-anchor--live"
+            data-demo-target="live-bus-fallback"
+            style={{ left: "52%", top: "54%" }}
+            initial={{ opacity: 0, scale: 0.7 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transformTemplate={({ scale = 1 }) => `translate3d(0, 0, 0) scale(${scale})`}
+            aria-hidden="true"
+          />
+        )}
 
         {/* Loading overlay — sits above the map, fades out when ready */}
         <AnimatePresence>
           {!isMapReady && (
             <motion.div
               key="loading"
-              className="absolute inset-0 flex items-center justify-center"
+              className="map-overlay-motion absolute inset-0 flex items-center justify-center"
               style={{ background: "hsl(var(--background))", zIndex: 10 }}
               initial={{ opacity: 1 }}
               exit={{ opacity: 0 }}
@@ -74,9 +115,10 @@ export function MapSection() {
             >
               <div className="flex flex-col items-center gap-2">
                 <motion.div
-                  className="h-10 w-10 rounded-full border-3 border-primary/30 border-t-primary"
+                  className="map-overlay-motion h-10 w-10 rounded-full border-3 border-primary/30 border-t-primary"
                   animate={{ rotate: 360 }}
                   transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                  transformTemplate={({ rotate = 0 }) => `translate3d(0, 0, 0) rotate(${rotate}deg)`}
                 />
                 <span className="text-xs text-muted-foreground">جاري تحميل الخريطة...</span>
               </div>
@@ -87,10 +129,12 @@ export function MapSection() {
         {/* Fullscreen Toggle Button */}
         <motion.button
           onClick={handleFullscreen}
+          disabled={isDemoActive}
           initial={{ opacity: 0, scale: 0.8 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ delay: 0.3 }}
-          className="absolute top-3 sm:top-4 left-3 sm:left-4 z-[1001] flex h-9 sm:h-10 w-9 sm:w-10 items-center justify-center rounded-lg bg-card/80 backdrop-blur-md border border-border/50 shadow-lg hover:bg-card transition-colors"
+          transformTemplate={({ scale = 1 }) => `translate3d(0, 0, 0) scale(${scale})`}
+          className={`map-overlay-motion absolute top-3 sm:top-4 left-3 sm:left-4 z-[1001] flex h-9 sm:h-10 w-9 sm:w-10 items-center justify-center rounded-lg bg-card/80 backdrop-blur-md border border-border/50 shadow-lg hover:bg-card${isDemoActive ? "" : " transition-colors"} disabled:cursor-not-allowed disabled:opacity-50`}
           aria-label={isFullscreen ? "خروج من ملء الشاشة" : "ملء الشاشة"}
         >
           {isFullscreen ? (
@@ -102,17 +146,19 @@ export function MapSection() {
         
         {/* Live Tracking Indicator */}
         <AnimatePresence>
-          {trackingState.isTracking && (
+          {trackingState.isTracking && !isDemoActive && (
             <motion.div
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
-              className="absolute right-3 sm:right-4 top-3 sm:top-4 z-[1000] flex items-center gap-2 rounded-full bg-primary px-2 sm:px-3 py-1 sm:py-1.5 shadow-lg text-xs sm:text-sm"
+              transformTemplate={({ y = 0 }) => `translate3d(0, ${y}px, 0)`}
+              className="map-overlay-motion absolute right-3 sm:right-4 top-3 sm:top-4 z-[1000] flex items-center gap-2 rounded-full bg-primary px-2 sm:px-3 py-1 sm:py-1.5 shadow-lg text-xs sm:text-sm"
             >
               <motion.div
                 animate={{ scale: [1, 1.2, 1] }}
                 transition={{ duration: 1, repeat: Infinity }}
-                className="flex h-2 w-2 items-center justify-center"
+                transformTemplate={({ scale = 1 }) => `translate3d(0, 0, 0) scale(${scale})`}
+                className="map-overlay-motion flex h-2 w-2 items-center justify-center"
               >
                 <div className="h-2 w-2 rounded-full bg-primary-foreground" />
               </motion.div>
@@ -133,10 +179,11 @@ export function MapSection() {
         
         {/* Location badge with animation */}
         <motion.div
-          className="absolute bottom-3 sm:bottom-4 left-3 sm:left-4 z-[1000] rounded-full bg-card/95 border border-border/50 px-2 sm:px-3 py-1 text-xs font-medium text-foreground shadow-md backdrop-blur-sm"
+          className="map-overlay-motion absolute bottom-3 sm:bottom-4 left-3 sm:left-4 z-[1000] rounded-full bg-card/95 border border-border/50 px-2 sm:px-3 py-1 text-xs font-medium text-foreground shadow-md backdrop-blur-sm"
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ delay: 0.5, duration: 0.3 }}
+          transformTemplate={({ x = 0 }) => `translate3d(${x}px, 0, 0)`}
         >
           خنشلة، الجزائر
         </motion.div>
@@ -146,7 +193,7 @@ export function MapSection() {
       <AnimatePresence>
         {isFullscreen && (
           <motion.div
-            className="fixed inset-0 z-[9997] bg-background"
+            className="map-overlay-motion fixed inset-0 z-[9997] bg-background"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}

@@ -19,6 +19,7 @@ import { ref as rtdbRef, onValue } from "firebase/database"
 import { motion, AnimatePresence } from "framer-motion"
 import { Layers, ChevronDown, ChevronUp, MapPin, LocateFixed } from "lucide-react"
 import { useTheme } from "@/lib/theme-context"
+import type { DemoStep } from "@/lib/demo-mode-context"
 import {
   fringalOutboundCoords,
   fringalReturnCoords,
@@ -146,6 +147,8 @@ type SelectedRoute = string | null
 interface MapProps {
   trackingLineId?: string | null
   isFullscreen?: boolean
+  demoStep?: DemoStep | null
+  onReady?: () => void
 }
 
 // ── Snap a [lat,lng] point to the nearest point on a [lat,lng][] polyline ────
@@ -340,9 +343,13 @@ function getSimPos(coords: [number, number][], progress: number, cache?: ArcCach
 // ── RouteController (shared React UI) ────────────────────────────────────────
 // memo: prevents re-renders when parent state (locating, ready, etc.) changes
 const RouteController = memo(function RouteController({
-  selectedRoute, onRouteSelect, isDark,
-}: { selectedRoute: SelectedRoute; onRouteSelect: (id: SelectedRoute) => void; isDark: boolean }) {
+  selectedRoute, onRouteSelect, isDark, demoStep,
+}: { selectedRoute: SelectedRoute; onRouteSelect: (id: SelectedRoute) => void; isDark: boolean; demoStep?: DemoStep | null }) {
   const [open, setOpen] = useState(false)
+
+  useEffect(() => {
+    setOpen(demoStep === 3)
+  }, [demoStep])
   const bg     = isDark ? "rgba(15,23,42,0.95)"  : "rgba(255,255,255,0.95)"
   const txt    = isDark ? "#F8FAFC" : "#1a1a1a"
   const muted  = isDark ? "#94A3B8" : "#64748b"
@@ -353,10 +360,13 @@ const RouteController = memo(function RouteController({
 
   return (
     <div className="absolute right-4 top-4 z-[500]" style={{ direction: "rtl" }}>
-      <motion.div layout className="overflow-hidden rounded-xl shadow-lg backdrop-blur-sm"
+      <motion.div layout className="route-controller-motion overflow-hidden rounded-xl shadow-lg backdrop-blur-sm"
         style={{ background: bg, border: `1px solid ${border}` }}>
-        <button onClick={() => setOpen(v => !v)}
-          className="flex w-full items-center justify-between gap-3 px-4 py-3"
+        <button
+          data-demo-target="route-selector"
+          aria-expanded={open}
+          onClick={() => setOpen(v => !v)}
+          className={`flex w-full items-center justify-between gap-3 px-4 py-3${demoStep === 3 ? " demo-route-selector-active" : ""}`}
           style={{ background: "transparent" }}
           onMouseEnter={e => (e.currentTarget.style.background = hover)}
           onMouseLeave={e => (e.currentTarget.style.background = "transparent")}>
@@ -368,10 +378,37 @@ const RouteController = memo(function RouteController({
         </button>
         <AnimatePresence>
           {open && (
-            <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.2 }}
-              style={{ borderTop: `1px solid ${border}` }}>
+            <motion.div
+              className="route-controller-menu"
+              initial={{ opacity: 0, scaleY: 0 }}
+              animate={{ opacity: 1, scaleY: 1 }}
+              exit={{ opacity: 0, scaleY: 0 }}
+              transition={{ duration: 0.2 }}
+              transformTemplate={({ scaleY = 1 }) => `translate3d(0, 0, 0) scaleY(${scaleY})`}
+              style={{ borderTop: `1px solid ${border}`, transformOrigin: "top" }}
+            >
               <div className="max-h-64 overflow-y-auto p-2">
+                {demoStep === 3 && selectedRoute === "line-01" && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transformTemplate={({ y = 0 }) => `translate3d(0, ${y}px, 0)`}
+                    className="mb-2 rounded-xl border border-emerald-400/20 bg-emerald-500/10 p-3"
+                  >
+                    <div className="mb-2 flex items-center gap-2">
+                      <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#FF6B35]/15 text-sm font-bold text-[#FF6B35]">01</span>
+                      <div className="min-w-0">
+                        <p className="text-xs font-bold text-foreground">طريق العيزار</p>
+                        <p className="truncate text-[10px] text-muted-foreground" dir="ltr">Ligne 01 · Route Al-Aizar</p>
+                      </div>
+                    </div>
+                    <div className="space-y-1 border-t border-emerald-400/15 pt-2 text-[10px] text-muted-foreground">
+                      <p>الانطلاق: نقطة الانطلاق طريق العيزار</p>
+                      <p>الوصول: نقطة وصول طريق العيزار</p>
+                      <p className="font-medium text-emerald-500" dir="ltr">2 terminus · Suivi GPS en direct</p>
+                    </div>
+                  </motion.div>
+                )}
                 <button onClick={() => { onRouteSelect(null); setOpen(false) }}
                   className="mb-2 flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm"
                   style={{ background: !selectedRoute ? active : "transparent", color: !selectedRoute ? "#22C55E" : txt }}
@@ -405,7 +442,7 @@ const RouteController = memo(function RouteController({
 // ════════════════════════════════════════════════════════════════════════════════
 // RENDERER A: MapLibre GL (WebGL available — production / real browsers)
 // ════════════════════════════════════════════════════════════════════════════════
-function MapLibreRenderer({ trackingLineId, isFullscreen }: MapProps) {
+function MapLibreRenderer({ trackingLineId, isFullscreen, demoStep, onReady }: MapProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const mapRef       = useRef<import("maplibre-gl").Map | null>(null)
   const initRef      = useRef(false)
@@ -413,6 +450,8 @@ function MapLibreRenderer({ trackingLineId, isFullscreen }: MapProps) {
 
   const simBuses         = useRef<Array<{ marker: import("maplibre-gl").Marker; routeId: string; offset: number; direction: number }>>([])
   const driverRef        = useRef<import("maplibre-gl").Marker | null>(null)
+  const cameraMovingRef  = useRef(false)
+  const pendingDriverLocationRef = useRef<DriverLocation | null>(null)
   const userRef          = useRef<import("maplibre-gl").Marker | null>(null)
   const rafRef           = useRef<number | null>(null)
   const busRafRef        = useRef<number | null>(null)
@@ -420,10 +459,20 @@ function MapLibreRenderer({ trackingLineId, isFullscreen }: MapProps) {
   const chevronCoordsRef = useRef<Map<string, { coords: [number,number][]; cache: ArcCache }>>(new Map())
   const pendingRouteRef  = useRef<SelectedRoute>(null)
   const mapReadyRef      = useRef(false)
+  const onReadyRef       = useRef(onReady)
+  const demoSessionRef   = useRef(false)
+  const lastDemoStepRef  = useRef<DemoStep | null>(null)
+  const demoCameraRef    = useRef<{
+    center: [number, number]; zoom: number; bearing: number; pitch: number; route: SelectedRoute
+  } | null>(null)
 
   const [selectedRoute, setSelectedRoute] = useState<SelectedRoute>(null)
   const [ready, setReady] = useState(false)
   const [locating, setLocating] = useState(false)
+
+  useEffect(() => {
+    onReadyRef.current = onReady
+  }, [onReady])
 
   // Focus mode — visibility-only toggling via setLayoutProperty + setFilter.
   // Purely synchronous: if the map isn't ready yet, applyFocus is a no-op.
@@ -462,9 +511,9 @@ function MapLibreRenderer({ trackingLineId, isFullscreen }: MapProps) {
     // (avoids Math.min/max spread over hundreds of coords on every route tap)
     if (routeId) {
       if (routeId === "line-11") {
-        map.fitBounds(LINE_11_BOUNDS, { padding: 60, maxZoom: 14 })
+        map.fitBounds(LINE_11_BOUNDS, { padding: 60, maxZoom: 14, duration: 2_300 })
       } else if (routeId === "line-05") {
-        map.fitBounds(LINE_05_BOUNDS, { padding: 60, maxZoom: 14 })
+        map.fitBounds(LINE_05_BOUNDS, { padding: 60, maxZoom: 14, duration: 2_300 })
       } else {
         const coords = routeCoords.get(routeId)
         if (coords) {
@@ -473,7 +522,17 @@ function MapLibreRenderer({ trackingLineId, isFullscreen }: MapProps) {
             if(lat<minLat)minLat=lat; if(lat>maxLat)maxLat=lat
             if(lng<minLng)minLng=lng; if(lng>maxLng)maxLng=lng
           }
-          map.fitBounds([[minLng,minLat],[maxLng,maxLat]], { padding: 50, maxZoom: 15 })
+          const bounds: [[number, number], [number, number]] = [[minLng,minLat],[maxLng,maxLat]]
+          if (routeId === "line-01" && demoStep === 2) {
+            const camera = map.cameraForBounds(bounds, { padding: 50, maxZoom: 15 })
+            if (camera) {
+              map.flyTo({ ...camera, duration: 2_300, essential: true, easing: t => t })
+            } else {
+              map.fitBounds(bounds, { padding: 50, maxZoom: 15, duration: 2_300, essential: true, easing: t => t })
+            }
+          } else {
+            map.fitBounds(bounds, { padding: 50, maxZoom: 15, duration: 2_300 })
+          }
         }
       }
     }
@@ -494,7 +553,6 @@ function MapLibreRenderer({ trackingLineId, isFullscreen }: MapProps) {
         try {
           maplibregl.setRTLTextPlugin(
             '/mapbox-gl-rtl-text.min.js',
-            null,
             true
           )
           _rtlPluginLoaded = true
@@ -512,6 +570,28 @@ function MapLibreRenderer({ trackingLineId, isFullscreen }: MapProps) {
         attributionControl: false,
       })
       mapRef.current = map
+
+      const placeDriverMarker = (data: DriverLocation) => {
+        if (!alive) return
+        if (!driverRef.current) {
+          const el = document.createElement("div")
+          el.style.cssText = `width:28px;height:28px;border-radius:50%;border:3px solid white;background:linear-gradient(135deg,#ec4899,#db2777);display:flex;align-items:center;justify-content:center;animation:tk-driver-pulse 2s ease-in-out infinite;cursor:pointer;`
+          el.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="white"><path d="M8 4h8l2 6H6L8 4zM4 10v8h1v1a1 1 0 002 0v-1h10v1a1 1 0 002 0v-1h1v-8z"/></svg>`
+          driverRef.current = new maplibregl.Marker({ element: el, anchor: "center" }).setLngLat([data.lng, data.lat]).addTo(map)
+        } else {
+          driverRef.current.setLngLat([data.lng, data.lat])
+        }
+      }
+
+      map.on("movestart", () => { cameraMovingRef.current = true })
+      map.on("moveend", () => {
+        cameraMovingRef.current = false
+        const pending = pendingDriverLocationRef.current
+        if (pending) {
+          pendingDriverLocationRef.current = null
+          placeDriverMarker(pending)
+        }
+      })
 
       map.on("load", async () => {
         // ── Chevron arrow sprite (drawn once, shared by all symbol layers) ─────
@@ -716,6 +796,10 @@ function MapLibreRenderer({ trackingLineId, isFullscreen }: MapProps) {
           if (!alive || !mapRef.current) return
           const dt = Math.min((lastTs ? ts - lastTs : 16), 100) / 1000
           lastTs = ts
+          if (cameraMovingRef.current) {
+            rafRef.current = requestAnimationFrame(animChev)
+            return
+          }
           chevPhase = (chevPhase + 0.14 * dt) % 1
           const focusedId = pendingRouteRef.current
           chevronCoordsRef.current.forEach(({ coords, cache }, key) => {
@@ -753,6 +837,7 @@ function MapLibreRenderer({ trackingLineId, isFullscreen }: MapProps) {
             // Explicit 22×38 gives MapLibre a stable bounding box for anchor:"center"
             // so pixel (11,19) always lands on the geographic coordinate regardless of rotation
             el.style.cssText = "pointer-events:none;width:22px;height:38px;"
+            if (route.id === "line-01" && i === 0) el.setAttribute("data-demo-target", "live-bus")
             el.innerHTML = makeBusSvg(route.color)
             const busInner = el.firstElementChild as HTMLElement | null
             const pos = getSimPos(coords, initialProgress, cache)
@@ -773,6 +858,10 @@ function MapLibreRenderer({ trackingLineId, isFullscreen }: MapProps) {
           if (!alive || !mapRef.current) return
           const dt = Math.min((lastBusTs ? ts - lastBusTs : 16), 100) / 1000
           lastBusTs = ts
+          if (cameraMovingRef.current) {
+            busRafRef.current = requestAnimationFrame(animBus)
+            return
+          }
           try {
             busDataRef.current.forEach((bd, idx) => {
               bd.progress = (bd.progress + bd.speed * dt) % 1
@@ -790,6 +879,7 @@ function MapLibreRenderer({ trackingLineId, isFullscreen }: MapProps) {
 
         mapReadyRef.current = true
         setReady(true)
+        onReadyRef.current?.()
         applyFocus(pendingRouteRef.current)
       })
 
@@ -798,14 +888,11 @@ function MapLibreRenderer({ trackingLineId, isFullscreen }: MapProps) {
       const unsubDriver = onValue(driverDbRef, snap => {
         const data = snap.val() as DriverLocation | null
         if (!data?.lat || !data?.lng) return
-        if (!driverRef.current) {
-          const el = document.createElement("div")
-          el.style.cssText = `width:28px;height:28px;border-radius:50%;border:3px solid white;background:linear-gradient(135deg,#ec4899,#db2777);display:flex;align-items:center;justify-content:center;animation:tk-driver-pulse 2s ease-in-out infinite;cursor:pointer;`
-          el.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="white"><path d="M8 4h8l2 6H6L8 4zM4 10v8h1v1a1 1 0 002 0v-1h10v1a1 1 0 002 0v-1h1v-8z"/></svg>`
-          driverRef.current = new maplibregl.Marker({ element: el, anchor: "center" }).setLngLat([data.lng, data.lat]).addTo(map)
-        } else {
-          driverRef.current.setLngLat([data.lng, data.lat])
+        if (cameraMovingRef.current) {
+          pendingDriverLocationRef.current = data
+          return
         }
+        placeDriverMarker(data)
       })
 
       return unsubDriver
@@ -816,6 +903,8 @@ function MapLibreRenderer({ trackingLineId, isFullscreen }: MapProps) {
 
     return () => {
       alive = false                                        // ← must be first: stops any in-flight rAF from touching the map
+      cameraMovingRef.current = false
+      pendingDriverLocationRef.current = null
       if (rafRef.current) cancelAnimationFrame(rafRef.current)
       if (busRafRef.current) cancelAnimationFrame(busRafRef.current)
       cleanup?.()
@@ -832,6 +921,63 @@ function MapLibreRenderer({ trackingLineId, isFullscreen }: MapProps) {
     pendingRouteRef.current = selectedRoute
     applyFocus(selectedRoute)
   }, [selectedRoute])
+
+  useEffect(() => {
+    if (!ready || !mapRef.current) return
+    const timer = window.setTimeout(() => mapRef.current?.resize(), 360)
+    return () => window.clearTimeout(timer)
+  }, [isFullscreen, ready])
+
+  useEffect(() => {
+    const map = mapRef.current
+    if (!ready || !map) return
+
+    if (demoStep !== null && demoStep !== undefined) {
+      if (!demoSessionRef.current) {
+        const center = map.getCenter()
+        demoCameraRef.current = {
+          center: [center.lng, center.lat],
+          zoom: map.getZoom(),
+          bearing: map.getBearing(),
+          pitch: map.getPitch(),
+          route: selectedRoute,
+        }
+        demoSessionRef.current = true
+      }
+
+      if (lastDemoStepRef.current !== demoStep) {
+        lastDemoStepRef.current = demoStep
+        if (demoStep === 1) {
+          setSelectedRoute(null)
+          map.flyTo({ center: KHENCHELA_LNG_LAT, zoom: 14.2, duration: 2_500, essential: true, easing: t => t })
+        } else if (demoStep === 2 || demoStep === 3) {
+          setSelectedRoute("line-01")
+        }
+      }
+      return
+    }
+
+    if (demoSessionRef.current && demoCameraRef.current) {
+      const previous = demoCameraRef.current
+      demoSessionRef.current = false
+      lastDemoStepRef.current = null
+      demoCameraRef.current = null
+      map.stop()
+      cameraMovingRef.current = false
+      setSelectedRoute(previous.route)
+      window.setTimeout(() => {
+        map.flyTo({
+          center: previous.center,
+          zoom: previous.zoom,
+          bearing: previous.bearing,
+          pitch: previous.pitch,
+          duration: 850,
+          essential: true,
+          easing: t => t,
+        })
+      }, 100)
+    }
+  }, [demoStep, ready, selectedRoute])
 
   const locateMe = () => {
     if (!navigator.geolocation) return
@@ -851,22 +997,24 @@ function MapLibreRenderer({ trackingLineId, isFullscreen }: MapProps) {
   return (
     <div style={{ position: "relative", width: "100%", height: "100%" }}>
       <div ref={containerRef} style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }} />
-      {ready && <RouteController selectedRoute={selectedRoute} onRouteSelect={setSelectedRoute} isDark={isDark} />}
+      {ready && <RouteController selectedRoute={selectedRoute} onRouteSelect={setSelectedRoute} isDark={isDark} demoStep={demoStep} />}
       {ready && (
         <motion.button initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.4 }}
+          transformTemplate={({ scale = 1 }) => `translate3d(0, 0, 0) scale(${scale})`}
           onClick={locateMe}
-          className={`absolute ${isFullscreen ? "bottom-20" : "bottom-4"} right-4 z-[500] flex h-10 w-10 items-center justify-center rounded-xl bg-card/90 backdrop-blur-sm border border-border/50 shadow-lg hover:bg-card transition-colors`}
+          className={`map-overlay-motion absolute ${isFullscreen ? "bottom-20" : "bottom-4"} right-4 z-[500] flex h-10 w-10 items-center justify-center rounded-xl bg-card/90 backdrop-blur-sm border border-border/50 shadow-lg hover:bg-card${demoStep == null ? " transition-colors" : ""}`}
           aria-label="حدد موقعي">
           <LocateFixed className={`h-5 w-5 ${locating ? "animate-pulse text-primary" : "text-foreground"}`} />
         </motion.button>
       )}
       <AnimatePresence>
         {!ready && (
-          <motion.div className="absolute inset-0 flex items-center justify-center" style={{ background: "#0f172a" }}
+          <motion.div className="map-overlay-motion absolute inset-0 flex items-center justify-center" style={{ background: "#0f172a" }}
             exit={{ opacity: 0 }} transition={{ duration: 0.4 }}>
             <div className="flex flex-col items-center gap-3">
-              <motion.div className="h-10 w-10 rounded-full border-[3px] border-primary/30 border-t-primary"
-                animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: "linear" }} />
+              <motion.div className="map-overlay-motion h-10 w-10 rounded-full border-[3px] border-primary/30 border-t-primary"
+                animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                transformTemplate={({ rotate = 0 }) => `translate3d(0, 0, 0) rotate(${rotate}deg)`} />
               <span className="text-sm text-slate-400">جاري تحميل الخريطة...</span>
             </div>
           </motion.div>
@@ -879,20 +1027,30 @@ function MapLibreRenderer({ trackingLineId, isFullscreen }: MapProps) {
 // ════════════════════════════════════════════════════════════════════════════════
 // RENDERER B: Leaflet + CartoDB Voyager (no WebGL — Replit preview / fallback)
 // ════════════════════════════════════════════════════════════════════════════════
-function LeafletDarkRenderer({ trackingLineId, isFullscreen }: MapProps) {
+function LeafletDarkRenderer({ trackingLineId, isFullscreen, demoStep, onReady }: MapProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const mapRef       = useRef<L.Map | null>(null)
   const initRef      = useRef(false)
   const driverRef    = useRef<L.Marker | null>(null)
+  const cameraMovingRef = useRef(false)
+  const pendingDriverLocationRef = useRef<DriverLocation | null>(null)
   const simBusRef    = useRef<Array<{ marker: L.Marker; routeId: string; offset: number; direction: number }>>([])
   const rafRef       = useRef<number | null>(null)
   const busRafRef    = useRef<number | null>(null)
   const busDataRef   = useRef<Array<{ routeId: string; progress: number; speed: number; coords: [number,number][]; cache: ArcCache }>>([])
   const { isDark }   = useTheme()
+  const onReadyRef   = useRef(onReady)
+  const demoSessionRef = useRef(false)
+  const lastDemoStepRef = useRef<DemoStep | null>(null)
+  const demoCameraRef = useRef<{ center: [number, number]; zoom: number; route: SelectedRoute } | null>(null)
 
   const [selectedRoute, setSelectedRoute] = useState<SelectedRoute>(null)
   const [ready, setReady] = useState(false)
   const [locating, setLocating] = useState(false)
+
+  useEffect(() => {
+    onReadyRef.current = onReady
+  }, [onReady])
 
   const routeLayers   = useRef<Map<string, L.Polyline>>(new Map())
   const routeGlows    = useRef<Map<string, L.Polyline>>(new Map())
@@ -946,14 +1104,19 @@ function LeafletDarkRenderer({ trackingLineId, isFullscreen }: MapProps) {
     if (routeId && mapRef.current) {
       const map = mapRef.current
       if (routeId === "line-11") {
-        map.fitBounds(L.latLngBounds([...fringalOutboundCoords, ...fringalReturnCoords]), { padding: [60, 60], maxZoom: 14 })
+        map.fitBounds(L.latLngBounds([...fringalOutboundCoords, ...fringalReturnCoords]), { padding: [60, 60], maxZoom: 14, animate: true, duration: 2.3 })
       } else if (routeId === "line-05") {
-        map.fitBounds(L.latLngBounds([...hammaOutboundCoords, ...hammaReturnCoords]), { padding: [60, 60], maxZoom: 14 })
+        map.fitBounds(L.latLngBounds([...hammaOutboundCoords, ...hammaReturnCoords]), { padding: [60, 60], maxZoom: 14, animate: true, duration: 2.3 })
       } else {
         const route = urbanRoutePolylines.find(r => r.id === routeId)
         if (route) {
           const coords = routeCoords.get(routeId) ?? route.waypoints
-          map.fitBounds(L.latLngBounds(coords), { padding: [50, 50], maxZoom: 15 })
+          const bounds = L.latLngBounds(coords)
+          if (routeId === "line-01" && demoStep === 2) {
+            map.flyToBounds(bounds, { padding: [50, 50], maxZoom: 15, animate: true, duration: 2.3 })
+          } else {
+            map.fitBounds(bounds, { padding: [50, 50], maxZoom: 15, animate: true, duration: 2.3 })
+          }
         }
       }
     }
@@ -967,6 +1130,27 @@ function LeafletDarkRenderer({ trackingLineId, isFullscreen }: MapProps) {
     const map = L.map(containerRef.current, { zoomControl: false, attributionControl: false })
       .setView(KHENCHELA_CENTER, DEFAULT_ZOOM)
     mapRef.current = map
+
+    const placeDriverMarker = (data: DriverLocation) => {
+      if (!mapRef.current) return
+      if (!driverRef.current) {
+        const html = `<div style="width:28px;height:28px;border-radius:50%;border:3px solid white;background:linear-gradient(135deg,#ec4899,#db2777);display:flex;align-items:center;justify-content:center;animation:tk-driver-pulse 2s ease-in-out infinite;"><svg width="14" height="14" viewBox="0 0 24 24" fill="white"><path d="M8 4h8l2 6H6L8 4zM4 10v8h1v1a1 1 0 002 0v-1h10v1a1 1 0 002 0v-1h1v-8z"/></svg></div>`
+        const icon = L.divIcon({ html, className: "", iconSize: [28, 28], iconAnchor: [14, 14] })
+        driverRef.current = L.marker([data.lat, data.lng], { icon, zIndexOffset: 1000 }).addTo(map)
+      } else {
+        driverRef.current.setLatLng([data.lat, data.lng])
+      }
+    }
+
+    map.on("movestart", () => { cameraMovingRef.current = true })
+    map.on("moveend", () => {
+      cameraMovingRef.current = false
+      const pending = pendingDriverLocationRef.current
+      if (pending) {
+        pendingDriverLocationRef.current = null
+        placeDriverMarker(pending)
+      }
+    })
 
     // MapTiler Streets v4 raster tiles (no-WebGL fallback path)
     L.tileLayer(MAPTILER_RASTER_URL, {
@@ -1087,6 +1271,10 @@ function LeafletDarkRenderer({ trackingLineId, isFullscreen }: MapProps) {
     const animLeafletChev = (ts: number) => {
       const dt = Math.min((lastChevTs ? ts - lastChevTs : 16), 100) / 1000
       lastChevTs = ts
+      if (cameraMovingRef.current) {
+        rafRef.current = requestAnimationFrame(animLeafletChev)
+        return
+      }
       chevMarkersRef.current.forEach(entry => {
         entry.phase = (entry.phase + CHEV_SPEED * dt) % 1
         const route = routeByIdL.get(entry.routeId)
@@ -1128,6 +1316,7 @@ function LeafletDarkRenderer({ trackingLineId, isFullscreen }: MapProps) {
           iconAnchor: [11, 19],
         })
         const m = L.marker([pos.lat, pos.lng], { icon, interactive: false, zIndexOffset: 50 }).addTo(map)
+        if (route.id === "line-01" && i === 0) m.getElement()?.setAttribute("data-demo-target", "live-bus")
         simBusRef.current.push({ marker: m, routeId: route.id, offset: initialProgress, direction: 0 })
         busDataRef.current.push({ routeId: route.id, progress: initialProgress, speed, coords, cache })
       }
@@ -1138,6 +1327,10 @@ function LeafletDarkRenderer({ trackingLineId, isFullscreen }: MapProps) {
     const animLeafletBus = (ts: number) => {
       const dt = Math.min((lastBusTs ? ts - lastBusTs : 16), 100) / 1000
       lastBusTs = ts
+      if (cameraMovingRef.current) {
+        busRafRef.current = requestAnimationFrame(animLeafletBus)
+        return
+      }
       busDataRef.current.forEach((bd, idx) => {
         bd.progress = (bd.progress + bd.speed * dt) % 1
         const entry = simBusRef.current[idx]
@@ -1159,19 +1352,20 @@ function LeafletDarkRenderer({ trackingLineId, isFullscreen }: MapProps) {
     const unsubDriver = onValue(driverDbRef, snap => {
       const data = snap.val() as DriverLocation | null
       if (!data?.lat || !data?.lng) return
-      const html = `<div style="width:28px;height:28px;border-radius:50%;border:3px solid white;background:linear-gradient(135deg,#ec4899,#db2777);display:flex;align-items:center;justify-content:center;animation:tk-driver-pulse 2s ease-in-out infinite;"><svg width="14" height="14" viewBox="0 0 24 24" fill="white"><path d="M8 4h8l2 6H6L8 4zM4 10v8h1v1a1 1 0 002 0v-1h10v1a1 1 0 002 0v-1h1v-8z"/></svg></div>`
-      const icon = L.divIcon({ html, className: "", iconSize: [28,28], iconAnchor: [14,14] })
-      if (!driverRef.current) {
-        driverRef.current = L.marker([data.lat, data.lng], { icon, zIndexOffset: 1000 }).addTo(map)
-      } else {
-        driverRef.current.setLatLng([data.lat, data.lng])
+      if (cameraMovingRef.current) {
+        pendingDriverLocationRef.current = data
+        return
       }
+      placeDriverMarker(data)
     })
 
     setReady(true)
+    onReadyRef.current?.()
 
     return () => {
       unsubDriver()
+      cameraMovingRef.current = false
+      pendingDriverLocationRef.current = null
       if (rafRef.current) cancelAnimationFrame(rafRef.current)
       if (busRafRef.current) cancelAnimationFrame(busRafRef.current)
       chevMarkersRef.current.forEach(e => e.marker.remove())
@@ -1189,6 +1383,49 @@ function LeafletDarkRenderer({ trackingLineId, isFullscreen }: MapProps) {
   useEffect(() => {
     applyFocus(selectedRoute)
   }, [selectedRoute])
+
+  useEffect(() => {
+    if (!ready || !mapRef.current) return
+    const timer = window.setTimeout(() => mapRef.current?.invalidateSize({ pan: false, animate: false }), 360)
+    return () => window.clearTimeout(timer)
+  }, [isFullscreen, ready])
+
+  useEffect(() => {
+    const map = mapRef.current
+    if (!ready || !map) return
+
+    if (demoStep !== null && demoStep !== undefined) {
+      if (!demoSessionRef.current) {
+        const center = map.getCenter()
+        demoCameraRef.current = { center: [center.lng, center.lat], zoom: map.getZoom(), route: selectedRoute }
+        demoSessionRef.current = true
+      }
+
+      if (lastDemoStepRef.current !== demoStep) {
+        lastDemoStepRef.current = demoStep
+        if (demoStep === 1) {
+          setSelectedRoute(null)
+          map.flyTo(KHENCHELA_CENTER, 14.2, { duration: 2.5, easeLinearity: 0.2 })
+        } else if (demoStep === 2 || demoStep === 3) {
+          setSelectedRoute("line-01")
+        }
+      }
+      return
+    }
+
+    if (demoSessionRef.current && demoCameraRef.current) {
+      const previous = demoCameraRef.current
+      demoSessionRef.current = false
+      lastDemoStepRef.current = null
+      demoCameraRef.current = null
+      map.stop()
+      cameraMovingRef.current = false
+      setSelectedRoute(previous.route)
+      window.setTimeout(() => {
+        map.flyTo(previous.center, previous.zoom, { duration: 0.85, easeLinearity: 0.25 })
+      }, 100)
+    }
+  }, [demoStep, ready, selectedRoute])
 
   const locateMe = () => {
     if (!navigator.geolocation) return
@@ -1208,11 +1445,12 @@ function LeafletDarkRenderer({ trackingLineId, isFullscreen }: MapProps) {
   return (
     <div style={{ position: "relative", width: "100%", height: "100%" }}>
       <div ref={containerRef} style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }} />
-      {ready && <RouteController selectedRoute={selectedRoute} onRouteSelect={setSelectedRoute} isDark={isDark} />}
+      {ready && <RouteController selectedRoute={selectedRoute} onRouteSelect={setSelectedRoute} isDark={isDark} demoStep={demoStep} />}
       {ready && (
         <motion.button initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.3 }}
+          transformTemplate={({ scale = 1 }) => `translate3d(0, 0, 0) scale(${scale})`}
           onClick={locateMe}
-          className={`absolute ${isFullscreen ? "bottom-20" : "bottom-4"} right-4 z-[500] flex h-10 w-10 items-center justify-center rounded-xl bg-card/90 backdrop-blur-sm border border-border/50 shadow-lg hover:bg-card transition-colors`}
+          className={`map-overlay-motion absolute ${isFullscreen ? "bottom-20" : "bottom-4"} right-4 z-[500] flex h-10 w-10 items-center justify-center rounded-xl bg-card/90 backdrop-blur-sm border border-border/50 shadow-lg hover:bg-card${demoStep == null ? " transition-colors" : ""}`}
           aria-label="حدد موقعي">
           <LocateFixed className={`h-5 w-5 ${locating ? "animate-pulse text-primary" : "text-foreground"}`} />
         </motion.button>
@@ -1236,8 +1474,9 @@ export default function MaplibreMap(props: MapProps) {
     // Initial load — show dark background while detecting
     return (
       <div className="relative h-full w-full flex items-center justify-center" style={{ background: "#0f172a" }}>
-        <motion.div className="h-10 w-10 rounded-full border-[3px] border-primary/30 border-t-primary"
-          animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: "linear" }} />
+        <motion.div className="map-overlay-motion h-10 w-10 rounded-full border-[3px] border-primary/30 border-t-primary"
+          animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                transformTemplate={({ rotate = 0 }) => `translate3d(0, 0, 0) rotate(${rotate}deg)`} />
       </div>
     )
   }
