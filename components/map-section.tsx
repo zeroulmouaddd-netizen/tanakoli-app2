@@ -1,10 +1,11 @@
 "use client"
 
-import { useEffect, useState, useId } from "react"
+import { useCallback, useEffect, useState, useId } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import dynamic from "next/dynamic"
 import { MapSkeleton } from "./skeleton-loader"
 import { useTracking } from "@/lib/tracking-context"
+import { useDemoMode } from "@/lib/demo-mode-context"
 import { Navigation, X, Maximize2, Minimize2 } from "lucide-react"
 import { signalMapReady } from "./app-wrapper"
 
@@ -19,20 +20,34 @@ export function MapSection() {
   const [isFullscreen, setIsFullscreen] = useState(false)
   const mapId = useId()
   const { trackingState, stopTracking } = useTracking()
+  const { isActive: isDemoActive, step: demoStep, setHomeMapReady } = useDemoMode()
+
+  const handleMapReady = useCallback(() => {
+    setIsMapReady(true)
+    signalMapReady()
+    setHomeMapReady(true)
+  }, [setHomeMapReady])
 
   useEffect(() => {
     setIsMounted(true)
-    // Simulate map loading with a slight delay for smoother transition
-    const timer = setTimeout(() => {
-      setIsMapReady(true)
-      // Signal to AppWrapper that map is ready
-      signalMapReady()
-    }, 500)
-    return () => clearTimeout(timer)
-  }, [])
+    setHomeMapReady(false)
+    return () => setHomeMapReady(false)
+  }, [setHomeMapReady])
+
+  useEffect(() => {
+    window.dispatchEvent(new CustomEvent("mapFullscreenChange", { detail: { isFullscreen } }))
+  }, [isFullscreen])
+
+  useEffect(() => {
+    if (!isDemoActive || demoStep === null) {
+      if (!isDemoActive) setIsFullscreen(false)
+      return
+    }
+    setIsFullscreen(demoStep < 4)
+  }, [isDemoActive, demoStep])
 
   const handleFullscreen = () => {
-    setIsFullscreen(!isFullscreen)
+    setIsFullscreen((current) => !current)
   }
 
   if (!isMounted) {
@@ -58,8 +73,31 @@ export function MapSection() {
             key={mapId} 
             trackingLineId={trackingState.busLineId}
             isFullscreen={isFullscreen}
+            demoStep={isDemoActive ? demoStep : null}
+            onReady={handleMapReady}
           />
         </div>
+
+        {isDemoActive && demoStep === 1 && (
+          <motion.div
+            className="demo-map-anchor"
+            data-demo-target="map-overview"
+            style={{ left: "54%", top: "52%" }}
+            initial={{ opacity: 0, scale: 0.7 }}
+            animate={{ opacity: 1, scale: 1 }}
+            aria-hidden="true"
+          />
+        )}
+        {isDemoActive && demoStep === 2 && (
+          <motion.div
+            className="demo-map-anchor demo-map-anchor--live"
+            data-demo-target="live-bus-fallback"
+            style={{ left: "52%", top: "54%" }}
+            initial={{ opacity: 0, scale: 0.7 }}
+            animate={{ opacity: 1, scale: 1 }}
+            aria-hidden="true"
+          />
+        )}
 
         {/* Loading overlay — sits above the map, fades out when ready */}
         <AnimatePresence>
@@ -87,10 +125,11 @@ export function MapSection() {
         {/* Fullscreen Toggle Button */}
         <motion.button
           onClick={handleFullscreen}
+          disabled={isDemoActive}
           initial={{ opacity: 0, scale: 0.8 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ delay: 0.3 }}
-          className="absolute top-3 sm:top-4 left-3 sm:left-4 z-[1001] flex h-9 sm:h-10 w-9 sm:w-10 items-center justify-center rounded-lg bg-card/80 backdrop-blur-md border border-border/50 shadow-lg hover:bg-card transition-colors"
+          className="absolute top-3 sm:top-4 left-3 sm:left-4 z-[1001] flex h-9 sm:h-10 w-9 sm:w-10 items-center justify-center rounded-lg bg-card/80 backdrop-blur-md border border-border/50 shadow-lg hover:bg-card transition-colors disabled:cursor-not-allowed disabled:opacity-50"
           aria-label={isFullscreen ? "خروج من ملء الشاشة" : "ملء الشاشة"}
         >
           {isFullscreen ? (
@@ -102,7 +141,7 @@ export function MapSection() {
         
         {/* Live Tracking Indicator */}
         <AnimatePresence>
-          {trackingState.isTracking && (
+          {trackingState.isTracking && !isDemoActive && (
             <motion.div
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}

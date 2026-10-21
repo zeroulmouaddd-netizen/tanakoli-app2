@@ -1,13 +1,15 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import { createPortal } from "react-dom"
 import { Home, MapPin, Clock, User, QrCode, X, Wallet, ScanLine } from "lucide-react"
 import { usePathname, useRouter } from "next/navigation"
 import { motion, AnimatePresence } from "framer-motion"
 import dynamic from "next/dynamic"
+import { QRCodeSVG } from "qrcode.react"
 import { useUserCache } from "@/hooks/use-user-cache"
 import { useAuth } from "@/lib/auth-context"
+import { useDemoMode } from "@/lib/demo-mode-context"
 
 // Dynamic import with SSR disabled for QR code
 const QRCodeDisplay = dynamic(
@@ -52,6 +54,7 @@ export function BottomNav() {
   const [showModal, setShowModal] = useState(false)
   const [hasMounted, setHasMounted] = useState(false)
   const [isPulsing, setIsPulsing] = useState(false)
+  const { isActive: isDemoActive, step: demoStep, stopDemo } = useDemoMode()
 
   useEffect(() => {
     setHasMounted(true)
@@ -65,6 +68,23 @@ export function BottomNav() {
     setTimeout(() => setIsPulsing(false), 300)
     setShowModal(true)
   }
+
+  const handleCloseModal = useCallback(() => {
+    setShowModal(false)
+    if (isDemoActive && demoStep === 4) stopDemo()
+  }, [demoStep, isDemoActive, stopDemo])
+
+  useEffect(() => {
+    if (isDemoActive && demoStep === 4 && hasMounted) {
+      document.querySelector<HTMLElement>('[data-demo-target="payment-entry"]')?.scrollIntoView({
+        behavior: "smooth",
+        block: "end",
+      })
+      const timer = window.setTimeout(() => setShowModal(true), 850)
+      return () => window.clearTimeout(timer)
+    }
+    if (!isDemoActive) setShowModal(false)
+  }, [demoStep, hasMounted, isDemoActive])
 
   return (
     <>
@@ -98,9 +118,10 @@ export function BottomNav() {
                   <div key={item.label} className="flex flex-1 items-center justify-center">
                     {hasMounted && (
                       <motion.button
+                        data-demo-target="payment-entry"
                         onClick={handleOpenModal}
                         onTouchStart={() => {}}
-                        className="flex flex-col items-center gap-0.5 sm:gap-1"
+                        className={`flex flex-col items-center gap-0.5 sm:gap-1${isDemoActive && demoStep === 4 ? " demo-payment-entry-active" : ""}`}
                         whileTap={{ scale: 0.92 }}
                         transition={{ type: "spring", stiffness: 400, damping: 17 }}
                         aria-label="دفع سريع"
@@ -185,7 +206,11 @@ export function BottomNav() {
 
       {/* Payment QR Modal Portal */}
       {hasMounted && createPortal(
-        <PaymentQRModal isOpen={showModal} onClose={() => setShowModal(false)} />,
+        <PaymentQRModal
+          isOpen={showModal}
+          onClose={handleCloseModal}
+          demoMode={isDemoActive && demoStep === 4}
+        />,
         document.body
       )}
     </>
@@ -195,14 +220,19 @@ export function BottomNav() {
 interface PaymentQRModalProps {
   isOpen: boolean
   onClose: () => void
+  demoMode: boolean
 }
 
-function PaymentQRModal({ isOpen, onClose }: PaymentQRModalProps) {
+function PaymentQRModal({ isOpen, onClose, demoMode }: PaymentQRModalProps) {
   const { userData, isLoading } = useUserCache()
   const { firestoreUserId } = useAuth()
+  const demoSessionRef = useRef(false)
 
   useEffect(() => {
-    if (!isOpen) return
+    if (!isOpen) {
+      demoSessionRef.current = false
+      return
+    }
 
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
@@ -214,7 +244,8 @@ function PaymentQRModal({ isOpen, onClose }: PaymentQRModalProps) {
       onClose()
     }
 
-    window.history.pushState({ modal: "qr-payment" }, "")
+    if (demoMode) demoSessionRef.current = true
+    else if (!demoSessionRef.current) window.history.pushState({ modal: "qr-payment" }, "")
     window.addEventListener("keydown", handleKeyDown)
     window.addEventListener("popstate", handlePopState)
     document.body.style.overflow = "hidden"
@@ -224,13 +255,13 @@ function PaymentQRModal({ isOpen, onClose }: PaymentQRModalProps) {
       window.removeEventListener("popstate", handlePopState)
       document.body.style.overflow = ""
     }
-  }, [isOpen, onClose])
+  }, [demoMode, isOpen, onClose])
 
   return (
     <AnimatePresence>
       {isOpen && (
         <motion.div
-          className="fixed inset-0 flex items-end sm:items-center justify-center p-0 sm:p-4"
+          className={`fixed inset-0 flex items-end justify-center p-0 sm:p-4${demoMode ? " sm:items-end" : " sm:items-center"}`}
           style={{ zIndex: 9999 }}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -249,7 +280,7 @@ function PaymentQRModal({ isOpen, onClose }: PaymentQRModalProps) {
           <motion.button
             onClick={onClose}
             onTouchStart={() => {}}
-            className="absolute right-3 top-3 sm:right-auto sm:left-4 sm:top-4 flex h-10 sm:h-12 w-10 sm:w-12 items-center justify-center rounded-full bg-card/90 text-foreground shadow-xl backdrop-blur-sm transition-colors hover:bg-card"
+            className={`absolute ${demoMode ? "right-3 top-3" : "right-3 top-3 sm:right-auto sm:left-4 sm:top-4"} flex h-10 sm:h-12 w-10 sm:w-12 items-center justify-center rounded-full bg-card/90 text-foreground shadow-xl backdrop-blur-sm transition-colors hover:bg-card`}
             style={{ zIndex: 10000 }}
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -262,8 +293,11 @@ function PaymentQRModal({ isOpen, onClose }: PaymentQRModalProps) {
           
           {/* Modal Content */}
           <motion.div
-            className="relative w-full sm:w-full mx-0 sm:mx-4 max-w-sm rounded-t-3xl sm:rounded-3xl overflow-hidden"
-            style={{ zIndex: 9999 }}
+            className={`relative w-full sm:w-full mx-0 sm:mx-4 max-w-sm rounded-t-3xl sm:rounded-3xl overflow-hidden${demoMode ? " demo-payment-modal" : ""}`}
+            style={{
+              zIndex: 9999,
+              ...(demoMode ? { maxHeight: "calc(100dvh - 160px)", overflowY: "auto" as const } : {}),
+            }}
             initial={{ scale: 0.9, opacity: 0, y: 20 }}
             animate={{ scale: 1, opacity: 1, y: 0 }}
             exit={{ scale: 0.95, opacity: 0, y: 10 }}
@@ -272,41 +306,70 @@ function PaymentQRModal({ isOpen, onClose }: PaymentQRModalProps) {
           >
             <div className="overflow-hidden rounded-t-3xl sm:rounded-3xl bg-card shadow-2xl">
               {/* Header */}
-              <div className="bg-gradient-to-br from-primary to-primary/80 p-4 sm:p-6 text-primary-foreground">
-                <div className="mb-4 flex items-center justify-between">
+              <div className={`bg-gradient-to-br from-primary to-primary/80 p-4 sm:p-6 text-primary-foreground${demoMode ? " demo-wallet-header" : ""}`}>
+                <div className="demo-wallet-header-row mb-4 flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <Wallet className="h-4 sm:h-5 w-4 sm:w-5" />
-                    <span className="text-xs sm:text-sm font-medium opacity-90">محفظتي</span>
+                    <span className="text-xs sm:text-sm font-medium opacity-90">{demoMode ? "محفظة تجريبية" : "محفظتي"}</span>
                   </div>
                   <span className="rounded-full bg-primary-foreground/20 px-2 sm:px-3 py-0.5 sm:py-1 text-xs font-medium">
-                    نشط
+                    {demoMode ? "MODE DÉMO" : "نشط"}
                   </span>
                 </div>
                 
-                <div className="mb-2">
+                <div className="demo-wallet-balance mb-2">
                   <p className="text-xs sm:text-sm opacity-80">الرصيد الحالي</p>
                   <div className="text-2xl sm:text-3xl font-bold" dir="ltr">
-                    {isLoading ? "..." : (userData?.balance ?? 0).toLocaleString("ar-DZ")} <span className="text-sm sm:text-lg">د.ج</span>
+                    {demoMode ? "2 450" : isLoading ? "..." : (userData?.balance ?? 0).toLocaleString("ar-DZ")} <span className="text-sm sm:text-lg">د.ج</span>
                   </div>
                 </div>
 
-                <p className="text-xs sm:text-sm font-medium">
-                  {isLoading ? "جاري التحميل..." : userData?.fullName || "مستخدم"}
+                <p className="text-xs sm:text-sm font-medium" dir={demoMode ? "ltr" : "rtl"}>
+                  {demoMode ? "Compte de démonstration · Aperçu uniquement" : isLoading ? "جاري التحميل..." : userData?.fullName || "مستخدم"}
                 </p>
+                {demoMode && (
+                  <div className="mt-3 flex items-center justify-between rounded-xl border border-white/20 bg-white/10 px-3 py-2 text-xs">
+                    <span>شحن المحفظة</span>
+                    <span dir="ltr">Recharge du portefeuille</span>
+                  </div>
+                )}
               </div>
 
               {/* QR Code Section */}
-              <div className="p-4 sm:p-6">
-                <div className="mb-4 text-center">
-                  <h3 className="text-base sm:text-lg font-bold text-foreground">رمز الدفع السريع</h3>
-                  <p className="text-xs sm:text-sm text-muted-foreground">أظهر هذا الكود للسائق للدفع</p>
+              <div className={`p-4 sm:p-6${demoMode ? " demo-payment-body" : ""}`}>
+                <div className="demo-payment-title mb-4 text-center">
+                  <h3 className="text-base sm:text-lg font-bold text-foreground">{demoMode ? "رمز الدفع التجريبي" : "رمز الدفع السريع"}</h3>
+                  <p className="text-xs sm:text-sm text-muted-foreground">
+                    {demoMode ? "كود للعرض فقط · Code de démonstration" : "أظهر هذا الكود للسائق للدفع"}
+                  </p>
                 </div>
 
-                <QRCodeDisplay 
-                  userId={firestoreUserId || ""}
-                  userName={userData?.fullName || ""}
-                  userPhone={userData?.Phone || firestoreUserId || ""}
-                />
+                <div data-demo-target={demoMode ? "payment-qr" : undefined} className="demo-payment-qr-target">
+                  {demoMode ? (
+                    <div className="flex flex-col items-center">
+                      <div className="relative mb-3">
+                        <div className="absolute -inset-2 rounded-2xl bg-primary/15" />
+                        <div className="relative rounded-2xl bg-white p-4 shadow-lg">
+                          <QRCodeSVG
+                            value="TANAKOLI-DEMO-PRESENTATION-ONLY-NOT-A-VALID-PAYMENT"
+                            size={demoMode ? 156 : 180}
+                            level="H"
+                            includeMargin={false}
+                            bgColor="#ffffff"
+                            fgColor="#0f172a"
+                          />
+                        </div>
+                      </div>
+                      <span className="text-[10px] font-semibold tracking-wide text-primary" dir="ltr">QR DÉMO · NON VALIDE</span>
+                    </div>
+                  ) : (
+                    <QRCodeDisplay
+                      userId={firestoreUserId || ""}
+                      userName={userData?.fullName || ""}
+                      userPhone={userData?.Phone || firestoreUserId || ""}
+                    />
+                  )}
+                </div>
 
                 {/* Scan Instruction */}
                 <div className="mt-4 flex items-center justify-center gap-2 sm:gap-3 rounded-xl sm:rounded-2xl bg-muted/50 p-3 sm:p-4">
