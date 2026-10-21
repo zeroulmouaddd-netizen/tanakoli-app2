@@ -582,6 +582,13 @@ export function subscribeActiveDrivers(
   const firestoreUsers = new Map<string, RawDriver>()
   const rtdbDrivers = new Map<string, RawDriver>()
 
+  // Listener setup must never throw (SSR/prerender, missing Firebase config or
+  // security-rule rejections) — the panel degrades to an empty list instead.
+  if (!db || !rtdb) {
+    callback({ rows: [], mode: "empty" })
+    return () => {}
+  }
+
   function merge() {
     // Registered drivers: `drivers` collection wins over `users` metadata.
     const merged = new Map<string, RawDriver>()
@@ -668,52 +675,71 @@ export function subscribeActiveDrivers(
   }
 
   // ── 1. Firestore `drivers` collection (driver records, incl. mock/test) ──
-  const driversUnsub = onSnapshot(
-    collection(db, "drivers"),
-    (snap) => {
-      firestoreDrivers.clear()
-      snap.forEach((d) => {
-        const data = d.data() as Record<string, any>
-        const raw = parseDriverEntry(data, d.id, false)
-        if (raw.key) firestoreDrivers.set(raw.key, raw)
-      })
-      merge()
-    },
-    () => { merge() }
-  )
+  // Each listener is guarded: a failure on one source still lets the others
+  // populate the panel, and no error can escape into the render tree.
+  let driversUnsub = () => {}
+  let usersUnsub = () => {}
+  let rtdbUnsub = () => {}
+
+  try {
+    driversUnsub = onSnapshot(
+      collection(db, "drivers"),
+      (snap) => {
+        firestoreDrivers.clear()
+        snap.forEach((d) => {
+          const data = d.data() as Record<string, any>
+          const raw = parseDriverEntry(data, d.id, false)
+          if (raw.key) firestoreDrivers.set(raw.key, raw)
+        })
+        merge()
+      },
+      () => { merge() }
+    )
+  } catch (error) {
+    console.error("[admin-utils] subscribeActiveDrivers (drivers):", error)
+  }
 
   // ── 2. Firestore `users` collection (registered drivers) ─────────────────
-  const usersUnsub = onSnapshot(
-    collection(db, "users"),
-    (snap) => {
-      firestoreUsers.clear()
-      snap.forEach((d) => {
-        const data = d.data() as Record<string, any>
-        if (!isDriverDoc(data)) return
-        const raw = parseDriverEntry(data, d.id, false)
-        if (raw.key) firestoreUsers.set(raw.key, raw)
-      })
-      merge()
-    },
-    () => { merge() }
-  )
+  try {
+    usersUnsub = onSnapshot(
+      collection(db, "users"),
+      (snap) => {
+        firestoreUsers.clear()
+        snap.forEach((d) => {
+          const data = d.data() as Record<string, any>
+          if (!isDriverDoc(data)) return
+          const raw = parseDriverEntry(data, d.id, false)
+          if (raw.key) firestoreUsers.set(raw.key, raw)
+        })
+        merge()
+      },
+      () => { merge() }
+    )
+  } catch (error) {
+    console.error("[admin-utils] subscribeActiveDrivers (users):", error)
+  }
 
   // ── 3. Realtime Database `drivers/*` (live GPS + heartbeat) ──────────────
-  const rtdbUnsub = onValue(
-    ref(rtdb, "drivers"),
-    (snap) => {
-      rtdbDrivers.clear()
-      if (snap.exists()) {
-        const val = snap.val() as Record<string, any>
-        for (const [key, entry] of Object.entries(val)) {
-          const raw = parseDriverEntry((entry ?? {}) as Record<string, any>, key, true)
-          if (raw.key) rtdbDrivers.set(raw.key, raw)
+  try {
+    rtdbUnsub = onValue(
+      ref(rtdb, "drivers"),
+      (snap) => {
+        rtdbDrivers.clear()
+        if (snap.exists()) {
+          const val = snap.val() as Record<string, any>
+          for (const [key, entry] of Object.entries(val)) {
+            const raw = parseDriverEntry((entry ?? {}) as Record<string, any>, key, true)
+            if (raw.key) rtdbDrivers.set(raw.key, raw)
+          }
         }
-      }
-      merge()
-    },
-    () => { merge() }
-  )
+        merge()
+      },
+      () => { merge() }
+    )
+  } catch (error) {
+    console.error("[admin-utils] subscribeActiveDrivers (rtdb):", error)
+    merge()
+  }
 
   return () => {
     driversUnsub()
