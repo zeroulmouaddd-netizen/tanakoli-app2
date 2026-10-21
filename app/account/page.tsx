@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { motion, useReducedMotion } from "framer-motion"
 import { AppHeader } from "@/components/app-header"
 import { BottomNav } from "@/components/bottom-nav"
 import { AccountBackground } from "@/components/account-background"
@@ -9,6 +10,7 @@ import {
   Pencil, Save, CreditCard, LogOut,
 } from "lucide-react"
 import { useDriverMode } from "@/lib/driver-mode-context"
+import { useDemoMode } from "@/lib/demo-mode-context"
 import { db, auth } from "@/lib/firebase"
 import { doc, updateDoc, increment } from "firebase/firestore"
 import { signOut } from "firebase/auth"
@@ -23,6 +25,9 @@ import { QRRechargeModal } from "@/components/qr-recharge-modal"
 export default function AccountPage() {
   const { userData, isLoading } = useUserCache()
   const { firestoreUserId } = useAuth()
+  const { isActive: isDemoActive, step: demoStep } = useDemoMode()
+  const prefersReducedMotion = useReducedMotion()
+  const isDemoAccountStep = isDemoActive && demoStep === 7
 
   const [isEditing, setIsEditing] = useState(false)
   const [editFullName, setEditFullName] = useState("")
@@ -124,9 +129,9 @@ export default function AccountPage() {
   if (isLoading && !userData) {
     return (
       <PageTransition>
-        <main className="min-h-screen bg-background pb-40">
+        <main className={`min-h-screen bg-background pb-40${isDemoAccountStep ? " demo-account-demo-active" : ""}`}>
           <AppHeader />
-          <div className="px-4 pt-20">
+          <div className="px-4 pt-20 demo-account-content">
             <div className="mb-6 flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary">
                 <User className="h-5 w-5 text-primary-foreground" />
@@ -136,9 +141,14 @@ export default function AccountPage() {
                 <p className="text-sm text-muted-foreground">جاري التحميل...</p>
               </div>
             </div>
-            <div className="space-y-4">
+            <div
+              className="space-y-4"
+              data-demo-target={isDemoAccountStep ? "account-overview" : undefined}
+            >
               <BalanceCardSkeleton />
-              <ProfileInfoSkeleton />
+              <div data-demo-focus-target={isDemoAccountStep ? "account-profile-header" : undefined}>
+                <ProfileInfoSkeleton />
+              </div>
             </div>
           </div>
           <BottomNav />
@@ -149,7 +159,7 @@ export default function AccountPage() {
 
   return (
     <PageTransition>
-      <main className="relative min-h-screen bg-background pb-40">
+      <main className={`relative min-h-screen bg-background pb-40${isDemoAccountStep ? " demo-account-demo-active" : ""}`}>
         {/* Animated Background */}
         <AccountBackground />
         
@@ -157,7 +167,7 @@ export default function AccountPage() {
         <div className="relative z-10">
           <AppHeader />
 
-        <div className="px-4 pt-20">
+        <div className="px-4 pt-20 demo-account-content">
           <div className="mb-6 flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary">
               <User className="h-5 w-5 text-primary-foreground" />
@@ -170,7 +180,10 @@ export default function AccountPage() {
             </div>
           </div>
 
-          <div className="space-y-4">
+          <div
+            className="space-y-4"
+            data-demo-target={isDemoAccountStep ? "account-overview" : undefined}
+          >
             {/* Balance Card with Enhanced Design */}
             <div className="relative overflow-hidden rounded-2xl bg-gradient-to-l from-primary to-primary/80 p-5 shadow-lg">
               {/* Shine Effect */}
@@ -227,8 +240,23 @@ export default function AccountPage() {
             </div>
 
             {/* Profile Card */}
-            <div className="rounded-2xl bg-card p-5 shadow-sm">
-              <div className="mb-4 flex items-center justify-between">
+            <motion.div
+              className={`rounded-2xl bg-card p-5 shadow-sm${isDemoAccountStep ? " demo-step7-profile-card" : ""}`}
+              initial={false}
+              animate={isDemoAccountStep && !prefersReducedMotion
+                ? { scale: [1, 1.08, 1.08, 1] }
+                : { scale: 1 }}
+              transition={prefersReducedMotion
+                ? { scale: { duration: 0 } }
+                : isDemoAccountStep
+                ? { scale: { duration: 4.2, times: [0, 0.13, 0.86, 1], ease: [0.22, 1, 0.36, 1] } }
+                : { scale: { duration: 0.36, ease: [0.22, 1, 0.36, 1] } }}
+              transformTemplate={({ scale = 1 }) => `translate3d(0, 0, 0) scale3d(${scale}, ${scale}, 1)`}
+            >
+              <div
+                data-demo-focus-target={isDemoAccountStep ? "account-profile-header" : undefined}
+                className="mb-4 flex items-center justify-between"
+              >
                 <div className="flex items-center gap-3">
                   <div className="flex h-14 w-14 items-center justify-center rounded-full bg-primary/10">
                     <User className="h-7 w-7 text-primary" />
@@ -303,7 +331,7 @@ export default function AccountPage() {
                   </div>
                 </div>
               </div>
-            </div>
+            </motion.div>
 
             {/* Logout */}
             <button

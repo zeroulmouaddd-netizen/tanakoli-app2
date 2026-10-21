@@ -1313,6 +1313,25 @@ select.admin-input {
   opacity: 0.9;
   pointer-events: none;
 }
+.demo-step7-profile-card {
+  position: relative;
+  z-index: 12;
+  isolation: isolate;
+  transform-origin: center;
+  will-change: transform;
+  backface-visibility: hidden;
+}
+.demo-step7-profile-card::after {
+  position: absolute;
+  z-index: 1;
+  inset: -5px;
+  border: 1px solid rgba(110, 231, 183, 0.92);
+  border-radius: 21px;
+  box-shadow: 0 0 0 1px rgba(16, 185, 129, 0.22), 0 0 24px rgba(16, 185, 129, 0.42);
+  content: "";
+  opacity: 0.92;
+  pointer-events: none;
+}
 .demo-step6-ring-focus::after {
   content: "";
   position: absolute;
@@ -1543,6 +1562,29 @@ select.admin-input {
   position: relative;
   z-index: 1;
 }
+.demo-callout-card--account {
+  z-index: 3;
+  isolation: isolate;
+  top: clamp(76px, 9vh, 94px);
+  bottom: auto;
+  left: clamp(12px, 4vw, 48px);
+  width: min(360px, calc(100vw - 24px));
+  padding: 14px 16px 12px;
+}
+.demo-callout-card--account .demo-card-eyebrow { display: none; }
+.demo-callout-card--account .demo-title-block,
+.demo-callout-card--account .demo-copy-block {
+  position: relative;
+  z-index: 1;
+}
+.demo-callout-card--account .demo-title-block { gap: 0; margin-top: 2px; }
+.demo-callout-card--account .demo-title-ar { font-size: 18px; line-height: 1.33; }
+.demo-callout-card--account .demo-title-fr { font-size: 12px; line-height: 1.34; }
+.demo-callout-card--account .demo-copy-block { gap: 2px; margin-top: 5px; }
+.demo-callout-card--account .demo-copy-ar { font-size: 10px; line-height: 1.43; }
+.demo-callout-card--account .demo-copy-fr { font-size: 9px; line-height: 1.38; }
+.demo-callout-card--account .demo-progress-meta { margin-top: 7px; }
+.demo-callout-card--account .demo-progress-track { margin-top: 4px; }
 .demo-callout-card--stations .demo-card-eyebrow,
 .demo-callout-card--trips .demo-card-eyebrow { display: none; }
 .demo-callout-card--stations .demo-title-block,

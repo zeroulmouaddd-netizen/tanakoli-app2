@@ -43,6 +43,12 @@ const STEP_COPY: Record<DemoStep, { ar: string; fr: string; bodyAr: string; body
     bodyAr: "ابحث عن مواعيد الخطوط وتابع أوقات الانطلاق والوصول لحظة بلحظة.",
     bodyFr: "Recherchez un itinéraire et consultez ses horaires en temps réel.",
   },
+  7: {
+    ar: "إدارة الحساب والخدمات",
+    fr: "Gestion du Compte & Services",
+    bodyAr: "أدر ملفك الشخصي، تابع رصيد بطاقتك، وخصّص إعدادات التنقل حسب تفضيلاتك.",
+    bodyFr: "Gérez votre compte, suivez le solde de votre carte et personnalisez vos préférences de transport.",
+  },
 }
 
 const QR_SPOTLIGHT_PADDING = 8
@@ -54,6 +60,7 @@ function targetNames(step: DemoStep | null) {
   if (step === 3) return ["route-selector"]
   if (step === 4) return ["payment-qr"]
   if (step === 5) return ["first-route-card"]
+  if (step === 7) return ["account-overview"]
   return []
 }
 
@@ -65,6 +72,10 @@ function findTarget(step: DemoStep | null) {
   if (step === 6) {
     return document.querySelector<HTMLElement>("[data-demo-focus-target]")
       ?? document.querySelector<HTMLElement>('[data-demo-target="trip-search-card"]')
+  }
+  if (step === 7) {
+    return document.querySelector<HTMLElement>('[data-demo-focus-target="account-profile-header"]')
+      ?? document.querySelector<HTMLElement>('[data-demo-target="account-overview"]')
   }
 
   for (const name of targetNames(step)) {
@@ -157,6 +168,24 @@ function connectorPath(card: DOMRect, target: DOMRect, step: DemoStep) {
     }
   }
 
+  if (step === 7) {
+    // Meet the profile card header on its top edge without crossing the account details.
+    const targetX = target.left + Math.min(32, target.width * 0.12)
+    const targetY = target.top
+    const startX = card.left + Math.min(24, card.width * 0.08)
+    const startY = targetY < card.top ? card.top : card.bottom
+    const laneX = Math.max(22, card.left - 18)
+    const exitY = startY + 24
+    const approachY = Math.max(exitY, targetY - 24)
+    const dx = targetX - laneX
+
+    return {
+      d: `M ${startX} ${startY} C ${startX} ${startY + 14}, ${laneX} ${startY + 14}, ${laneX} ${exitY} L ${laneX} ${approachY} C ${laneX + dx * 0.35} ${approachY}, ${targetX} ${approachY + 9}, ${targetX} ${targetY}`,
+      x: targetX,
+      y: targetY,
+    }
+  }
+
   const targetX = target.left + target.width / 2
   const targetY = target.top + target.height / 2
   const centerX = card.left + card.width / 2
@@ -239,8 +268,8 @@ export function DemoPresentationOverlay() {
     let sampleAt = 0
     let qrTargetSeenAt: number | null = null
     let routeTargetSeenAt: number | null = null
-    let step6FollowUntil = 0
-    let startStep6Follow = () => {}
+    let focusFollowUntil = 0
+    let startFocusFollow = () => {}
     const entranceEndsAt = performance.now() + 380
     let observedTarget: Element | null = null
 
@@ -322,8 +351,8 @@ export function DemoPresentationOverlay() {
       )
       const targetChanged = findTarget(step) !== previousTarget
 
-      if (step === 6 && (focusTargetChanged || targetChanged)) {
-        startStep6Follow()
+      if ((step === 6 || step === 7) && (focusTargetChanged || targetChanged)) {
+        startFocusFollow()
       } else {
         scheduleRefresh()
       }
@@ -371,10 +400,10 @@ export function DemoPresentationOverlay() {
         return
       }
 
-      if (step === 6) {
-        // Follow the departure or transaction target through its zoom-in and zoom-out.
+      if (step === 6 || step === 7) {
+        // Follow the departure, transaction, or account target through its zoom motion.
         drawConnector()
-        if (now < step6FollowUntil) {
+        if (now < focusFollowUntil) {
           frame = window.requestAnimationFrame(animateConnector)
         } else {
           frame = 0
@@ -413,12 +442,12 @@ export function DemoPresentationOverlay() {
       }
     }
 
-    startStep6Follow = () => {
+    startFocusFollow = () => {
       if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
         scheduleRefresh()
         return
       }
-      step6FollowUntil = performance.now() + 1_600
+      focusFollowUntil = performance.now() + (step === 7 ? 4_700 : 1_600)
       if (frame === 0) frame = window.requestAnimationFrame(animateConnector)
     }
 
@@ -436,11 +465,19 @@ export function DemoPresentationOverlay() {
   const isStep6HistoryPhase = isActive && step === 6 && step6Phase === "history"
 
   useEffect(() => {
-    const destination = step === 5 ? "/stations" : step === 6 ? "/trips" : null
+    const destination = step === 5
+      ? "/stations"
+      : step === 6
+      ? "/trips"
+      : step === 7
+      ? "/account"
+      : null
     const targetName = step === 5
       ? "first-route-card"
       : step === 6
       ? isStep6HistoryPhase ? "trip-history-first-card" : "trip-search-card"
+      : step === 7
+      ? "account-overview"
       : null
     if (!isActive || !destination || !targetName || pathname !== destination) return
 
@@ -470,12 +507,12 @@ export function DemoPresentationOverlay() {
           if (currentTarget !== previousTarget) return
 
           const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches
-          if (isStep6HistoryPhase) {
+          if (isStep6HistoryPhase || step === 7) {
             const targetBounds = currentTarget.getBoundingClientRect()
             const bannerBottom = document.getElementById("demo-callout-card")?.getBoundingClientRect().bottom ?? 0
             const desiredTop = Math.max(24, bannerBottom + 18)
             const bottomSafeTop = Math.max(24, window.innerHeight - targetBounds.height - 96)
-            const visibleTop = Math.min(desiredTop, bottomSafeTop)
+            const visibleTop = step === 7 ? desiredTop : Math.min(desiredTop, bottomSafeTop)
 
             window.scrollTo({
               top: Math.max(0, window.scrollY + targetBounds.top - visibleTop),
@@ -557,7 +594,7 @@ export function DemoPresentationOverlay() {
             <motion.section
               key={step ?? "preparing"}
               id="demo-callout-card"
-              className={`demo-callout-card${step === 3 ? " demo-callout-card--route" : ""}${step === 4 ? " demo-callout-card--payment" : ""}${step === 5 ? " demo-callout-card--stations" : ""}${step === 6 ? " demo-callout-card--trips" : ""}${isPreparing ? " demo-callout-card--preparing" : ""}`}
+              className={`demo-callout-card${step === 3 ? " demo-callout-card--route" : ""}${step === 4 ? " demo-callout-card--payment" : ""}${step === 5 ? " demo-callout-card--stations" : ""}${step === 6 ? " demo-callout-card--trips" : ""}${step === 7 ? " demo-callout-card--account" : ""}${isPreparing ? " demo-callout-card--preparing" : ""}`}
               initial={{ opacity: 0, y: 12, scale: 0.985 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: -6, scale: 0.99 }}
@@ -589,7 +626,7 @@ export function DemoPresentationOverlay() {
                     <p className="demo-copy-fr" dir="ltr" lang="fr">{copy.bodyFr}</p>
                   </div>
                   <div className="demo-progress-meta" dir="ltr">
-                    <span>ÉTAPE {String(step).padStart(2, "0")} <span className="demo-meta-divider">/</span> 06</span>
+                    <span>ÉTAPE {String(step).padStart(2, "0")} <span className="demo-meta-divider">/</span> 07</span>
                     <span className="demo-countdown">00:0{secondsLeft}</span>
                   </div>
                   <div className="demo-progress-track" dir="ltr" aria-hidden="true">

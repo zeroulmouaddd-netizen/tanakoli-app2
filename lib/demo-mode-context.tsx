@@ -12,7 +12,7 @@ import {
 } from "react"
 import { usePathname, useRouter } from "next/navigation"
 
-export type DemoStep = 1 | 2 | 3 | 4 | 5 | 6
+export type DemoStep = 1 | 2 | 3 | 4 | 5 | 6 | 7
 export type DemoStep6Phase = "past" | "upcoming" | "history"
 
 interface DemoModeContextValue {
@@ -94,7 +94,7 @@ export function DemoModeProvider({ children }: { children: ReactNode }) {
   }, [])
 
   useEffect(() => {
-    const destination = step === 5 ? "/stations" : step === 6 ? "/trips" : null
+    const destination = step === 5 ? "/stations" : step === 6 ? "/trips" : step === 7 ? "/account" : null
     if (!isActive || step === null || !destination) {
       stepRouteNavigationRef.current = null
       return
@@ -111,8 +111,9 @@ export function DemoModeProvider({ children }: { children: ReactNode }) {
     if (!isActive || step === null) return
 
     const timer = window.setTimeout(() => {
-      if (step === 6) {
+      if (step === 7) {
         stopDemo()
+        router.push("/")
         return
       }
       setStep((step + 1) as DemoStep)
@@ -120,7 +121,7 @@ export function DemoModeProvider({ children }: { children: ReactNode }) {
     }, STEP_DURATION_MS)
 
     return () => window.clearTimeout(timer)
-  }, [isActive, step, stopDemo])
+  }, [isActive, router, step, stopDemo])
 
   useEffect(() => {
     if (!isActive) return
