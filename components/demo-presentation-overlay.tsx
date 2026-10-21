@@ -41,6 +41,14 @@ function targetNames(step: DemoStep | null) {
 }
 
 function findTarget(step: DemoStep | null) {
+  if (step === 3) {
+    const selectorButton = document.querySelector<HTMLElement>('[data-demo-target="route-selector"]')
+    return selectorButton?.closest<HTMLElement>(".route-controller-motion") ?? selectorButton
+  }
+  if (step === 4) {
+    return document.querySelector<HTMLElement>(".demo-wallet-header")
+  }
+
   for (const name of targetNames(step)) {
     const target = document.querySelector<HTMLElement>(`[data-demo-target="${name}"]`)
     if (target) return target
@@ -48,7 +56,47 @@ function findTarget(step: DemoStep | null) {
   return null
 }
 
-function connectorPath(card: DOMRect, target: DOMRect) {
+function connectorPath(card: DOMRect, target: DOMRect, step: DemoStep) {
+  if (step === 3) {
+    // Stay outside the opened route selector, then approach its upper-left edge
+    // from above so the route details remain unobstructed.
+    const startX = card.left + Math.min(28, card.width * 0.12)
+    const startY = card.top
+    const targetX = target.left + Math.min(24, target.width * 0.12)
+    const targetY = target.top
+    const laneX = target.left - 16
+    const laneY = targetY + Math.max(0, startY - targetY) * 0.55
+    const approachY = Math.max(0, targetY - 18)
+    const rise = Math.max(0, laneY - approachY)
+    const laneBend = Math.min(96, rise * 0.35)
+
+    return {
+      d: `M ${startX} ${startY} C ${startX} ${startY - 28}, ${laneX} ${laneY + 42}, ${laneX} ${laneY} C ${laneX} ${laneY - laneBend}, ${laneX} ${approachY + laneBend * 0.4}, ${laneX} ${approachY} C ${laneX} ${targetY - 6}, ${targetX} ${targetY - 6}, ${targetX} ${targetY}`,
+      x: targetX,
+      y: targetY,
+    }
+  }
+
+  if (step === 4) {
+    // Connect to the wallet header's top-right edge. Keep the curve in the gap
+    // above the card so it never crosses the QR panel below it.
+    const targetX = target.right - Math.min(24, target.width * 0.08)
+    const targetY = target.top
+    const targetIsBelowCallout = targetY >= card.bottom
+    const startX = targetIsBelowCallout ? card.right - Math.min(28, card.width * 0.08) : card.right
+    const startY = targetIsBelowCallout ? card.bottom : targetY
+    const dx = targetX - startX
+    const gap = Math.max(0, targetY - startY)
+    const bendX = Math.min(54, Math.max(18, Math.abs(dx) * 0.35))
+    const direction = dx >= 0 ? 1 : -1
+
+    return {
+      d: `M ${startX} ${startY} C ${startX + direction * bendX} ${startY + gap * 0.55}, ${targetX - direction * bendX} ${targetY - Math.min(18, gap * 0.2)}, ${targetX} ${targetY}`,
+      x: targetX,
+      y: targetY,
+    }
+  }
+
   const targetX = target.left + target.width / 2
   const targetY = target.top + target.height / 2
   const centerX = card.left + card.width / 2
@@ -136,7 +184,7 @@ export function DemoPresentationOverlay() {
         return
       }
 
-      const geometry = connectorPath(card.getBoundingClientRect(), target.getBoundingClientRect())
+      const geometry = connectorPath(card.getBoundingClientRect(), target.getBoundingClientRect(), step)
       pathRef.current?.setAttribute("d", geometry.d)
       glowPathRef.current?.setAttribute("d", geometry.d)
       targetHaloRef.current?.setAttribute("cx", String(geometry.x))
