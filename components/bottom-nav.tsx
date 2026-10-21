@@ -89,10 +89,11 @@ export function BottomNav() {
   return (
     <>
       <motion.nav
-        className="fixed bottom-0 left-0 right-0 z-[999]"
+        className={`fixed bottom-0 left-0 right-0 z-[999]${isDemoActive ? " demo-bottom-nav" : ""}`}
         initial={{ y: 100, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ type: "spring", stiffness: 300, damping: 30, delay: 0.2 }}
+        transformTemplate={({ y = 0 }) => `translate3d(0, ${y}px, 0)`}
       >
         {/* Glassmorphism nav bar */}
         <div
@@ -124,6 +125,7 @@ export function BottomNav() {
                         className={`flex flex-col items-center gap-0.5 sm:gap-1${isDemoActive && demoStep === 4 ? " demo-payment-entry-active" : ""}`}
                         whileTap={{ scale: 0.92 }}
                         transition={{ type: "spring", stiffness: 400, damping: 17 }}
+                        transformTemplate={({ scale = 1 }) => `translate3d(0, 0, 0) scale(${scale})`}
                         aria-label="دفع سريع"
                       >
                         {/* Circular green container with neon glow */}
@@ -131,6 +133,7 @@ export function BottomNav() {
                           className={`qr-button-glow flex h-9 sm:h-10 w-9 sm:w-10 items-center justify-center rounded-full bg-primary text-primary-foreground ${isPulsing ? 'button-pulse' : ''}`}
                           whileHover={{ scale: 1.08 }}
                           whileTap={{ scale: 0.95 }}
+                          transformTemplate={({ scale = 1 }) => `translate3d(0, 0, 0) scale(${scale})`}
                         >
                           <QrCode className="h-4 sm:h-5 w-4 sm:w-5" strokeWidth={2} />
                         </motion.div>
@@ -148,6 +151,7 @@ export function BottomNav() {
                     className="relative flex flex-col items-center gap-0.5 sm:gap-1 px-2 sm:px-3 py-1.5 sm:py-2"
                     whileTap={{ scale: 0.90 }}
                     transition={{ type: "spring", stiffness: 400, damping: 17 }}
+                    transformTemplate={({ scale = 1 }) => `translate3d(0, 0, 0) scale(${scale})`}
                   >
                     {/* Active pill bubble behind icon + label */}
                     {isActive && (
@@ -165,12 +169,10 @@ export function BottomNav() {
                     {/* Icon */}
                     <motion.div
                       className="relative z-10"
-                      animate={
-                        isActive
-                          ? { scale: 1.12, filter: "drop-shadow(0 0 6px rgba(16,185,129,0.8))" }
-                          : { scale: 1,    filter: "drop-shadow(0 0 0px transparent)" }
-                      }
+                      animate={isActive ? { scale: 1.12 } : { scale: 1 }}
                       transition={{ type: "spring", stiffness: 380, damping: 20 }}
+                      transformTemplate={({ scale = 1 }) => `translate3d(0, 0, 0) scale(${scale})`}
+                      style={{ filter: isActive ? "drop-shadow(0 0 6px rgba(16,185,129,0.8))" : "none" }}
                     >
                       <item.icon
                         className="h-4 sm:h-5 w-4 sm:w-5 transition-colors duration-200"
@@ -190,6 +192,7 @@ export function BottomNav() {
                     <motion.div
                       animate={isActive ? { opacity: 1, scaleX: 1 } : { opacity: 0, scaleX: 0 }}
                       transition={{ type: "spring", stiffness: 400, damping: 25 }}
+                      transformTemplate={({ scaleX = 1 }) => `translate3d(0, 0, 0) scaleX(${scaleX})`}
                       className="absolute -bottom-0.5 h-0.5 w-4 rounded-full"
                       style={{
                         background: "linear-gradient(90deg, #10B981, #38BDF8)",
@@ -261,7 +264,7 @@ function PaymentQRModal({ isOpen, onClose, demoMode }: PaymentQRModalProps) {
     <AnimatePresence>
       {isOpen && (
         <motion.div
-          className={`fixed inset-0 flex items-end justify-center p-0 sm:p-4${demoMode ? " sm:items-end" : " sm:items-center"}`}
+          className={`fixed inset-0 flex items-end justify-center p-0 sm:p-4${demoMode ? " sm:items-end demo-payment-overlay" : " sm:items-center"}`}
           style={{ zIndex: 9999 }}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -269,7 +272,7 @@ function PaymentQRModal({ isOpen, onClose, demoMode }: PaymentQRModalProps) {
         >
           {/* Dark backdrop */}
           <motion.div
-            className="absolute inset-0 bg-black/80 backdrop-blur-md"
+            className={`absolute inset-0 bg-black/80 backdrop-blur-md${demoMode ? " demo-payment-backdrop" : ""}`}
             onClick={onClose}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -280,12 +283,13 @@ function PaymentQRModal({ isOpen, onClose, demoMode }: PaymentQRModalProps) {
           <motion.button
             onClick={onClose}
             onTouchStart={() => {}}
-            className={`absolute ${demoMode ? "right-3 top-3" : "right-3 top-3 sm:right-auto sm:left-4 sm:top-4"} flex h-10 sm:h-12 w-10 sm:w-12 items-center justify-center rounded-full bg-card/90 text-foreground shadow-xl backdrop-blur-sm transition-colors hover:bg-card`}
+            className={`absolute ${demoMode ? "right-3 top-3" : "right-3 top-3 sm:right-auto sm:left-4 sm:top-4"} flex h-10 sm:h-12 w-10 sm:w-12 items-center justify-center rounded-full bg-card/90 text-foreground shadow-xl backdrop-blur-sm ${demoMode ? "" : "transition-colors"} hover:bg-card`}
             style={{ zIndex: 10000 }}
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.8 }}
             transition={{ delay: 0.1 }}
+            transformTemplate={({ scale = 1 }) => `translate3d(0, 0, 0) scale(${scale})`}
             aria-label="إغلاق"
           >
             <X className="h-5 sm:h-6 w-5 sm:w-6" />
@@ -302,6 +306,7 @@ function PaymentQRModal({ isOpen, onClose, demoMode }: PaymentQRModalProps) {
             animate={{ scale: 1, opacity: 1, y: 0 }}
             exit={{ scale: 0.95, opacity: 0, y: 10 }}
             transition={{ type: "spring", stiffness: 300, damping: 25 }}
+            transformTemplate={({ y = 0, scale = 1 }) => `translate3d(0, ${y}px, 0) scale(${scale})`}
             onClick={(e) => e.stopPropagation()}
           >
             <div className="overflow-hidden rounded-t-3xl sm:rounded-3xl bg-card shadow-2xl">

@@ -1117,6 +1117,8 @@ select.admin-input {
   box-shadow: 0 0 14px rgba(16, 185, 129, 0.21), inset 0 1px 0 rgba(255, 255, 255, 0.12);
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
+  backface-visibility: hidden;
+  will-change: transform;
 }
 
 .demo-launch-button::before {
@@ -1125,8 +1127,10 @@ select.admin-input {
   inset: 0;
   content: "";
   background: linear-gradient(110deg, transparent 15%, rgba(107, 255, 199, 0.16) 48%, transparent 82%);
-  transform: translateX(-125%);
+  transform: translate3d(-125%, 0, 0);
   transition: transform 650ms cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: transform;
+  backface-visibility: hidden;
 }
 
 .demo-launch-button::after {
@@ -1139,9 +1143,11 @@ select.admin-input {
   filter: blur(12px);
   opacity: 0.42;
   transition: opacity 240ms ease;
+  will-change: opacity;
+  backface-visibility: hidden;
 }
 
-.demo-launch-button:hover::before { transform: translateX(125%); }
+.demo-launch-button:hover::before { transform: translate3d(125%, 0, 0); }
 .demo-launch-button:hover::after { opacity: 0.78; }
 .demo-launch-button--active { border-color: rgba(110, 231, 183, 0.7); }
 
@@ -1171,6 +1177,26 @@ select.admin-input {
 .demo-launch-ar { font-size: 10px; font-weight: 800; }
 .demo-launch-fr { color: rgba(214, 255, 237, 0.73); font-size: 8px; font-weight: 600; letter-spacing: 0.015em; }
 
+.map-section-motion,
+.map-overlay-motion,
+.route-controller-motion,
+.route-controller-menu {
+  backface-visibility: hidden;
+  will-change: transform, opacity;
+}
+.map-overlay-motion { transform: translate3d(0, 0, 0); }
+.demo-bottom-nav {
+  transform: translate3d(0, 0, 0);
+  backface-visibility: hidden;
+  will-change: transform, opacity;
+}
+.demo-bottom-nav .transition-colors { transition: none; }
+.demo-bottom-nav .qr-button-glow { transition: none; }
+.demo-payment-overlay {
+  backface-visibility: hidden;
+  will-change: opacity;
+}
+
 .demo-presentation-overlay {
   position: fixed;
   z-index: 10002;
@@ -1178,6 +1204,9 @@ select.admin-input {
   overflow: hidden;
   pointer-events: none;
   contain: layout style;
+  transform: translate3d(0, 0, 0);
+  backface-visibility: hidden;
+  will-change: opacity;
 }
 
 .demo-connector-svg {
@@ -1188,6 +1217,9 @@ select.admin-input {
   height: 100dvh;
   overflow: visible;
   pointer-events: none;
+  transform: translate3d(0, 0, 0);
+  backface-visibility: hidden;
+  will-change: transform, opacity;
 }
 .demo-connector-glow,
 .demo-connector-path {
@@ -1219,6 +1251,8 @@ select.admin-input {
   filter: drop-shadow(0 0 7px rgba(16, 185, 129, 0.78));
   transform-box: fill-box;
   transform-origin: center;
+  will-change: transform, opacity;
+  backface-visibility: hidden;
 }
 .demo-connector-halo { animation: demo-target-pulse 1.6s ease-out infinite; }
 .demo-connector-dot { fill: #ecfff5; stroke: #34d399; stroke-width: 2px; }
@@ -1244,7 +1278,7 @@ select.admin-input {
   box-shadow: 0 22px 70px rgba(0, 0, 0, 0.4), 0 0 30px rgba(16, 185, 129, 0.13), inset 0 1px 0 rgba(255, 255, 255, 0.11);
   backdrop-filter: blur(22px) saturate(140%);
   -webkit-backdrop-filter: blur(22px) saturate(140%);
-  transform: translateZ(0);
+  transform: translate3d(0, 0, 0);
   backface-visibility: hidden;
   will-change: transform, opacity;
 }
@@ -1293,6 +1327,9 @@ select.admin-input {
   border: 1px solid rgba(52, 211, 153, 0.6);
   border-radius: inherit;
   animation: demo-orb-pulse 1.8s ease-out infinite;
+  transform: translate3d(0, 0, 0);
+  backface-visibility: hidden;
+  will-change: transform, opacity;
 }
 @keyframes demo-orb-pulse {
   0% { transform: scale(0.55); opacity: 0.85; }
@@ -1313,10 +1350,10 @@ select.admin-input {
   cursor: pointer;
   font-size: 9px;
   font-weight: 700;
-  transition: background-color 180ms ease, transform 180ms ease;
+  transition: transform 180ms ease, opacity 180ms ease;
   pointer-events: auto;
 }
-.demo-exit-button:hover { background: rgba(190, 24, 93, 0.26); transform: translateY(-1px); }
+.demo-exit-button:hover { background: rgba(190, 24, 93, 0.26); transform: translate3d(0, -1px, 0); }
 .demo-exit-button svg { width: 12px; height: 12px; }
 .demo-exit-fr { font-size: 8px; font-weight: 600; opacity: 0.72; }
 
@@ -1374,7 +1411,9 @@ select.admin-input {
   box-shadow: 0 0 10px rgba(52, 211, 153, 0.55);
   transform-origin: left center;
   will-change: transform;
+  animation: demo-progress-drain 5s linear both;
 }
+@keyframes demo-progress-drain { to { transform: scaleX(0); } }
 .demo-preparing-copy { margin-top: 10px; }
 .demo-preparing-copy .demo-copy-fr { margin-top: 6px; }
 .demo-preparing-indicator { display: flex; gap: 4px; margin-top: 12px; }
@@ -1384,10 +1423,12 @@ select.admin-input {
   border-radius: 50%;
   background: #6ee7b7;
   animation: demo-preparing-dot 900ms ease-in-out infinite alternate;
+  will-change: transform, opacity;
+  backface-visibility: hidden;
 }
 .demo-preparing-indicator span:nth-child(2) { animation-delay: 130ms; }
 .demo-preparing-indicator span:nth-child(3) { animation-delay: 260ms; }
-@keyframes demo-preparing-dot { to { transform: translateY(-4px); opacity: 0.42; } }
+@keyframes demo-preparing-dot { to { transform: translate3d(0, -4px, 0); opacity: 0.42; } }
 
 .demo-callout-card--route {
   top: auto;
@@ -1422,7 +1463,9 @@ select.admin-input {
   pointer-events: none;
   margin-top: -14px;
   margin-left: -14px;
-  transform: translateZ(0);
+  transform: translate3d(0, 0, 0);
+  backface-visibility: hidden;
+  will-change: transform, opacity;
 }
 .demo-map-anchor::before,
 .demo-map-anchor::after {
@@ -1439,6 +1482,8 @@ select.admin-input {
   background: transparent;
   box-shadow: none;
   animation: demo-anchor-wave 1.65s ease-out infinite;
+  will-change: transform, opacity;
+  backface-visibility: hidden;
 }
 .demo-map-anchor--live { border-color: rgba(255, 255, 255, 0.95); box-shadow: 0 0 0 7px rgba(34, 211, 238, 0.12), 0 0 28px rgba(34, 211, 238, 0.58); }
 .demo-map-anchor--live::before { background: #67e8f9; box-shadow: 0 0 12px rgba(34, 211, 238, 0.9); }
@@ -1457,6 +1502,7 @@ select.admin-input {
   border-radius: 9px;
   pointer-events: none;
   animation: demo-focus-fade 1.4s ease-in-out infinite alternate;
+  will-change: opacity;
 }
 @keyframes demo-focus-fade { to { opacity: 0.28; } }
 
@@ -1470,12 +1516,14 @@ select.admin-input {
   border-radius: 19px;
   background: rgba(16, 185, 129, 0.12);
   animation: demo-entry-ring 1.35s ease-out infinite;
+  will-change: transform, opacity;
+  backface-visibility: hidden;
 }
 @keyframes demo-entry-ring {
   0% { transform: scale(0.92); opacity: 0.8; }
   100% { transform: scale(1.12); opacity: 0; }
 }
-.demo-payment-entry-active .qr-button-glow { transform: translateZ(0); box-shadow: 0 0 20px rgba(52, 211, 153, 0.8), 0 0 36px rgba(34, 211, 238, 0.28); }
+.demo-payment-entry-active .qr-button-glow { transform: translate3d(0, 0, 0); box-shadow: 0 0 20px rgba(52, 211, 153, 0.8), 0 0 36px rgba(34, 211, 238, 0.28); }
 .demo-payment-qr-target {
   padding: 7px;
   border: 1px solid rgba(16, 185, 129, 0.18);
@@ -1512,6 +1560,13 @@ select.admin-input {
   .demo-exit-button { transition: none; }
 }
 
+.demo-payment-backdrop,
+.demo-payment-modal {
+  transform: translate3d(0, 0, 0);
+  backface-visibility: hidden;
+  will-change: transform, opacity;
+}
+.demo-payment-backdrop { will-change: opacity; }
 .demo-payment-modal {
   overscroll-behavior: contain;
   scrollbar-width: thin;

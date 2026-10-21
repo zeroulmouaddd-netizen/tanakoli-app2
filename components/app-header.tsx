@@ -276,6 +276,7 @@ export function AppHeader() {
         onClick={handleStartDemo}
         whileHover={{ y: -1, scale: 1.025 }}
         whileTap={{ scale: 0.97 }}
+        transformTemplate={({ y = 0, scale = 1 }) => `translate3d(0, ${y}px, 0) scale(${scale})`}
         aria-label={isDemoActive ? "إيقاف العرض التوضيحي — Stop demo" : "عرض توضيحي — Demo Presentation"}
         title="عرض توضيحي / Demo Presentation"
       >

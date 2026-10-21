@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useRef, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { AnimatePresence, motion } from "framer-motion"
 import { X } from "lucide-react"
 import { useDemoMode, type DemoStep } from "@/lib/demo-mode-context"
@@ -85,64 +85,134 @@ export function DemoPresentationOverlay() {
   const glowPathRef = useRef<SVGPathElement>(null)
   const targetHaloRef = useRef<SVGCircleElement>(null)
   const targetDotRef = useRef<SVGCircleElement>(null)
-  const [progress, setProgress] = useState(0)
+  const [secondsLeft, setSecondsLeft] = useState(5)
+  const syncProgressFill = useCallback((element: HTMLDivElement | null) => {
+    if (!element || stepStartedAt === null) return
+    const elapsed = Math.min(5_000, Math.max(0, Date.now() - stepStartedAt))
+    element.style.animationDelay = `-${elapsed}ms`
+  }, [stepStartedAt])
 
   useEffect(() => {
     if (!isActive || !step || !stepStartedAt) {
-      setProgress(0)
+      setSecondsLeft(5)
       return
     }
 
-    const updateProgress = () => {
-      const elapsed = Date.now() - stepStartedAt
-      setProgress(Math.min(1, Math.max(0, elapsed / 5_000)))
+    const updateCountdown = () => {
+      const remaining = Math.max(1, Math.ceil((5_000 - (Date.now() - stepStartedAt)) / 1_000))
+      setSecondsLeft(remaining)
     }
 
-    updateProgress()
-    const timer = window.setInterval(updateProgress, 120)
+    updateCountdown()
+    const timer = window.setInterval(updateCountdown, 1_000)
     return () => window.clearInterval(timer)
   }, [isActive, step, stepStartedAt])
 
   useEffect(() => {
-    if (!isActive || !step) {
+    const hideConnector = () => {
       pathRef.current?.setAttribute("opacity", "0")
       glowPathRef.current?.setAttribute("opacity", "0")
       targetHaloRef.current?.setAttribute("opacity", "0")
       targetDotRef.current?.setAttribute("opacity", "0")
+    }
+
+    if (!isActive || !step) {
+      hideConnector()
       return
     }
 
     let frame = 0
+    let refreshFrame = 0
+    let sampleAt = 0
+    const entranceEndsAt = performance.now() + 380
+    let observedTarget: Element | null = null
+
     const drawConnector = () => {
       const card = document.getElementById("demo-callout-card")
       const target = findTarget(step)
-      if (card && target) {
-        const geometry = connectorPath(card.getBoundingClientRect(), target.getBoundingClientRect())
-        pathRef.current?.setAttribute("d", geometry.d)
-        glowPathRef.current?.setAttribute("d", geometry.d)
-        targetHaloRef.current?.setAttribute("cx", String(geometry.x))
-        targetHaloRef.current?.setAttribute("cy", String(geometry.y))
-        targetDotRef.current?.setAttribute("cx", String(geometry.x))
-        targetDotRef.current?.setAttribute("cy", String(geometry.y))
-        pathRef.current?.setAttribute("opacity", "1")
-        glowPathRef.current?.setAttribute("opacity", "1")
-        targetHaloRef.current?.setAttribute("opacity", "1")
-        targetDotRef.current?.setAttribute("opacity", "1")
-      } else {
-        pathRef.current?.setAttribute("opacity", "0")
-        glowPathRef.current?.setAttribute("opacity", "0")
-        targetHaloRef.current?.setAttribute("opacity", "0")
-        targetDotRef.current?.setAttribute("opacity", "0")
+      if (!card || !target) {
+        hideConnector()
+        observedTarget = null
+        return
       }
-      frame = window.requestAnimationFrame(drawConnector)
+
+      const geometry = connectorPath(card.getBoundingClientRect(), target.getBoundingClientRect())
+      pathRef.current?.setAttribute("d", geometry.d)
+      glowPathRef.current?.setAttribute("d", geometry.d)
+      targetHaloRef.current?.setAttribute("cx", String(geometry.x))
+      targetHaloRef.current?.setAttribute("cy", String(geometry.y))
+      targetDotRef.current?.setAttribute("cx", String(geometry.x))
+      targetDotRef.current?.setAttribute("cy", String(geometry.y))
+      pathRef.current?.setAttribute("opacity", "1")
+      glowPathRef.current?.setAttribute("opacity", "1")
+      targetHaloRef.current?.setAttribute("opacity", "1")
+      targetDotRef.current?.setAttribute("opacity", "1")
+      observedTarget = target
     }
 
-    frame = window.requestAnimationFrame(drawConnector)
-    return () => window.cancelAnimationFrame(frame)
+    const scheduleRefresh = () => {
+      if (refreshFrame) return
+      refreshFrame = window.requestAnimationFrame(() => {
+        refreshFrame = 0
+        drawConnector()
+      })
+    }
+
+    const observer = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(scheduleRefresh)
+    const observeElements = () => {
+      const card = document.getElementById("demo-callout-card")
+      const target = findTarget(step)
+      if (card) observer?.observe(card)
+      if (target && target !== observedTarget) {
+        if (observedTarget) observer?.unobserve(observedTarget)
+        observer?.observe(target)
+        observedTarget = target
+      }
+    }
+    const mutationObserver = new MutationObserver(() => {
+      observeElements()
+      scheduleRefresh()
+    })
+    observeElements()
+    mutationObserver.observe(document.body, { childList: true, subtree: true })
+    window.addEventListener("resize", scheduleRefresh)
+    window.addEventListener("scroll", scheduleRefresh, true)
+
+    const animateConnector = (now: number) => {
+      if (step === 2) {
+        // Bus markers move continuously; sample at 30 FPS instead of forcing
+        // layout reads and SVG writes on every display refresh.
+        if (now - sampleAt >= 33) {
+          drawConnector()
+          sampleAt = now
+        }
+        frame = window.requestAnimationFrame(animateConnector)
+        return
+      }
+
+      // Follow the banner's entrance transform, then let resize/scroll/mutation
+      // observers request one-off updates for the remaining static steps.
+      if (now <= entranceEndsAt) {
+        drawConnector()
+        frame = window.requestAnimationFrame(animateConnector)
+      } else {
+        drawConnector()
+        frame = 0
+      }
+    }
+
+    frame = window.requestAnimationFrame(animateConnector)
+    return () => {
+      if (frame) window.cancelAnimationFrame(frame)
+      if (refreshFrame) window.cancelAnimationFrame(refreshFrame)
+      observer?.disconnect()
+      mutationObserver.disconnect()
+      window.removeEventListener("resize", scheduleRefresh)
+      window.removeEventListener("scroll", scheduleRefresh, true)
+    }
   }, [isActive, step, isPreparing])
 
   const copy = useMemo(() => (step ? STEP_COPY[step] : null), [step])
-  const secondsLeft = Math.max(1, Math.ceil((1 - progress) * 5))
 
   return (
     <AnimatePresence>
@@ -173,6 +243,7 @@ export function DemoPresentationOverlay() {
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: -6, scale: 0.99 }}
               transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+              transformTemplate={({ y = 0, scale = 1 }) => `translate3d(0, ${y}px, 0) scale(${scale})`}
               dir="rtl"
               aria-label={copy ? `${copy.ar} — ${copy.fr}` : "Préparation de la présentation"}
             >
@@ -203,7 +274,7 @@ export function DemoPresentationOverlay() {
                     <span className="demo-countdown">00:0{secondsLeft}</span>
                   </div>
                   <div className="demo-progress-track" dir="ltr" aria-hidden="true">
-                    <motion.div className="demo-progress-fill" style={{ scaleX: 1 - progress }} />
+                    <div key={step} ref={syncProgressFill} className="demo-progress-fill" />
                   </div>
                 </>
               ) : (
