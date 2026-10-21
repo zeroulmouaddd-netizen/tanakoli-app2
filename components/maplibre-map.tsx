@@ -146,6 +146,10 @@ type SelectedRoute = string | null
 interface MapProps {
   trackingLineId?: string | null
   isFullscreen?: boolean
+  /** Route id focused by the Cinematic Demo Mode (e.g. "line-01") */
+  selectedRoute?: string | null
+  /** Force the route line selector panel open (Cinematic Demo Mode step 3) */
+  lineSelectorOpen?: boolean
 }
 
 // ── Snap a [lat,lng] point to the nearest point on a [lat,lng][] polyline ────
@@ -340,9 +344,22 @@ function getSimPos(coords: [number, number][], progress: number, cache?: ArcCach
 // ── RouteController (shared React UI) ────────────────────────────────────────
 // memo: prevents re-renders when parent state (locating, ready, etc.) changes
 const RouteController = memo(function RouteController({
-  selectedRoute, onRouteSelect, isDark,
-}: { selectedRoute: SelectedRoute; onRouteSelect: (id: SelectedRoute) => void; isDark: boolean }) {
-  const [open, setOpen] = useState(false)
+  selectedRoute, onRouteSelect, isDark, open: openProp,
+}: {
+  selectedRoute: SelectedRoute
+  onRouteSelect: (id: SelectedRoute) => void
+  isDark: boolean
+  /** Controlled open state from Cinematic Demo Mode (step 3) */
+  open?: boolean
+}) {
+  const [internalOpen, setInternalOpen] = useState(false)
+  const isControlledOpen = openProp !== undefined
+  const displayOpen = isControlledOpen ? Boolean(openProp) : internalOpen
+
+  // Reset internal state when control is handed back to the user
+  useEffect(() => {
+    if (!isControlledOpen) setInternalOpen(false)
+  }, [isControlledOpen])
   const bg     = isDark ? "rgba(15,23,42,0.95)"  : "rgba(255,255,255,0.95)"
   const txt    = isDark ? "#F8FAFC" : "#1a1a1a"
   const muted  = isDark ? "#94A3B8" : "#64748b"
@@ -355,7 +372,7 @@ const RouteController = memo(function RouteController({
     <div className="absolute right-4 top-4 z-[500]" style={{ direction: "rtl" }}>
       <motion.div layout className="overflow-hidden rounded-xl shadow-lg backdrop-blur-sm"
         style={{ background: bg, border: `1px solid ${border}` }}>
-        <button onClick={() => setOpen(v => !v)}
+        <button onClick={() => { if (!isControlledOpen) setInternalOpen((v) => !v) }}
           className="flex w-full items-center justify-between gap-3 px-4 py-3"
           style={{ background: "transparent" }}
           onMouseEnter={e => (e.currentTarget.style.background = hover)}
@@ -364,15 +381,15 @@ const RouteController = memo(function RouteController({
             <Layers className="h-5 w-5" style={{ color: "#22C55E" }} />
             <span className="text-sm font-semibold" style={{ color: txt }}>{label}</span>
           </div>
-          {open ? <ChevronUp className="h-4 w-4" style={{ color: muted }} /> : <ChevronDown className="h-4 w-4" style={{ color: muted }} />}
+          {displayOpen ? <ChevronUp className="h-4 w-4" style={{ color: muted }} /> : <ChevronDown className="h-4 w-4" style={{ color: muted }} />}
         </button>
         <AnimatePresence>
-          {open && (
+          {displayOpen && (
             <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }}
               exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.2 }}
               style={{ borderTop: `1px solid ${border}` }}>
               <div className="max-h-64 overflow-y-auto p-2">
-                <button onClick={() => { onRouteSelect(null); setOpen(false) }}
+                <button onClick={() => { onRouteSelect(null); setInternalOpen(false) }}
                   className="mb-2 flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm"
                   style={{ background: !selectedRoute ? active : "transparent", color: !selectedRoute ? "#22C55E" : txt }}
                   onMouseEnter={e => { if (selectedRoute) e.currentTarget.style.background = hover }}
@@ -382,7 +399,7 @@ const RouteController = memo(function RouteController({
                 </button>
                 <div className="mb-1 px-2 text-[11px] font-semibold" style={{ color: muted }}>خطوط النقل</div>
                 {urbanRoutePolylines.map(r => (
-                  <button key={r.id} onClick={() => { onRouteSelect(selectedRoute === r.id ? null : r.id); setOpen(false) }}
+                  <button key={r.id} onClick={() => { onRouteSelect(selectedRoute === r.id ? null : r.id); setInternalOpen(false) }}
                     className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm"
                     style={{ background: selectedRoute === r.id ? active : "transparent", color: selectedRoute === r.id ? r.color : txt }}
                     onMouseEnter={e => { if (selectedRoute !== r.id) e.currentTarget.style.background = hover }}
@@ -405,7 +422,12 @@ const RouteController = memo(function RouteController({
 // ════════════════════════════════════════════════════════════════════════════════
 // RENDERER A: MapLibre GL (WebGL available — production / real browsers)
 // ════════════════════════════════════════════════════════════════════════════════
-function MapLibreRenderer({ trackingLineId, isFullscreen }: MapProps) {
+function MapLibreRenderer({
+  trackingLineId,
+  isFullscreen,
+  selectedRoute: selectedRouteProp,
+  lineSelectorOpen: lineSelectorOpenProp,
+}: MapProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const mapRef       = useRef<import("maplibre-gl").Map | null>(null)
   const initRef      = useRef(false)
@@ -833,6 +855,13 @@ function MapLibreRenderer({ trackingLineId, isFullscreen }: MapProps) {
     applyFocus(selectedRoute)
   }, [selectedRoute])
 
+  // Controlled by Cinematic Demo Mode — fly the camera to a route (e.g. Line 01)
+  useEffect(() => {
+    if (selectedRouteProp !== undefined) {
+      setSelectedRoute(selectedRouteProp)
+    }
+  }, [selectedRouteProp])
+
   const locateMe = () => {
     if (!navigator.geolocation) return
     setLocating(true)
@@ -851,7 +880,14 @@ function MapLibreRenderer({ trackingLineId, isFullscreen }: MapProps) {
   return (
     <div style={{ position: "relative", width: "100%", height: "100%" }}>
       <div ref={containerRef} style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }} />
-      {ready && <RouteController selectedRoute={selectedRoute} onRouteSelect={setSelectedRoute} isDark={isDark} />}
+      {ready && (
+        <RouteController
+          selectedRoute={selectedRoute}
+          onRouteSelect={setSelectedRoute}
+          isDark={isDark}
+          open={lineSelectorOpenProp}
+        />
+      )}
       {ready && (
         <motion.button initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.4 }}
           onClick={locateMe}
@@ -879,7 +915,12 @@ function MapLibreRenderer({ trackingLineId, isFullscreen }: MapProps) {
 // ════════════════════════════════════════════════════════════════════════════════
 // RENDERER B: Leaflet + CartoDB Voyager (no WebGL — Replit preview / fallback)
 // ════════════════════════════════════════════════════════════════════════════════
-function LeafletDarkRenderer({ trackingLineId, isFullscreen }: MapProps) {
+function LeafletDarkRenderer({
+  trackingLineId,
+  isFullscreen,
+  selectedRoute: selectedRouteProp,
+  lineSelectorOpen: lineSelectorOpenProp,
+}: MapProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const mapRef       = useRef<L.Map | null>(null)
   const initRef      = useRef(false)
@@ -1190,6 +1231,13 @@ function LeafletDarkRenderer({ trackingLineId, isFullscreen }: MapProps) {
     applyFocus(selectedRoute)
   }, [selectedRoute])
 
+  // Controlled by Cinematic Demo Mode — fly the camera to a route (e.g. Line 01)
+  useEffect(() => {
+    if (selectedRouteProp !== undefined) {
+      setSelectedRoute(selectedRouteProp)
+    }
+  }, [selectedRouteProp])
+
   const locateMe = () => {
     if (!navigator.geolocation) return
     setLocating(true)
@@ -1208,7 +1256,14 @@ function LeafletDarkRenderer({ trackingLineId, isFullscreen }: MapProps) {
   return (
     <div style={{ position: "relative", width: "100%", height: "100%" }}>
       <div ref={containerRef} style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }} />
-      {ready && <RouteController selectedRoute={selectedRoute} onRouteSelect={setSelectedRoute} isDark={isDark} />}
+      {ready && (
+        <RouteController
+          selectedRoute={selectedRoute}
+          onRouteSelect={setSelectedRoute}
+          isDark={isDark}
+          open={lineSelectorOpenProp}
+        />
+      )}
       {ready && (
         <motion.button initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.3 }}
           onClick={locateMe}

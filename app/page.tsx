@@ -9,10 +9,16 @@ import { PageTransition } from "@/components/page-transition"
 import { DriverDashboard } from "@/components/driver-dashboard"
 import { HomeBackground } from "@/components/home-background"
 import { useDriverMode } from "@/lib/driver-mode-context"
+import {
+  DemoProvider,
+  DemoOverlays,
+  useDemo,
+} from "@/components/cinematic-demo-mode"
 import { useState, useEffect } from "react"
 
 function HomeContent() {
   const { isDriverMode } = useDriverMode()
+  const demo = useDemo()
   const [isMapFullscreen, setIsMapFullscreen] = useState(false)
 
   // Listen for fullscreen state changes from MapSection
@@ -39,7 +45,11 @@ function HomeContent() {
           {!isMapFullscreen && <AppHeader />}
 
           <div className={isMapFullscreen ? "h-screen w-full" : "w-full pt-16 sm:pt-20"}>
-            <MapSection />
+            <MapSection
+              fullscreen={demo.isFullscreen}
+              selectedRoute={demo.selectedRoute}
+              lineSelectorOpen={demo.lineSelectorOpen}
+            />
           </div>
 
           {!isMapFullscreen && (
@@ -49,6 +59,10 @@ function HomeContent() {
             </>
           )}
         </div>
+
+        {/* Cinematic Demo Mode overlays (portaled to body, above everything) */}
+        <DemoOverlays />
+
       </main>
     </PageTransition>
   )
@@ -57,7 +71,9 @@ function HomeContent() {
 export default function Home() {
   return (
     <AppWrapper>
-      <HomeContent />
+      <DemoProvider>
+        <HomeContent />
+      </DemoProvider>
     </AppWrapper>
   )
 }
