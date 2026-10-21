@@ -372,7 +372,7 @@ export function DemoPresentationOverlay() {
       }
 
       if (step === 6) {
-        // Re-sample the transformed departure pill every display frame while it zooms.
+        // Follow the departure or transaction target through its zoom-in and zoom-out.
         drawConnector()
         if (now < step6FollowUntil) {
           frame = window.requestAnimationFrame(animateConnector)
@@ -418,7 +418,7 @@ export function DemoPresentationOverlay() {
         scheduleRefresh()
         return
       }
-      step6FollowUntil = performance.now() + 900
+      step6FollowUntil = performance.now() + 1_600
       if (frame === 0) frame = window.requestAnimationFrame(animateConnector)
     }
 
@@ -516,7 +516,7 @@ export function DemoPresentationOverlay() {
       return {
         ...STEP_COPY[6],
         ar: "سجل الرحلات والمعاملات",
-        fr: "Historique des Trajets & Transactions",
+        fr: "Historique des Trajets",
         bodyAr: "يُسجَّل اقتطاع الأجرة وكل معاملة تلقائيًا فور تنفيذها.",
         bodyFr: "Les déductions de trajet et les transactions sont enregistrées automatiquement en temps réel.",
       }

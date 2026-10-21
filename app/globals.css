@@ -1298,8 +1298,20 @@ select.admin-input {
 .demo-step6-history-card {
   position: relative;
   z-index: 1;
+  transform-origin: center;
   will-change: transform, opacity;
   backface-visibility: hidden;
+}
+.demo-step6-history-card::after {
+  position: absolute;
+  z-index: 1;
+  inset: -4px;
+  border: 1px solid rgba(110, 231, 183, 0.9);
+  border-radius: 20px;
+  box-shadow: 0 0 0 1px rgba(16, 185, 129, 0.2), 0 0 20px rgba(16, 185, 129, 0.38);
+  content: "";
+  opacity: 0.9;
+  pointer-events: none;
 }
 .demo-step6-ring-focus::after {
   content: "";
@@ -1522,7 +1534,7 @@ select.admin-input {
   padding: 11px 12px 10px;
   border-radius: 17px;
 }
-.demo-callout-card--trips { z-index: 3; }
+.demo-callout-card--trips { z-index: 3; isolation: isolate; }
 .demo-callout-card--stations,
 .demo-callout-card--trips {
   top: clamp(76px, 9vh, 94px);
@@ -1530,6 +1542,12 @@ select.admin-input {
   left: clamp(12px, 4vw, 48px);
   width: min(360px, calc(100vw - 24px));
   padding: 12px 14px 10px;
+}
+.demo-callout-card--trips { padding: 14px 16px 12px; }
+.demo-callout-card--trips .demo-title-block,
+.demo-callout-card--trips .demo-copy-block {
+  position: relative;
+  z-index: 1;
 }
 .demo-callout-card--stations .demo-card-eyebrow,
 .demo-callout-card--trips .demo-card-eyebrow { display: none; }

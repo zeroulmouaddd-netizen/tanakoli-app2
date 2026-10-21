@@ -107,9 +107,9 @@ export default function TripsPage() {
       {
         id: "demo-fare-1",
         type: "fare_deduction",
-        amount: 25,
-        previousBalance: 500,
-        newBalance: 475,
+        amount: 1000,
+        previousBalance: 5000,
+        newBalance: 4000,
         passengerName: "مسافر تجريبي",
         driverTimestamp: Timestamp.fromDate(new Date(now - 8 * 60_000)),
         status: "completed",
@@ -117,9 +117,9 @@ export default function TripsPage() {
       {
         id: "demo-recharge-1",
         type: "balance_recharge",
-        amount: 500,
-        previousBalance: 475,
-        newBalance: 975,
+        amount: 2000,
+        previousBalance: 4000,
+        newBalance: 6000,
         passengerName: "مسافر تجريبي",
         driverTimestamp: Timestamp.fromDate(new Date(now - 58 * 60_000)),
         status: "completed",
@@ -127,9 +127,9 @@ export default function TripsPage() {
       {
         id: "demo-fare-2",
         type: "fare_deduction",
-        amount: 25,
-        previousBalance: 975,
-        newBalance: 950,
+        amount: 1000,
+        previousBalance: 6000,
+        newBalance: 5000,
         passengerName: "مسافر تجريبي",
         driverTimestamp: Timestamp.fromDate(new Date(now - 3 * 60 * 60_000)),
         status: "completed",
@@ -600,14 +600,14 @@ export default function TripsPage() {
                                             ? "bg-primary text-primary-foreground"
                                             : "bg-primary/10 text-primary"
                                         }${isDepartedDuringDemo ? " demo-trip-time--departed" : ""}${isDepartureFocus ? " demo-step6-ring-focus demo-step6-time-zoom-focus" : ""}`}
-                                        animate={animateDeparture
-                                          ? { y: [0, -2, 0], scale: [1, 1.15, 1], opacity: [0.88, 1, 1] }
-                                          : { y: 0, scale: 1 }}
-                                        transition={animateDeparture
-                                          ? { duration: 0.72, times: [0, 0.48, 1], ease: [0.22, 1, 0.36, 1] }
-                                          : { duration: 0.2, ease: "easeOut" }}
+                                        animate={animateDeparture ? { y: -2, scale: 1.2 } : { y: 0, scale: 1 }}
+                                        transition={prefersReducedMotion
+                                          ? { duration: 0 }
+                                          : animateDeparture
+                                          ? { duration: 0.38, ease: [0.22, 1, 0.36, 1] }
+                                          : { duration: 0.34, ease: [0.22, 1, 0.36, 1] }}
                                         transformTemplate={({ y = 0, scale = 1 }) => `translate3d(0, ${y}px, 0) scale3d(${scale}, ${scale}, 1)`}
-                                        whileTap={{ scale: 0.95 }}
+                                        whileTap={prefersReducedMotion ? undefined : { scale: 0.95 }}
                                       >
                                         {slot.time}
                                       </motion.span>
@@ -710,6 +710,7 @@ export default function TripsPage() {
                       >
                         {historyTransactions.map((transaction) => {
                           const isRecharge = transaction.type === "balance_recharge"
+                          const isHistorySpotlight = isDemoTripsHistoryStep && transaction.id === historySpotlightTransactionId
                           const timestamp = transaction.driverTimestamp?.toDate?.()
                           const dateString = timestamp 
                             ? timestamp.toLocaleDateString("ar-DZ", {
@@ -726,12 +727,27 @@ export default function TripsPage() {
                           return (
                             <motion.div
                               key={transaction.id}
-                              data-demo-focus-target={isDemoTripsHistoryStep && transaction.id === historySpotlightTransactionId ? "history-transaction" : undefined}
-                              data-demo-target={isDemoTripsHistoryStep && transaction.id === historySpotlightTransactionId ? "trip-history-first-card" : undefined}
-                              className={`flex items-center gap-4 rounded-2xl bg-card p-4 shadow-sm${isDemoTripsHistoryStep && transaction.id === historySpotlightTransactionId ? " demo-step6-history-card" : ""}`}
+                              data-demo-focus-target={isHistorySpotlight ? "history-transaction" : undefined}
+                              data-demo-target={isHistorySpotlight ? "trip-history-first-card" : undefined}
+                              className={`flex items-center gap-4 rounded-2xl bg-card p-4 shadow-sm${isHistorySpotlight ? " demo-step6-history-card" : ""}`}
                               variants={prefersReducedMotion ? undefined : isDemoTripsHistoryStep ? demoHistoryItemVariants : itemVariants}
-                              initial={prefersReducedMotion ? false : undefined}
-                              animate={prefersReducedMotion ? { opacity: 1, y: 0 } : undefined}
+                              initial={prefersReducedMotion
+                                ? false
+                                : isHistorySpotlight
+                                ? { opacity: 0, y: 10, scale: 1 }
+                                : undefined}
+                              animate={prefersReducedMotion
+                                ? { opacity: 1, y: 0 }
+                                : isHistorySpotlight
+                                ? { opacity: 1, y: 0, scale: [1, 1.08, 1.08, 1] }
+                                : undefined}
+                              transition={isHistorySpotlight && !prefersReducedMotion
+                                ? {
+                                    opacity: { duration: 0.22 },
+                                    y: { duration: 0.22, ease: [0.22, 1, 0.36, 1] },
+                                    scale: { duration: 1.45, times: [0, 0.2, 0.56, 1], ease: [0.22, 1, 0.36, 1] },
+                                  }
+                                : undefined}
                               transformTemplate={({ y = 0, scale = 1 }) => `translate3d(0, ${y}px, 0) scale3d(${scale}, ${scale}, 1)`}
                               whileTap={prefersReducedMotion ? undefined : { scale: 0.98 }}
                             >
