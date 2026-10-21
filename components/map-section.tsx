@@ -13,12 +13,24 @@ const LeafletMap = dynamic(
   { ssr: false }
 )
 
-export function MapSection() {
+export function MapSection({
+  fullscreen: fullscreenProp,
+  selectedRoute: selectedRouteProp,
+  lineSelectorOpen: lineSelectorOpenProp,
+}: {
+  fullscreen?: boolean
+  selectedRoute?: string | null
+  lineSelectorOpen?: boolean
+} = {}) {
   const [isMounted, setIsMounted] = useState(false)
   const [isMapReady, setIsMapReady] = useState(false)
-  const [isFullscreen, setIsFullscreen] = useState(false)
+  const [internalFullscreen, setInternalFullscreen] = useState(false)
   const mapId = useId()
   const { trackingState, stopTracking } = useTracking()
+
+  // Controlled by Cinematic Demo Mode; falls back to internal toggle otherwise
+  const isControlled = fullscreenProp !== undefined
+  const isFullscreen = isControlled ? Boolean(fullscreenProp) : internalFullscreen
 
   useEffect(() => {
     setIsMounted(true)
@@ -32,8 +44,18 @@ export function MapSection() {
   }, [])
 
   const handleFullscreen = () => {
-    setIsFullscreen(!isFullscreen)
+    if (isControlled) return
+    setInternalFullscreen((prev) => !prev)
   }
+
+  // Keep the page layout (header, stations, bottom nav) in sync when the demo
+  // expands or collapses the map programmatically.
+  useEffect(() => {
+    if (!isControlled) return
+    window.dispatchEvent(
+      new CustomEvent("mapFullscreenChange", { detail: { isFullscreen } })
+    )
+  }, [isControlled, isFullscreen])
 
   if (!isMounted) {
     return <MapSkeleton />
@@ -54,10 +76,12 @@ export function MapSection() {
       >
         {/* Map container — always rendered so Leaflet/MapLibre can measure dimensions */}
         <div style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }}>
-          <LeafletMap 
-            key={mapId} 
+          <LeafletMap
+            key={mapId}
             trackingLineId={trackingState.busLineId}
             isFullscreen={isFullscreen}
+            selectedRoute={selectedRouteProp}
+            lineSelectorOpen={lineSelectorOpenProp}
           />
         </div>
 
@@ -150,7 +174,7 @@ export function MapSection() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            onClick={() => setIsFullscreen(false)}
+            onClick={() => setInternalFullscreen(false)}
             style={{ pointerEvents: 'none' }}
           />
         )}

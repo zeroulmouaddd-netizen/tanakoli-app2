@@ -12,6 +12,7 @@ import { useDriverMode } from "@/lib/driver-mode-context"
 import { useNotifications } from "@/hooks/use-notifications"
 import { NotificationsDrawer } from "@/components/notifications-drawer"
 import { TankoliLogoIcon } from "@/components/tanakoli-logo"
+import { DemoToggleButton } from "@/components/cinematic-demo-mode"
 
 const menuItems = [
   { icon: MapPin, label: "المحطات القريبة", href: "/stations" },
@@ -257,6 +258,8 @@ export function AppHeader() {
           <img src="/logo-new.png" alt="تنقلي خنشلة" className="h-full w-full object-cover" />
         </div>
       </div>
+
+      <DemoToggleButton />
 
       <Button
         variant="ghost"
