@@ -1,23 +1,30 @@
 "use client"
 
+/**
+ * Admin Dashboard — "Active Drivers" section.
+ *
+ * Renders the live drivers feed from Firebase via `subscribeActiveDrivers`,
+ * which merges:
+ *   · Firestore `drivers` collection (driver records, incl. mock/test drivers)
+ *   · Firestore `users` collection (registered drivers)
+ *   · Realtime Database `drivers/*` (live GPS + heartbeat)
+ *
+ * Drivers are considered active from status signals (`isOnline: true`,
+ * `activeRoute`, recent `lastSeen`/`updatedAt` heartbeat, or a live GPS
+ * location). When none is active, the panel falls back to listing registered
+ * drivers instead of showing a falsely empty state.
+ */
+
 import { useEffect, useState } from "react"
 import { motion, useReducedMotion } from "framer-motion"
-import { rtdb } from "@/lib/firebase"
-import { ref, onValue } from "firebase/database"
+import {
+  subscribeActiveDrivers,
+  type DriversPanelSnapshot,
+} from "@/lib/admin-utils"
 import { Bidi } from "@/components/admin-bidi"
+import { AdminAddDriverModal } from "@/components/admin-add-driver-modal"
 import { useAdminI18n } from "@/lib/i18n/admin-i18n"
-import { Users, Bus, MapPin } from "lucide-react"
-
-interface DriverLocation {
-  lat: number
-  lng: number
-  timestamp?: number
-}
-
-interface Driver {
-  phone: string
-  location: DriverLocation
-}
+import { Users, Bus, MapPin, Plus, Clock } from "lucide-react"
 
 interface AdminDriverListProps {
   onDriverSelect?: (driverPhone: string) => void
@@ -38,56 +45,25 @@ function avatarGradient(phone: string) {
   return AVATAR_GRADIENTS[h % AVATAR_GRADIENTS.length]
 }
 
-const FRESH_MS = 5 * 60 * 1000
-
 export function AdminDriverMap({ onDriverSelect }: AdminDriverListProps) {
   const { t, formatTimeOfDay } = useAdminI18n()
-  const [drivers, setDrivers] = useState<Driver[]>([])
+  const [panel, setPanel] = useState<DriversPanelSnapshot>({ rows: [], mode: "empty" })
   const [isLoading, setIsLoading] = useState(true)
+  const [addOpen, setAddOpen] = useState(false)
   const reduced = useReducedMotion()
 
   useEffect(() => {
-    // Subscribe to driver locations from Firebase Realtime Database
-    const driversRef = ref(rtdb, "drivers")
-
-    const unsubscribe = onValue(
-      driversRef,
-      (snapshot) => {
-        if (!snapshot.exists()) {
-          setDrivers([])
-          setIsLoading(false)
-          return
-        }
-
-        const driversData = snapshot.val()
-        const driversList: Driver[] = []
-
-        // Process drivers data - read from drivers/{phone}/location
-        for (const [phone, driverData] of Object.entries(driversData)) {
-          const data = driverData as any
-          if (data.location && typeof data.location === "object") {
-            driversList.push({
-              phone,
-              location: data.location,
-            })
-          }
-        }
-
-        setDrivers(driversList)
-        setIsLoading(false)
-      },
-      (error) => {
-        console.error("[v0] Error fetching driver locations:", error)
-        setIsLoading(false)
-      }
-    )
-
+    // Live feed: Firestore driver records + registered drivers + RTDB status
+    const unsubscribe = subscribeActiveDrivers((snapshot) => {
+      setPanel(snapshot)
+      setIsLoading(false)
+    })
     return () => {
       unsubscribe()
     }
   }, [])
 
-  const formatTime = (timestamp?: number) => {
+  const formatTime = (timestamp?: number | null) => {
     if (!timestamp) return t("common.na")
     return formatTimeOfDay(timestamp)
   }
@@ -95,7 +71,7 @@ export function AdminDriverMap({ onDriverSelect }: AdminDriverListProps) {
   return (
     <div className="admin-card p-4 sm:p-5">
       {/* Section header */}
-      <div className="mb-4 flex items-center gap-3">
+      <div className="mb-4 flex flex-wrap items-center gap-3">
         <span
           className="admin-icon-badge"
           style={
@@ -109,9 +85,28 @@ export function AdminDriverMap({ onDriverSelect }: AdminDriverListProps) {
           <Users className="h-[18px] w-[18px]" strokeWidth={2.2} />
         </span>
         <h3 className="text-[15px] font-bold tracking-tight text-[var(--admin-text)] sm:text-base">
-          {t("drivers.title")} (<Bidi>{drivers.length}</Bidi>)
+          {t("drivers.title")} (<Bidi>{panel.rows.length}</Bidi>)
         </h3>
+
+        {/* Add Driver / إضافة سائق */}
+        <button
+          type="button"
+          onClick={() => setAddOpen(true)}
+          className="admin-btn-primary ms-auto"
+          style={{ minHeight: 38, fontSize: 12.5, paddingInline: 14, gap: 6 }}
+        >
+          <Plus className="h-3.5 w-3.5" strokeWidth={2.4} />
+          {t("drivers.addDriver")}
+        </button>
       </div>
+
+      {/* Fallback note — no live drivers, showing registered ones */}
+      {!isLoading && panel.mode === "fallback" && panel.rows.length > 0 && (
+        <p className="mb-3 flex items-center gap-1.5 rounded-[10px] border border-[rgba(251,191,36,0.22)] bg-[rgba(251,191,36,0.06)] px-3 py-2 text-[11.5px] text-amber-300">
+          <Clock className="h-3 w-3 flex-shrink-0" />
+          {t("drivers.fallbackNote")}
+        </p>
+      )}
 
       {/* Loading skeleton */}
       {isLoading && (
@@ -130,7 +125,7 @@ export function AdminDriverMap({ onDriverSelect }: AdminDriverListProps) {
       )}
 
       {/* Empty state */}
-      {!isLoading && drivers.length === 0 && (
+      {!isLoading && panel.rows.length === 0 && (
         <div className="flex flex-col items-center justify-center rounded-[14px] border border-dashed border-[var(--admin-border-strong)] bg-[rgba(148,163,184,0.03)] px-6 py-12 text-center">
           <span
             className="mb-4 flex h-14 w-14 items-center justify-center rounded-full"
@@ -148,38 +143,62 @@ export function AdminDriverMap({ onDriverSelect }: AdminDriverListProps) {
       )}
 
       {/* Driver cards */}
-      {!isLoading && drivers.length > 0 && (
+      {!isLoading && panel.rows.length > 0 && (
         <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
-          {drivers.map((driver, i) => {
-            const isFresh =
-              !!driver.location.timestamp && Date.now() - driver.location.timestamp < FRESH_MS
-            return (
-              <motion.div
-                key={driver.phone}
-                initial={reduced ? false : { opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.35, delay: Math.min(i * 0.05, 0.3), ease: EASE }}
-                className="group flex items-center gap-3.5 rounded-[14px] border border-[var(--admin-border)] bg-[var(--admin-surface-2)] p-3.5 transition-all duration-200 hover:-translate-y-[1px] hover:border-[rgba(16,185,129,0.4)] hover:bg-[rgba(16,185,129,0.05)] hover:shadow-[0_10px_28px_-14px_var(--admin-glow)]"
+          {panel.rows.map((driver, i) => (
+            <motion.div
+              key={driver.key}
+              initial={reduced ? false : { opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.35, delay: Math.min(i * 0.05, 0.3), ease: EASE }}
+              className="group flex items-center gap-3.5 rounded-[14px] border border-[var(--admin-border)] bg-[var(--admin-surface-2)] p-3.5 transition-all duration-200 hover:-translate-y-[1px] hover:border-[rgba(16,185,129,0.4)] hover:bg-[rgba(16,185,129,0.05)] hover:shadow-[0_10px_28px_-14px_var(--admin-glow)]"
+            >
+              {/* Avatar */}
+              <div
+                className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-[12px] border border-white/15 shadow-[0_1px_0_rgba(255,255,255,0.2)_inset]"
+                style={{ background: avatarGradient(driver.phone) }}
               >
-                {/* Avatar */}
-                <div
-                  className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-[12px] border border-white/15 shadow-[0_1px_0_rgba(255,255,255,0.2)_inset]"
-                  style={{ background: avatarGradient(driver.phone) }}
-                >
-                  <Bus className="h-5 w-5 text-white/90" strokeWidth={2} />
+                <Bus className="h-5 w-5 text-white/90" strokeWidth={2} />
+              </div>
+
+              {/* Details */}
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2">
+                  <Bidi className="admin-num truncate text-[14px] font-semibold tracking-wide text-[var(--admin-text)]">
+                    {driver.phone}
+                  </Bidi>
+                  <span
+                    className={`live-dot ${driver.isActive ? "" : "live-dot-idle"}`}
+                    aria-hidden="true"
+                  />
+                  {/* Status pill */}
+                  <span
+                    className={`flex-shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+                      driver.isActive
+                        ? "bg-[rgba(16,185,129,0.12)] text-emerald-300"
+                        : "bg-[rgba(148,163,184,0.12)] text-[var(--admin-text-3)]"
+                    }`}
+                  >
+                    {driver.isActive ? t("drivers.status.active") : t("drivers.status.idle")}
+                  </span>
+                  {driver.isMock && (
+                    <span className="flex-shrink-0 rounded-full bg-[rgba(167,139,250,0.12)] px-2 py-0.5 text-[10px] font-semibold text-violet-300">
+                      {t("drivers.registered")}
+                    </span>
+                  )}
                 </div>
 
-                {/* Details */}
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2">
-                    <Bidi className="admin-num truncate text-[14px] font-semibold tracking-wide text-[var(--admin-text)]">
-                      {driver.phone}
-                    </Bidi>
-                    <span
-                      className={`live-dot ${isFresh ? "" : "live-dot-idle"}`}
-                      aria-hidden="true"
-                    />
-                  </div>
+                {/* Name / bus line */}
+                {(driver.name || driver.line) && (
+                  <p className="mt-1 truncate text-[11.5px] text-[var(--admin-text-2)]">
+                    {driver.name && <span className="font-medium">{driver.name}</span>}
+                    {driver.name && driver.line ? " · " : ""}
+                    {driver.line}
+                  </p>
+                )}
+
+                {/* Location or fallback note */}
+                {driver.location ? (
                   <p className="admin-num mt-1 flex items-center gap-1.5 text-[11px] text-[var(--admin-text-3)]">
                     <MapPin className="h-3 w-3 flex-shrink-0 opacity-70" />
                     <span className="truncate">
@@ -188,25 +207,34 @@ export function AdminDriverMap({ onDriverSelect }: AdminDriverListProps) {
                       {t("drivers.lng")} <Bidi>{driver.location.lng.toFixed(6)}</Bidi>
                     </span>
                   </p>
-                  <p className="admin-num mt-0.5 text-[11px] text-[var(--admin-text-3)]">
-                    {formatTime(driver.location.timestamp)}
+                ) : (
+                  <p className="mt-1 flex items-center gap-1.5 text-[11px] text-[var(--admin-text-3)]">
+                    <MapPin className="h-3 w-3 flex-shrink-0 opacity-70" />
+                    <span className="truncate">{t("drivers.noLocation")}</span>
                   </p>
-                </div>
-
-                {/* Action */}
-                {onDriverSelect && (
-                  <button
-                    onClick={() => onDriverSelect(driver.phone)}
-                    className="admin-btn-ghost rounded-[10px] px-3.5 text-[12px]"
-                  >
-                    {t("drivers.select")}
-                  </button>
                 )}
-              </motion.div>
-            )
-          })}
+
+                <p className="admin-num mt-0.5 text-[11px] text-[var(--admin-text-3)]">
+                  {formatTime(driver.lastSeen)}
+                </p>
+              </div>
+
+              {/* Action */}
+              {onDriverSelect && (
+                <button
+                  onClick={() => onDriverSelect(driver.phone)}
+                  className="admin-btn-ghost rounded-[10px] px-3.5 text-[12px]"
+                >
+                  {t("drivers.select")}
+                </button>
+              )}
+            </motion.div>
+          ))}
         </div>
       )}
+
+      {/* Add Driver modal */}
+      <AdminAddDriverModal open={addOpen} onClose={() => setAddOpen(false)} />
     </div>
   )
 }

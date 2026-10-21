@@ -4,7 +4,7 @@ import { createContext, useContext, useState, useCallback, useEffect, type React
 import { db } from "@/lib/firebase"
 import { doc, getDoc } from "firebase/firestore"
 import { useAuth } from "@/lib/auth-context"
-import { isAuthorizedDriverPhone } from "@/lib/driver-config"
+import { isAuthorizedDriverPhone, isAuthorizedDriverInFirebase } from "@/lib/driver-config"
 
 const DRIVER_MODE_KEY = "tanoukli_driver_mode"
 const DRIVER_AUTH_SESSION_KEY = "tanakoli_is_driver"
@@ -71,19 +71,35 @@ export function DriverModeProvider({ children }: { children: ReactNode }) {
       return
     }
 
-    // Check sessionStorage cache first to avoid recomputing every render
+    // Check sessionStorage cache first to avoid recomputing every render.
+    // Only a cached "true" is trusted — a cached "false" is re-verified so a
+    // driver registered by the admin is recognised immediately upon login.
     try {
       const cached = sessionStorage.getItem(DRIVER_AUTH_SESSION_KEY)
-      if (cached !== null) {
-        setIsAuthorizedDriver(cached === "true")
+      if (cached === "true") {
+        setIsAuthorizedDriver(true)
         return
       }
     } catch {}
 
-    // Not in cache — compute from whitelist and store
-    const authorized = isAuthorizedDriverPhone(currentUser.phoneNumber)
-    setIsAuthorizedDriver(authorized)
-    try { sessionStorage.setItem(DRIVER_AUTH_SESSION_KEY, String(authorized)) } catch {}
+    // Whitelist first (instant), then verify against Firebase driver records
+    // (drivers / users collections) so admin-registered drivers are recognized.
+    const syncAuthorized = isAuthorizedDriverPhone(currentUser.phoneNumber)
+    if (syncAuthorized) {
+      setIsAuthorizedDriver(true)
+      try { sessionStorage.setItem(DRIVER_AUTH_SESSION_KEY, "true") } catch {}
+      return
+    }
+
+    let cancelled = false
+    isAuthorizedDriverInFirebase(currentUser.phoneNumber).then((authorized) => {
+      if (cancelled) return
+      setIsAuthorizedDriver(authorized)
+      try { sessionStorage.setItem(DRIVER_AUTH_SESSION_KEY, String(authorized)) } catch {}
+    })
+    return () => {
+      cancelled = true
+    }
   }, [currentUser, isAuthLoading])
 
   useEffect(() => {
@@ -140,10 +156,17 @@ export function DriverModeProvider({ children }: { children: ReactNode }) {
     } catch {}
 
     if (!isAuthorizedDriverPhone(currentUser.phoneNumber)) {
-      setRoleError("عذراً، هذا الحساب غير مصرح له بالدخول كونه ليس سائقاً معتمداً")
-      return false
+      // Not on the hardcoded whitelist — identify the driver in Firebase
+      // (drivers / users records with authorized driver privileges).
+      const authorized = await isAuthorizedDriverInFirebase(currentUser.phoneNumber)
+      if (!authorized) {
+        setRoleError("عذراً، هذا الحساب غير مصرح له بالدخول كونه ليس سائقاً معتمداً")
+        return false
+      }
     }
 
+    setIsAuthorizedDriver(true)
+    try { sessionStorage.setItem(DRIVER_AUTH_SESSION_KEY, "true") } catch {}
     setIsDriverMode(true)
     setPersistedDriverMode(true)
     return true
