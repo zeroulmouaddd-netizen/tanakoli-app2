@@ -787,8 +787,11 @@ export default function TripsPage() {
                               <div className="text-left">
                                 <span className={`text-lg font-bold ${
                                   isRecharge ? "text-green-500" : "text-destructive"
-                                }`} dir="ltr">
+                                }${isHistorySpotlight && !isRecharge ? " demo-step6-fare-amount" : ""}`} dir="ltr">
                                   {isRecharge ? "+" : "-"}{transaction.amount} د.ج
+                                  {isHistorySpotlight && !isRecharge && !prefersReducedMotion && (
+                                    <span className="demo-step6-fare-scan" aria-hidden="true" />
+                                  )}
                                 </span>
                                 <p className="text-xs text-muted-foreground">
                                   الرصيد: {transaction.newBalance} د.ج

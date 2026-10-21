@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { motion, useReducedMotion } from "framer-motion"
 import { AppHeader } from "@/components/app-header"
 import { BottomNav } from "@/components/bottom-nav"
@@ -28,6 +28,8 @@ export default function AccountPage() {
   const { isActive: isDemoActive, step: demoStep } = useDemoMode()
   const prefersReducedMotion = useReducedMotion()
   const isDemoAccountStep = isDemoActive && demoStep === 7
+  const profileCardRef = useRef<HTMLDivElement>(null)
+  const [profileCardTravelDistance, setProfileCardTravelDistance] = useState(0)
 
   const [isEditing, setIsEditing] = useState(false)
   const [editFullName, setEditFullName] = useState("")
@@ -59,6 +61,32 @@ export default function AccountPage() {
       setEditAddress(userData.address || "")
     }
   }, [userData])
+
+  useEffect(() => {
+    if (!isDemoAccountStep || prefersReducedMotion) {
+      setProfileCardTravelDistance(0)
+      return
+    }
+
+    const profileCard = profileCardRef.current
+    if (!profileCard) return
+
+    const updateTravelDistance = () => {
+      setProfileCardTravelDistance(Math.max(0, profileCard.offsetHeight - 2))
+    }
+    updateTravelDistance()
+
+    const resizeObserver = typeof ResizeObserver === "undefined"
+      ? null
+      : new ResizeObserver(updateTravelDistance)
+    resizeObserver?.observe(profileCard)
+    window.addEventListener("resize", updateTravelDistance)
+
+    return () => {
+      resizeObserver?.disconnect()
+      window.removeEventListener("resize", updateTravelDistance)
+    }
+  }, [isDemoAccountStep, isLoading, prefersReducedMotion, userData])
 
   const handleSaveProfile = async () => {
     if (!firestoreUserId) return
@@ -241,6 +269,7 @@ export default function AccountPage() {
 
             {/* Profile Card */}
             <motion.div
+              ref={profileCardRef}
               className={`rounded-2xl bg-card p-5 shadow-sm${isDemoAccountStep ? " demo-step7-profile-card" : ""}`}
               initial={false}
               animate={isDemoAccountStep && !prefersReducedMotion
@@ -253,6 +282,16 @@ export default function AccountPage() {
                 : { scale: { duration: 0.36, ease: [0.22, 1, 0.36, 1] } }}
               transformTemplate={({ scale = 1 }) => `translate3d(0, 0, 0) scale3d(${scale}, ${scale}, 1)`}
             >
+              {isDemoAccountStep && !prefersReducedMotion && profileCardTravelDistance > 0 && (
+                <motion.div
+                  className="demo-step7-laser"
+                  aria-hidden="true"
+                  initial={{ y: 0, opacity: 0 }}
+                  animate={{ y: [0, profileCardTravelDistance], opacity: [0.2, 0.95] }}
+                  transition={{ duration: 2.2, ease: "easeInOut", repeat: Infinity, repeatType: "reverse" }}
+                  transformTemplate={({ y = 0 }) => `translate3d(0, ${y}px, 0)`}
+                />
+              )}
               <div
                 data-demo-focus-target={isDemoAccountStep ? "account-profile-header" : undefined}
                 className="mb-4 flex items-center justify-between"
