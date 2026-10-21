@@ -188,7 +188,7 @@ function connectorPath(card: DOMRect, target: DOMRect, step: DemoStep) {
 }
 
 export function DemoPresentationOverlay() {
-  const { isActive, isPreparing, step, stepStartedAt, stopDemo } = useDemoMode()
+  const { isActive, isPreparing, step, stepStartedAt, step6Phase, stopDemo } = useDemoMode()
   const pathname = usePathname()
   const pathRef = useRef<SVGPathElement>(null)
   const glowPathRef = useRef<SVGPathElement>(null)
@@ -239,6 +239,8 @@ export function DemoPresentationOverlay() {
     let sampleAt = 0
     let qrTargetSeenAt: number | null = null
     let routeTargetSeenAt: number | null = null
+    let step6FollowUntil = 0
+    let startStep6Follow = () => {}
     const entranceEndsAt = performance.now() + 380
     let observedTarget: Element | null = null
 
@@ -312,9 +314,19 @@ export function DemoPresentationOverlay() {
         observedTarget = target
       }
     }
-    const mutationObserver = new MutationObserver(() => {
+    const mutationObserver = new MutationObserver((mutations) => {
+      const previousTarget = observedTarget
       observeElements()
-      scheduleRefresh()
+      const focusTargetChanged = mutations.some(
+        (mutation) => mutation.type === "attributes" && mutation.attributeName === "data-demo-focus-target",
+      )
+      const targetChanged = findTarget(step) !== previousTarget
+
+      if (step === 6 && (focusTargetChanged || targetChanged)) {
+        startStep6Follow()
+      } else {
+        scheduleRefresh()
+      }
     })
     observeElements()
     mutationObserver.observe(document.body, {
@@ -359,9 +371,19 @@ export function DemoPresentationOverlay() {
         return
       }
 
-      if (step === 5 || step === 6) {
-        // Cross-route steps keep sampling until their target mounts and its
-        // entrance/scroll transition has settled.
+      if (step === 6) {
+        // Re-sample the transformed departure pill every display frame while it zooms.
+        drawConnector()
+        if (now < step6FollowUntil) {
+          frame = window.requestAnimationFrame(animateConnector)
+        } else {
+          frame = 0
+        }
+        return
+      }
+
+      if (step === 5) {
+        // Follow Step 05's cross-route target through its entrance and scroll transition.
         if (now - sampleAt >= 33) {
           const target = drawConnector()
           sampleAt = now
@@ -389,6 +411,15 @@ export function DemoPresentationOverlay() {
         drawConnector()
         frame = 0
       }
+    }
+
+    startStep6Follow = () => {
+      if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+        scheduleRefresh()
+        return
+      }
+      step6FollowUntil = performance.now() + 900
+      if (frame === 0) frame = window.requestAnimationFrame(animateConnector)
     }
 
     frame = window.requestAnimationFrame(animateConnector)
@@ -430,7 +461,18 @@ export function DemoPresentationOverlay() {
     }
   }, [isActive, pathname, step])
 
-  const copy = useMemo(() => (step ? STEP_COPY[step] : null), [step])
+  const copy = useMemo(() => {
+    if (!step) return null
+    if (step !== 6) return STEP_COPY[step]
+
+    return {
+      ...STEP_COPY[6],
+      ar: step6Phase === "past" ? "تتبع الحافلات والمواعيد المنقضية" : "المواعيد القادمة بدقة",
+      fr: step6Phase === "past"
+        ? "Suivi en Temps Réel & Horaires Passés"
+        : "Prochains Départs Optimisés",
+    }
+  }, [step, step6Phase])
 
   return (
     <AnimatePresence>

@@ -1281,6 +1281,11 @@ select.admin-input {
 .demo-step6-ring-focus {
   position: relative;
   isolation: isolate;
+  will-change: transform, opacity;
+}
+.demo-step6-time-zoom-focus {
+  filter: drop-shadow(0 0 10px rgba(16, 185, 129, 0.38));
+  transform-origin: center;
 }
 .demo-step6-ring-focus::after {
   content: "";

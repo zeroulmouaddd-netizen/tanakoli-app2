@@ -13,12 +13,15 @@ import {
 import { usePathname, useRouter } from "next/navigation"
 
 export type DemoStep = 1 | 2 | 3 | 4 | 5 | 6
+export type DemoStep6Phase = "past" | "upcoming"
 
 interface DemoModeContextValue {
   isActive: boolean
   isPreparing: boolean
   step: DemoStep | null
   stepStartedAt: number | null
+  step6Phase: DemoStep6Phase
+  setStep6Phase: (phase: DemoStep6Phase) => void
   startDemo: () => void
   stopDemo: () => void
   setHomeMapReady: (ready: boolean) => void
@@ -33,6 +36,7 @@ export function DemoModeProvider({ children }: { children: ReactNode }) {
   const [isActive, setIsActive] = useState(false)
   const [step, setStep] = useState<DemoStep | null>(null)
   const [stepStartedAt, setStepStartedAt] = useState<number | null>(null)
+  const [step6Phase, setStep6Phase] = useState<DemoStep6Phase>("past")
   const [pendingStart, setPendingStart] = useState(false)
   const mapReadyRef = useRef(false)
   const activeRef = useRef(false)
@@ -41,6 +45,7 @@ export function DemoModeProvider({ children }: { children: ReactNode }) {
 
   const beginPresentation = useCallback(() => {
     activeRef.current = true
+    setStep6Phase("past")
     setIsActive(true)
     if (mapReadyRef.current) {
       waitingForMapRef.current = false
@@ -76,6 +81,7 @@ export function DemoModeProvider({ children }: { children: ReactNode }) {
     setIsActive(false)
     setStep(null)
     setStepStartedAt(null)
+    setStep6Phase("past")
   }, [])
 
   const setHomeMapReady = useCallback((ready: boolean) => {
@@ -134,10 +140,12 @@ export function DemoModeProvider({ children }: { children: ReactNode }) {
     isPreparing: isActive && step === null,
     step,
     stepStartedAt,
+    step6Phase,
+    setStep6Phase,
     startDemo,
     stopDemo,
     setHomeMapReady,
-  }), [isActive, step, stepStartedAt, startDemo, stopDemo, setHomeMapReady])
+  }), [isActive, step, stepStartedAt, step6Phase, startDemo, stopDemo, setHomeMapReady, setStep6Phase])
 
   return <DemoModeContext.Provider value={value}>{children}</DemoModeContext.Provider>
 }

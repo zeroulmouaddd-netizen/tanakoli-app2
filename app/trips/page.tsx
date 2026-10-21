@@ -79,10 +79,10 @@ export default function TripsPage() {
   const [scheduleSearch, setScheduleSearch] = useState("")
   const [hasActiveTrip, setHasActiveTrip] = useState(false)
   const [hasMounted, setHasMounted] = useState(false)
-  const [step6Focus, setStep6Focus] = useState<"track" | "current" | "next">("track")
+  const [step6Focus, setStep6Focus] = useState<"track" | "past" | "current" | "next">("track")
   const router = useRouter()
   const { startTracking } = useTracking()
-  const { isActive: isDemoActive, step: demoStep } = useDemoMode()
+  const { isActive: isDemoActive, step: demoStep, setStep6Phase } = useDemoMode()
   const prefersReducedMotion = useReducedMotion()
   const isDemoTripsStep = isDemoActive && demoStep === 6
   
@@ -117,19 +117,26 @@ export default function TripsPage() {
   useEffect(() => {
     if (!isDemoTripsStep) {
       setStep6Focus("track")
+      setStep6Phase("past")
       return
     }
 
     setStep6Focus("track")
+    setStep6Phase("past")
     if (routesLoading) return
 
-    const currentDepartureTimer = window.setTimeout(() => setStep6Focus("current"), 900)
-    const nextDepartureTimer = window.setTimeout(() => setStep6Focus("next"), 2_200)
+    const pastDepartureTimer = window.setTimeout(() => setStep6Focus("past"), 700)
+    const upcomingPhaseTimer = window.setTimeout(() => {
+      setStep6Focus("current")
+      setStep6Phase("upcoming")
+    }, 1_500)
+    const nextDepartureTimer = window.setTimeout(() => setStep6Focus("next"), 2_250)
     return () => {
-      window.clearTimeout(currentDepartureTimer)
+      window.clearTimeout(pastDepartureTimer)
+      window.clearTimeout(upcomingPhaseTimer)
       window.clearTimeout(nextDepartureTimer)
     }
-  }, [isDemoTripsStep, routesLoading])
+  }, [isDemoTripsStep, routesLoading, setStep6Phase])
 
   const formatDate = (trip: Trip) => {
     if (trip.timestamp) {
@@ -392,6 +399,10 @@ export default function TripsPage() {
                         const firstStop = subStations[0]?.name || route.stops[0]?.name || ""
                         const lastStop = subStations[subStations.length - 1]?.name || route.stops[route.stops.length - 1]?.name || ""
                         const schedule = generateSchedule(route.workingHours, route.frequency)
+                        const lastDepartedIndex = schedule.reduce(
+                          (lastIndex, slot, index) => slot.status === "departed" ? index : lastIndex,
+                          -1,
+                        )
                         const currentDepartureIndex = schedule.findIndex((slot) => slot.status === "current")
                         const firstUpcomingIndex = schedule.findIndex((slot, index) =>
                           slot.status === "upcoming" && (currentDepartureIndex < 0 || index > currentDepartureIndex),
@@ -491,6 +502,10 @@ export default function TripsPage() {
                                 <div className="mb-2 text-xs font-medium text-muted-foreground">أوقات اليوم:</div>
                                 <div className="flex flex-wrap gap-2">
                                   {schedule.map((slot, index) => {
+                                    const isPastFocus = isDemoTripsStep
+                                      && routeIndex === 0
+                                      && step6Focus === "past"
+                                      && index === lastDepartedIndex
                                     const isCurrentFocus = isDemoTripsStep
                                       && routeIndex === 0
                                       && step6Focus === "current"
@@ -499,25 +514,38 @@ export default function TripsPage() {
                                       && routeIndex === 0
                                       && step6Focus === "next"
                                       && index === nextFocusIndex
-                                    const isDepartureFocus = isCurrentFocus || isNextFocus
-                                    const isDepartedDuringDemo = isDemoTripsStep && routeIndex === 0 && slot.status === "departed"
+                                    const isDepartureFocus = isPastFocus || isCurrentFocus || isNextFocus
+                                    const isDepartedDuringDemo = isDemoTripsStep
+                                      && routeIndex === 0
+                                      && slot.status === "departed"
+                                      && !isDepartureFocus
                                     const animateDeparture = isDepartureFocus && !prefersReducedMotion
+                                    const focusTargetName = isPastFocus
+                                      ? "past-departure"
+                                      : isCurrentFocus
+                                      ? "current-departure"
+                                      : isNextFocus
+                                      ? "next-departure"
+                                      : undefined
 
                                     return (
                                       <motion.span
                                         key={index}
-                                        data-demo-focus-target={isCurrentFocus ? "current-departure" : isNextFocus ? "next-departure" : undefined}
+                                        data-demo-focus-target={focusTargetName}
                                         className={`inline-flex items-center rounded-lg px-3 py-1.5 text-sm font-medium ${
                                           slot.status === "departed"
                                             ? "bg-muted text-muted-foreground line-through"
                                             : slot.status === "current"
                                             ? "bg-primary text-primary-foreground"
                                             : "bg-primary/10 text-primary"
-                                        }${isDepartedDuringDemo ? " demo-trip-time--departed" : ""}${isDepartureFocus ? " demo-step6-ring-focus" : ""}`}
-                                        animate={animateDeparture ? { y: [0, -4, 0], scale: [1, 1.08, 1] } : { y: 0, scale: 1 }}
+                                        }${isDepartedDuringDemo ? " demo-trip-time--departed" : ""}${isDepartureFocus ? " demo-step6-ring-focus demo-step6-time-zoom-focus" : ""}`}
+                                        animate={animateDeparture
+                                          ? { y: [0, -2, 0], scale: [1, 1.15, 1], opacity: [0.88, 1, 1] }
+                                          : { y: 0, scale: 1 }}
                                         transition={animateDeparture
-                                          ? { duration: 0.58, ease: [0.22, 1, 0.36, 1], repeat: Infinity, repeatDelay: 0.55 }
+                                          ? { duration: 0.72, times: [0, 0.48, 1], ease: [0.22, 1, 0.36, 1] }
                                           : { duration: 0.2, ease: "easeOut" }}
+                                        transformTemplate={({ y = 0, scale = 1 }) => `translate3d(0, ${y}px, 0) scale3d(${scale}, ${scale}, 1)`}
                                         whileTap={{ scale: 0.95 }}
                                       >
                                         {slot.time}
