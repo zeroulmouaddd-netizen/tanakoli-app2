@@ -8,7 +8,9 @@ import { AdminStatsCards } from "@/components/admin-stats-cards"
 import { AdminDriverMap } from "@/components/admin-driver-map"
 import { AdminSendMoneyForm } from "@/components/admin-send-money-form"
 import { AdminTransactionsLog } from "@/components/admin-transactions-log"
+import { AdminInsights } from "@/components/admin-insights"
 import { useAdminI18n } from "@/lib/i18n/admin-i18n"
+import type { Transaction } from "@/lib/admin-utils"
 
 const EASE: [number, number, number, number] = [0.22, 1, 0.36, 1]
 
@@ -37,6 +39,8 @@ function Reveal({
 export default function AdminPage() {
   const { t } = useAdminI18n()
   const [selectedDriver, setSelectedDriver] = useState<string>("")
+  // Read-only copy of the transactions list the log already loads (for Insights).
+  const [insightTransactions, setInsightTransactions] = useState<Transaction[] | null>(null)
 
   return (
     <AdminLayout>
@@ -57,6 +61,11 @@ export default function AdminPage() {
         <AdminStatsCards />
       </Reveal>
 
+      {/* Insights: compact, read-only analytics derived from loaded data */}
+      <Reveal delay={0.12} className="mb-6 sm:mb-8">
+        <AdminInsights transactions={insightTransactions} />
+      </Reveal>
+
       {/* Main Content Grid */}
       <div className="mb-6 grid grid-cols-1 gap-6 sm:mb-8 lg:grid-cols-3">
         {/* Left Column: Active Drivers */}
@@ -72,7 +81,7 @@ export default function AdminPage() {
 
       {/* Full Width: Transactions Log */}
       <Reveal delay={0.32} className="mb-6 sm:mb-8">
-        <AdminTransactionsLog />
+        <AdminTransactionsLog onTransactionsChange={setInsightTransactions} />
       </Reveal>
 
       {/* Info Box */}

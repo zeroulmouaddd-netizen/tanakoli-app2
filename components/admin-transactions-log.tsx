@@ -9,12 +9,26 @@ import { Activity, TrendingUp, TrendingDown, Inbox } from "lucide-react"
 
 const EASE: [number, number, number, number] = [0.22, 1, 0.36, 1]
 
-export function AdminTransactionsLog() {
+interface AdminTransactionsLogProps {
+  /**
+   * Read-only observer: receives the same list this log already loads, so
+   * other display widgets can reuse it without a second subscription.
+   */
+  onTransactionsChange?: (transactions: Transaction[]) => void
+}
+
+export function AdminTransactionsLog({ onTransactionsChange }: AdminTransactionsLogProps = {}) {
   const { t, formatRelative } = useAdminI18n()
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [filter, setFilter] = useState<string>("all")
   const reduced = useReducedMotion()
+
+  // Latest observer, read from the subscription without re-subscribing.
+  const onChangeRef = useRef(onTransactionsChange)
+  useEffect(() => {
+    onChangeRef.current = onTransactionsChange
+  }, [onTransactionsChange])
 
   // Subscribe to transactions
   useEffect(() => {
@@ -25,6 +39,7 @@ export function AdminTransactionsLog() {
       console.log("[v0] Transactions updated:", txns.length)
       setTransactions(txns)
       setIsLoading(false)
+      onChangeRef.current?.(txns)
     })
 
     return () => {
