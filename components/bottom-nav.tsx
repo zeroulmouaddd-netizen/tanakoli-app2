@@ -52,6 +52,7 @@ export function BottomNav() {
   const pathname = usePathname()
   const router = useRouter()
   const [showModal, setShowModal] = useState(false)
+  const [demoModalMode, setDemoModalMode] = useState(false)
   const [hasMounted, setHasMounted] = useState(false)
   const [isPulsing, setIsPulsing] = useState(false)
   const { isActive: isDemoActive, step: demoStep, stopDemo } = useDemoMode()
@@ -64,6 +65,7 @@ export function BottomNav() {
   }, [])
 
   const handleOpenModal = () => {
+    if (isDemoActive) return
     setIsPulsing(true)
     setTimeout(() => setIsPulsing(false), 300)
     setShowModal(true)
@@ -80,8 +82,15 @@ export function BottomNav() {
         behavior: "smooth",
         block: "end",
       })
-      const timer = window.setTimeout(() => setShowModal(true), 850)
+      const timer = window.setTimeout(() => {
+        setDemoModalMode(true)
+        setShowModal(true)
+      }, 850)
       return () => window.clearTimeout(timer)
+    }
+    if (isDemoActive && demoStep === 5) {
+      setShowModal(false)
+      return
     }
     if (!isDemoActive) setShowModal(false)
   }, [demoStep, hasMounted, isDemoActive])
@@ -210,9 +219,10 @@ export function BottomNav() {
       {/* Payment QR Modal Portal */}
       {hasMounted && createPortal(
         <PaymentQRModal
-          isOpen={showModal}
+          isOpen={showModal && (!demoModalMode || (isDemoActive && demoStep === 4))}
           onClose={handleCloseModal}
-          demoMode={isDemoActive && demoStep === 4}
+          onExitComplete={() => setDemoModalMode(false)}
+          demoMode={demoModalMode}
         />,
         document.body
       )}
@@ -223,10 +233,11 @@ export function BottomNav() {
 interface PaymentQRModalProps {
   isOpen: boolean
   onClose: () => void
+  onExitComplete: () => void
   demoMode: boolean
 }
 
-function PaymentQRModal({ isOpen, onClose, demoMode }: PaymentQRModalProps) {
+function PaymentQRModal({ isOpen, onClose, onExitComplete, demoMode }: PaymentQRModalProps) {
   const { userData, isLoading } = useUserCache()
   const { firestoreUserId } = useAuth()
   const demoSessionRef = useRef(false)
@@ -261,7 +272,7 @@ function PaymentQRModal({ isOpen, onClose, demoMode }: PaymentQRModalProps) {
   }, [demoMode, isOpen, onClose])
 
   return (
-    <AnimatePresence>
+    <AnimatePresence onExitComplete={onExitComplete}>
       {isOpen && (
         <motion.div
           className={`fixed inset-0 flex items-end justify-center p-0 sm:p-4${demoMode ? " sm:items-end demo-payment-overlay" : " sm:items-center"}`}

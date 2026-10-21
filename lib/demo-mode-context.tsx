@@ -12,7 +12,7 @@ import {
 } from "react"
 import { usePathname, useRouter } from "next/navigation"
 
-export type DemoStep = 1 | 2 | 3 | 4
+export type DemoStep = 1 | 2 | 3 | 4 | 5
 
 interface DemoModeContextValue {
   isActive: boolean
@@ -90,7 +90,7 @@ export function DemoModeProvider({ children }: { children: ReactNode }) {
     if (!isActive || step === null) return
 
     const timer = window.setTimeout(() => {
-      if (step === 4) {
+      if (step === 5) {
         stopDemo()
         return
       }

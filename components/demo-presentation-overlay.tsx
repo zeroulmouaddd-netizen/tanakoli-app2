@@ -30,13 +30,23 @@ const STEP_COPY: Record<DemoStep, { ar: string; fr: string; bodyAr: string; body
     bodyAr: "دفع سريع عبر QR مع محفظة رقمية وشحن مبسّط.",
     bodyFr: "Paiement QR instantané, portefeuille numérique et recharge simplifiée.",
   },
+  5: {
+    ar: "المحطات القريبة والنقل الحضري",
+    fr: "Stations & Arrêts à Proximité",
+    bodyAr: "تعرّف على المحطات القريبة وخيارات النقل الحضري لتخطط رحلتك بسهولة.",
+    bodyFr: "Repérez les arrêts proches et les options de transport urbain pour organiser vos déplacements.",
+  },
 }
+
+const QR_SPOTLIGHT_PADDING = 8
+const QR_SPOTLIGHT_RADIUS = 26
 
 function targetNames(step: DemoStep | null) {
   if (step === 1) return ["map-overview"]
   if (step === 2) return ["live-bus", "live-bus-fallback"]
   if (step === 3) return ["route-selector"]
-  if (step === 4) return ["payment-qr", "payment-entry"]
+  if (step === 4) return ["payment-qr"]
+  if (step === 5) return ["nearby-stations"]
   return []
 }
 
@@ -44,9 +54,6 @@ function findTarget(step: DemoStep | null) {
   if (step === 3) {
     const selectorButton = document.querySelector<HTMLElement>('[data-demo-target="route-selector"]')
     return selectorButton?.closest<HTMLElement>(".route-controller-motion") ?? selectorButton
-  }
-  if (step === 4) {
-    return document.querySelector<HTMLElement>(".demo-wallet-header")
   }
 
   for (const name of targetNames(step)) {
@@ -78,10 +85,10 @@ function connectorPath(card: DOMRect, target: DOMRect, step: DemoStep) {
   }
 
   if (step === 4) {
-    // Connect to the wallet header's top-right edge. Keep the curve in the gap
-    // above the card so it never crosses the QR panel below it.
-    const targetX = target.right - Math.min(24, target.width * 0.08)
-    const targetY = target.top
+    // Reach the QR spotlight's rounded top-right corner without crossing its interior.
+    const cornerOffset = QR_SPOTLIGHT_RADIUS * (1 - 1 / Math.SQRT2)
+    const targetX = target.right + QR_SPOTLIGHT_PADDING - cornerOffset
+    const targetY = target.top - QR_SPOTLIGHT_PADDING + cornerOffset
     const targetIsBelowCallout = targetY >= card.bottom
     const startX = targetIsBelowCallout ? card.right - Math.min(28, card.width * 0.08) : card.right
     const startY = targetIsBelowCallout ? card.bottom : targetY
@@ -92,6 +99,30 @@ function connectorPath(card: DOMRect, target: DOMRect, step: DemoStep) {
 
     return {
       d: `M ${startX} ${startY} C ${startX + direction * bendX} ${startY + gap * 0.55}, ${targetX - direction * bendX} ${targetY - Math.min(18, gap * 0.2)}, ${targetX} ${targetY}`,
+      x: targetX,
+      y: targetY,
+    }
+  }
+
+  if (step === 5) {
+    // Join the upper-right edge of the nearby-stations section from the banner.
+    const targetX = target.right - Math.min(24, target.width * 0.08)
+    const targetY = target.top
+    const startX = Math.max(card.left + 24, Math.min(card.right - 24, targetX))
+    const startY = targetY < card.top ? card.top : card.bottom
+    const dx = targetX - startX
+    const dy = targetY - startY
+    const bend = Math.min(96, Math.max(24, Math.hypot(dx, dy) * 0.16))
+    const mostlyHorizontal = Math.abs(dx) > Math.abs(dy)
+    const directionX = dx >= 0 ? 1 : -1
+    const directionY = dy >= 0 ? 1 : -1
+    const control1X = startX + (mostlyHorizontal ? directionX * bend : dx * 0.18)
+    const control1Y = startY + (mostlyHorizontal ? dy * 0.18 : directionY * bend)
+    const control2X = targetX - (mostlyHorizontal ? directionX * bend : dx * 0.18)
+    const control2Y = targetY - (mostlyHorizontal ? dy * 0.18 : directionY * bend)
+
+    return {
+      d: `M ${startX} ${startY} C ${control1X} ${control1Y}, ${control2X} ${control2Y}, ${targetX} ${targetY}`,
       x: targetX,
       y: targetY,
     }
@@ -131,6 +162,8 @@ export function DemoPresentationOverlay() {
   const { isActive, isPreparing, step, stepStartedAt, stopDemo } = useDemoMode()
   const pathRef = useRef<SVGPathElement>(null)
   const glowPathRef = useRef<SVGPathElement>(null)
+  const qrDimPathRef = useRef<SVGPathElement>(null)
+  const qrFrameRef = useRef<SVGRectElement>(null)
   const targetHaloRef = useRef<SVGCircleElement>(null)
   const targetDotRef = useRef<SVGCircleElement>(null)
   const [secondsLeft, setSecondsLeft] = useState(5)
@@ -160,6 +193,8 @@ export function DemoPresentationOverlay() {
     const hideConnector = () => {
       pathRef.current?.setAttribute("opacity", "0")
       glowPathRef.current?.setAttribute("opacity", "0")
+      qrDimPathRef.current?.setAttribute("opacity", "0")
+      qrFrameRef.current?.setAttribute("opacity", "0")
       targetHaloRef.current?.setAttribute("opacity", "0")
       targetDotRef.current?.setAttribute("opacity", "0")
     }
@@ -172,19 +207,47 @@ export function DemoPresentationOverlay() {
     let frame = 0
     let refreshFrame = 0
     let sampleAt = 0
+    let qrTargetSeenAt: number | null = null
     const entranceEndsAt = performance.now() + 380
     let observedTarget: Element | null = null
 
-    const drawConnector = () => {
+    const drawConnector = (): Element | null => {
       const card = document.getElementById("demo-callout-card")
       const target = findTarget(step)
       if (!card || !target) {
         hideConnector()
         observedTarget = null
-        return
+        return null
       }
 
-      const geometry = connectorPath(card.getBoundingClientRect(), target.getBoundingClientRect(), step)
+      const cardBounds = card.getBoundingClientRect()
+      const targetBounds = target.getBoundingClientRect()
+      const geometry = connectorPath(cardBounds, targetBounds, step)
+
+      if (step === 4) {
+        const viewportWidth = document.documentElement.clientWidth || window.innerWidth
+        const viewportHeight = window.innerHeight
+        const frameX = targetBounds.left - QR_SPOTLIGHT_PADDING
+        const frameY = targetBounds.top - QR_SPOTLIGHT_PADDING
+        const frameWidth = targetBounds.width + QR_SPOTLIGHT_PADDING * 2
+        const frameHeight = targetBounds.height + QR_SPOTLIGHT_PADDING * 2
+
+        qrDimPathRef.current?.setAttribute(
+          "d",
+          `M 0 0 H ${viewportWidth} V ${viewportHeight} H 0 Z M ${frameX} ${frameY} H ${frameX + frameWidth} V ${frameY + frameHeight} H ${frameX} Z`
+        )
+        qrFrameRef.current?.setAttribute("x", String(frameX))
+        qrFrameRef.current?.setAttribute("y", String(frameY))
+        qrFrameRef.current?.setAttribute("width", String(frameWidth))
+        qrFrameRef.current?.setAttribute("height", String(frameHeight))
+        qrFrameRef.current?.setAttribute("rx", String(QR_SPOTLIGHT_RADIUS))
+        qrDimPathRef.current?.setAttribute("opacity", "1")
+        qrFrameRef.current?.setAttribute("opacity", "1")
+      } else {
+        qrDimPathRef.current?.setAttribute("opacity", "0")
+        qrFrameRef.current?.setAttribute("opacity", "0")
+      }
+
       pathRef.current?.setAttribute("d", geometry.d)
       glowPathRef.current?.setAttribute("d", geometry.d)
       targetHaloRef.current?.setAttribute("cx", String(geometry.x))
@@ -196,6 +259,7 @@ export function DemoPresentationOverlay() {
       targetHaloRef.current?.setAttribute("opacity", "1")
       targetDotRef.current?.setAttribute("opacity", "1")
       observedTarget = target
+      return target
     }
 
     const scheduleRefresh = () => {
@@ -238,6 +302,27 @@ export function DemoPresentationOverlay() {
         return
       }
 
+      if (step === 4) {
+        // The QR modal opens after the step begins. Follow its entrance motion
+        // briefly, then rely on resize/scroll observers for the static target.
+        if (now - sampleAt >= 33) {
+          const target = drawConnector()
+          sampleAt = now
+          if (target) {
+            if (qrTargetSeenAt === null) qrTargetSeenAt = now
+          } else {
+            qrTargetSeenAt = null
+          }
+        }
+        if (qrTargetSeenAt === null || now - qrTargetSeenAt < 380) {
+          frame = window.requestAnimationFrame(animateConnector)
+        } else {
+          drawConnector()
+          frame = 0
+        }
+        return
+      }
+
       // Follow the banner's entrance transform, then let resize/scroll/mutation
       // observers request one-off updates for the remaining static steps.
       if (now <= entranceEndsAt) {
@@ -260,6 +345,19 @@ export function DemoPresentationOverlay() {
     }
   }, [isActive, step, isPreparing])
 
+  useEffect(() => {
+    if (!isActive || step !== 5) return
+
+    const frame = window.requestAnimationFrame(() => {
+      document.querySelector<HTMLElement>('[data-demo-target="nearby-stations"]')?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      })
+    })
+
+    return () => window.cancelAnimationFrame(frame)
+  }, [isActive, step])
+
   const copy = useMemo(() => (step ? STEP_COPY[step] : null), [step])
 
   return (
@@ -276,6 +374,8 @@ export function DemoPresentationOverlay() {
           aria-label="Cinematic demo presentation"
         >
           <svg className="demo-connector-svg" aria-hidden="true">
+            <path ref={qrDimPathRef} className="demo-qr-spotlight-dim" d="" opacity="0" />
+            <rect ref={qrFrameRef} className="demo-qr-spotlight-frame" x="0" y="0" width="0" height="0" rx="26" opacity="0" />
             <path ref={glowPathRef} className="demo-connector-glow" d="" opacity="0" />
             <path ref={pathRef} className="demo-connector-path" d="" opacity="0" />
             <circle ref={targetHaloRef} className="demo-connector-halo" cx="0" cy="0" r="15" opacity="0" />
@@ -286,7 +386,7 @@ export function DemoPresentationOverlay() {
             <motion.section
               key={step ?? "preparing"}
               id="demo-callout-card"
-              className={`demo-callout-card${step === 3 ? " demo-callout-card--route" : ""}${step === 4 ? " demo-callout-card--payment" : ""}${isPreparing ? " demo-callout-card--preparing" : ""}`}
+              className={`demo-callout-card${step === 3 ? " demo-callout-card--route" : ""}${step === 4 ? " demo-callout-card--payment" : ""}${step === 5 ? " demo-callout-card--stations" : ""}${isPreparing ? " demo-callout-card--preparing" : ""}`}
               initial={{ opacity: 0, y: 12, scale: 0.985 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: -6, scale: 0.99 }}
@@ -318,7 +418,7 @@ export function DemoPresentationOverlay() {
                     <p className="demo-copy-fr" dir="ltr" lang="fr">{copy.bodyFr}</p>
                   </div>
                   <div className="demo-progress-meta" dir="ltr">
-                    <span>ÉTAPE {String(step).padStart(2, "0")} <span className="demo-meta-divider">/</span> 04</span>
+                    <span>ÉTAPE {String(step).padStart(2, "0")} <span className="demo-meta-divider">/</span> 05</span>
                     <span className="demo-countdown">00:0{secondsLeft}</span>
                   </div>
                   <div className="demo-progress-track" dir="ltr" aria-hidden="true">

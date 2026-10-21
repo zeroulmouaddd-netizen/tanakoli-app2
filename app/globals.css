@@ -1241,6 +1241,26 @@ select.admin-input {
   animation: demo-connector-dash 1.15s linear infinite;
   will-change: stroke-dashoffset;
 }
+.demo-qr-spotlight-dim {
+  fill: rgba(2, 6, 23, 0.68);
+  fill-rule: evenodd;
+  pointer-events: none;
+}
+.demo-qr-spotlight-frame {
+  fill: none;
+  stroke: #a7f3d0;
+  stroke-width: 2px;
+  stroke-linejoin: round;
+  filter: drop-shadow(0 0 7px rgba(52, 211, 153, 0.95)) drop-shadow(0 0 20px rgba(16, 185, 129, 0.7));
+  vector-effect: non-scaling-stroke;
+  animation: demo-qr-frame-breathe 1.45s ease-in-out infinite alternate;
+  will-change: stroke-opacity, stroke-width;
+}
+@keyframes demo-qr-frame-breathe {
+  from { stroke-opacity: 0.72; stroke-width: 1.8px; }
+  to { stroke-opacity: 1; stroke-width: 3px; }
+}
+.demo-nearby-stations-target { scroll-margin-top: 76px; }
 @keyframes demo-connector-dash { to { stroke-dashoffset: -34; } }
 
 .demo-connector-halo,
@@ -1441,6 +1461,11 @@ select.admin-input {
   padding: 11px 12px 10px;
   border-radius: 17px;
 }
+.demo-callout-card--stations {
+  top: auto;
+  bottom: clamp(84px, 11vh, 124px);
+  width: min(390px, calc(100vw - 28px));
+}
 .demo-callout-card--payment .demo-card-eyebrow { display: none; }
 .demo-callout-card--payment .demo-title-block { gap: 0; margin-top: 4px; }
 .demo-callout-card--payment .demo-title-ar { font-size: 16px; line-height: 1.35; }
@@ -1548,6 +1573,7 @@ select.admin-input {
 @media (prefers-reduced-motion: reduce) {
   .demo-connector-path,
   .demo-connector-halo,
+  .demo-qr-spotlight-frame,
   .demo-live-orb::after,
   .demo-preparing-indicator span,
   .demo-map-anchor::after,
