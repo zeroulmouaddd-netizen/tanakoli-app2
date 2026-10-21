@@ -54,7 +54,6 @@ function targetNames(step: DemoStep | null) {
   if (step === 3) return ["route-selector"]
   if (step === 4) return ["payment-qr"]
   if (step === 5) return ["first-route-card"]
-  if (step === 6) return ["trip-search-card"]
   return []
 }
 
@@ -62,6 +61,10 @@ function findTarget(step: DemoStep | null) {
   if (step === 3) {
     const selectorButton = document.querySelector<HTMLElement>('[data-demo-target="route-selector"]')
     return selectorButton?.closest<HTMLElement>(".route-controller-motion") ?? selectorButton
+  }
+  if (step === 6) {
+    return document.querySelector<HTMLElement>("[data-demo-focus-target]")
+      ?? document.querySelector<HTMLElement>('[data-demo-target="trip-search-card"]')
   }
 
   for (const name of targetNames(step)) {
@@ -137,24 +140,18 @@ function connectorPath(card: DOMRect, target: DOMRect, step: DemoStep) {
   }
 
   if (step === 6) {
-    // Approach the search card's left edge, clear of its icon and text.
+    // Follow Step 06's active target via the page gutter, then approach above its label.
     const targetX = target.left + Math.min(24, target.width * 0.08)
     const targetY = target.top
-    const startX = Math.max(card.left + 24, Math.min(card.right - 24, targetX))
+    const startX = card.left + Math.min(20, card.width * 0.08)
     const startY = targetY < card.top ? card.top : card.bottom
-    const dx = targetX - startX
-    const dy = targetY - startY
-    const bend = Math.min(96, Math.max(24, Math.hypot(dx, dy) * 0.16))
-    const mostlyHorizontal = Math.abs(dx) > Math.abs(dy)
-    const directionX = dx >= 0 ? 1 : -1
-    const directionY = dy >= 0 ? 1 : -1
-    const control1X = startX + (mostlyHorizontal ? directionX * bend : dx * 0.18)
-    const control1Y = startY + (mostlyHorizontal ? dy * 0.18 : directionY * bend)
-    const control2X = targetX - (mostlyHorizontal ? directionX * bend : dx * 0.18)
-    const control2Y = targetY - (mostlyHorizontal ? dy * 0.18 : directionY * bend)
+    const laneX = Math.max(22, card.left - 20)
+    const exitY = startY + 28
+    const approachY = Math.max(exitY, targetY - 30)
+    const dx = targetX - laneX
 
     return {
-      d: `M ${startX} ${startY} C ${control1X} ${control1Y}, ${control2X} ${control2Y}, ${targetX} ${targetY}`,
+      d: `M ${startX} ${startY} C ${startX} ${startY + 16}, ${laneX} ${startY + 16}, ${laneX} ${exitY} L ${laneX} ${approachY} C ${laneX + dx * 0.35} ${approachY}, ${targetX} ${approachY + 10}, ${targetX} ${targetY}`,
       x: targetX,
       y: targetY,
     }
@@ -320,7 +317,12 @@ export function DemoPresentationOverlay() {
       scheduleRefresh()
     })
     observeElements()
-    mutationObserver.observe(document.body, { childList: true, subtree: true })
+    mutationObserver.observe(document.body, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      attributeFilter: ["data-demo-focus-target"],
+    })
     window.addEventListener("resize", scheduleRefresh)
     window.addEventListener("scroll", scheduleRefresh, true)
 

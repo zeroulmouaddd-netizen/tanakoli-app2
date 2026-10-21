@@ -1267,6 +1267,37 @@ select.admin-input {
 .demo-trips-demo-active .demo-trip-active-section { display: none; }
 .demo-stations-demo-active [data-demo-target="first-route-card"],
 .demo-trips-demo-active [data-demo-target="trip-search-card"] { scroll-margin-bottom: calc(64px + env(safe-area-inset-bottom, 0px)); }
+
+.demo-trips-demo-active .demo-trip-time--departed {
+  opacity: 0.56;
+  filter: drop-shadow(0 0 3px rgba(148, 163, 184, 0.24));
+  animation: demo-trip-departed-pulse 1.8s ease-in-out infinite alternate;
+  will-change: opacity;
+}
+@keyframes demo-trip-departed-pulse {
+  from { opacity: 0.44; }
+  to { opacity: 0.72; }
+}
+.demo-step6-ring-focus {
+  position: relative;
+  isolation: isolate;
+}
+.demo-step6-ring-focus::after {
+  content: "";
+  position: absolute;
+  inset: -5px;
+  border: 1px solid rgba(110, 231, 183, 0.9);
+  border-radius: inherit;
+  box-shadow: 0 0 0 1px rgba(16, 185, 129, 0.2), 0 0 13px rgba(16, 185, 129, 0.45);
+  pointer-events: none;
+  animation: demo-step6-ring-pulse 1.2s cubic-bezier(0.2, 0.8, 0.2, 1) infinite;
+  will-change: transform, opacity;
+  backface-visibility: hidden;
+}
+@keyframes demo-step6-ring-pulse {
+  0% { transform: translate3d(0, 0, 0) scale(0.92); opacity: 0.88; }
+  100% { transform: translate3d(0, 0, 0) scale(1.16); opacity: 0; }
+}
 @keyframes demo-connector-dash { to { stroke-dashoffset: -34; } }
 
 .demo-connector-halo,
@@ -1612,7 +1643,9 @@ select.admin-input {
   .demo-preparing-indicator span,
   .demo-map-anchor::after,
   .demo-route-selector-active::after,
-  .demo-payment-entry-active::after {
+  .demo-payment-entry-active::after,
+  .demo-trips-demo-active .demo-trip-time--departed,
+  .demo-step6-ring-focus::after {
     animation: none !important;
   }
   .demo-launch-button::before,
