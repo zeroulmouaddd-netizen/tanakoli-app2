@@ -9,6 +9,8 @@ import {
   Pencil, Save, CreditCard, LogOut,
 } from "lucide-react"
 import { useDriverMode } from "@/lib/driver-mode-context"
+import { syncDriverOfflinePresence } from "@/hooks/use-driver-location-tracking"
+import { AUTHENTICATED_PHONE_STORAGE_KEY } from "@/lib/driver-config"
 import { db, auth } from "@/lib/firebase"
 import { doc, updateDoc, increment } from "firebase/firestore"
 import { signOut } from "firebase/auth"
@@ -42,7 +44,7 @@ export default function AccountPage() {
   const [isLoggingOut, setIsLoggingOut] = useState(false)
 
   const { toast } = useToast()
-  const { exitDriverMode } = useDriverMode()
+  const { exitDriverMode, driverPhone, isAuthorizedDriver, isDriverMode } = useDriverMode()
 
   const VALID_TOPUP_CODE = "KHENCHELA2026"
   const TOPUP_AMOUNT = 500
@@ -96,6 +98,9 @@ export default function AccountPage() {
   const handleLogout = async () => {
     setIsLoggingOut(true)
     try {
+      if (isAuthorizedDriver || isDriverMode) {
+        await syncDriverOfflinePresence(driverPhone || firestoreUserId)
+      }
       exitDriverMode()
       await signOut(auth)
       try {
@@ -103,6 +108,7 @@ export default function AccountPage() {
         localStorage.removeItem("tanoukli_trips_cache")
         localStorage.removeItem("tanoukli_transactions_cache")
         localStorage.removeItem("tanoukli_driver_mode")
+        localStorage.removeItem(AUTHENTICATED_PHONE_STORAGE_KEY)
         sessionStorage.removeItem("splashShown")
         sessionStorage.removeItem("tanakoli_is_driver")
       } catch {}

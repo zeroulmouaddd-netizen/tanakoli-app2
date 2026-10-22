@@ -1,14 +1,14 @@
 "use client"
 
 import { useEffect, useRef, useState } from "react"
-import { rtdb } from "@/lib/firebase"
-import { ref, onValue } from "firebase/database"
+import { subscribeActiveDrivers } from "@/lib/admin-utils"
 import { MapPin, Radio, WifiOff } from "lucide-react"
 
 interface DriverPin {
   phone: string
   lat: number
   lng: number
+  isLive: boolean
   timestamp: number | null
 }
 
@@ -72,10 +72,10 @@ export function AdminLiveMap() {
     }
   }, [])
 
-  // Subscribe to RTDB and update markers
+  // Subscribe to real-time driver feed (Firestore + RTDB) and update markers
   useEffect(() => {
-    const unsub = onValue(ref(rtdb, "drivers"), async (snap) => {
-      if (!snap.exists()) {
+    const unsub = subscribeActiveDrivers(async (snapshot) => {
+      if (snapshot.rows.length === 0) {
         setDrivers([])
         return
       }
@@ -84,24 +84,24 @@ export function AdminLiveMap() {
       const map = mapRef.current
       if (!map) return
 
-      const data = snap.val() as Record<string, any>
       const pins: DriverPin[] = []
       const seenPhones = new Set<string>()
 
-      for (const [phone, val] of Object.entries(data)) {
-        const loc = val?.location
+      for (const row of snapshot.rows) {
+        const loc = row.location
         if (!loc?.lat || !loc?.lng) continue
 
         const pin: DriverPin = {
-          phone,
+          phone: row.phone,
           lat: loc.lat,
           lng: loc.lng,
-          timestamp: loc.timestamp ?? null,
+          isLive: row.isActive,
+          timestamp: loc.timestamp ?? row.lastSeen ?? null,
         }
         pins.push(pin)
-        seenPhones.add(phone)
+        seenPhones.add(row.phone)
 
-        const isLive = pin.timestamp ? Date.now() - pin.timestamp < 5 * 60 * 1000 : false
+        const isLive = row.isActive
         const color = isLive ? "#10B981" : "#64748B"
 
         const iconHtml = `
@@ -131,22 +131,22 @@ export function AdminLiveMap() {
 
         const popupHtml = `
           <div style="font-family:system-ui;font-size:12px;min-width:160px;color:#1e293b">
-            <div style="font-weight:700;font-size:13px;margin-bottom:4px;color:${color}">${isLive ? "🟢 Live" : "⚫ Offline"}</div>
-            <div style="color:#475569;margin-bottom:2px">${phone}</div>
+            <div style="font-weight:700;font-size:13px;margin-bottom:4px;color:${color}">${isLive ? "🟢 Active / Online" : "⚫ Idle"}</div>
+            <div style="color:#475569;margin-bottom:2px">${row.name ? `${row.name} · ` : ""}${row.phone}</div>
             <div style="font-family:monospace;font-size:11px;color:#64748b">${loc.lat.toFixed(5)}, ${loc.lng.toFixed(5)}</div>
             ${pin.timestamp ? `<div style="font-size:10px;color:#94a3b8;margin-top:4px">Updated: ${new Date(pin.timestamp).toLocaleTimeString()}</div>` : ""}
           </div>
         `
 
-        if (markersRef.current[phone]) {
-          markersRef.current[phone].setLatLng([loc.lat, loc.lng])
-          markersRef.current[phone].setIcon(icon)
-          markersRef.current[phone].getPopup()?.setContent(popupHtml)
+        if (markersRef.current[row.phone]) {
+          markersRef.current[row.phone].setLatLng([loc.lat, loc.lng])
+          markersRef.current[row.phone].setIcon(icon)
+          markersRef.current[row.phone].getPopup()?.setContent(popupHtml)
         } else {
           const marker = L.marker([loc.lat, loc.lng], { icon })
             .bindPopup(popupHtml, { maxWidth: 220 })
             .addTo(map)
-          markersRef.current[phone] = marker
+          markersRef.current[row.phone] = marker
         }
       }
 
@@ -164,9 +164,7 @@ export function AdminLiveMap() {
     return () => unsub()
   }, [])
 
-  const liveCount = drivers.filter(
-    (d) => d.timestamp && Date.now() - d.timestamp < 5 * 60 * 1000
-  ).length
+  const liveCount = drivers.filter((d) => d.isLive).length
 
   return (
     <div className="rounded-xl border border-slate-800/60 bg-slate-900/60 overflow-hidden flex flex-col">

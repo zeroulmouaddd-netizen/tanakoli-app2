@@ -109,7 +109,7 @@ function saveDailyStats(stats: DailyStats): void {
 }
 
 export function DriverDashboard() {
-  const { exitDriverMode } = useDriverMode()
+  const { exitDriverMode, driverPhone, triggerLocationUpdate } = useDriverMode()
   const { currentUser, firestoreUserId } = useAuth()
   const [selectedFare, setSelectedFare] = useState(30)
   const [isScanning, setIsScanning] = useState(false)
@@ -118,7 +118,7 @@ export function DriverDashboard() {
   const [isProcessing, setIsProcessing] = useState(false)
   const [dailyStats, setDailyStats] = useState<DailyStats>({ total: 0, trips: 0, date: getTodayDate() })
   const [showResetConfirm, setShowResetConfirm] = useState(false)
-  const [isLocationTracking, setIsLocationTracking] = useState(false)
+  const [isLocationTracking, setIsLocationTracking] = useState(true)
   
   // Recharge mode state
   const [scanMode, setScanMode] = useState<ScanMode>("deduction")
@@ -136,8 +136,27 @@ export function DriverDashboard() {
   // not a stale snapshot captured at the time the closure was created.
   const isScanningRef = useRef(false)
 
-  // Initialize location tracking for driver
-  useDriverLocationTracking(currentUser?.phoneNumber || null, true)
+  // Initialize location tracking for driver and trigger immediate GPS sync on driver view open
+  const { triggerImmediateLocationUpdate } = useDriverLocationTracking(
+    driverPhone || currentUser?.phoneNumber || firestoreUserId || null,
+    isLocationTracking
+  )
+
+  useEffect(() => {
+    triggerLocationUpdate()
+    triggerImmediateLocationUpdate()
+  }, [triggerLocationUpdate, triggerImmediateLocationUpdate])
+
+  const handleToggleLocationTracking = useCallback(() => {
+    setIsLocationTracking((prev) => {
+      const next = !prev
+      if (next) {
+        triggerLocationUpdate()
+        triggerImmediateLocationUpdate()
+      }
+      return next
+    })
+  }, [triggerLocationUpdate, triggerImmediateLocationUpdate])
 
   // Stop scanner helper (defined early for cleanup)
   const stopScanner = useCallback(() => {
@@ -647,12 +666,37 @@ export function DriverDashboard() {
             </div>
           </div>
           <div className="flex items-center gap-2 sm:gap-3">
-            {/* Location tracking status */}
-            <div className="flex items-center gap-1.5 rounded-lg bg-green-500/20 px-2.5 sm:px-3 py-1.5 sm:py-2">
-              <div className="flex h-2 w-2 rounded-full bg-green-500 animate-pulse" />
-              <span className="text-xs text-green-400 font-medium">تتبع مباشر</span>
-              <span className="text-xs text-green-400/70">Live</span>
-            </div>
+            {/* Location tracking status / toggle */}
+            <button
+              type="button"
+              onClick={handleToggleLocationTracking}
+              className={`flex items-center gap-1.5 rounded-lg px-2.5 sm:px-3 py-1.5 sm:py-2 transition-colors ${
+                isLocationTracking
+                  ? "bg-green-500/20 hover:bg-green-500/30"
+                  : "bg-slate-700/60 hover:bg-slate-700"
+              }`}
+              title="تحديث الموقع المباشر"
+            >
+              <div
+                className={`flex h-2 w-2 rounded-full ${
+                  isLocationTracking ? "bg-green-500 animate-pulse" : "bg-slate-400"
+                }`}
+              />
+              <span
+                className={`text-xs font-medium ${
+                  isLocationTracking ? "text-green-400" : "text-slate-300"
+                }`}
+              >
+                تتبع مباشر
+              </span>
+              <span
+                className={`text-xs ${
+                  isLocationTracking ? "text-green-400/70" : "text-slate-400"
+                }`}
+              >
+                {isLocationTracking ? "Live" : "Idle"}
+              </span>
+            </button>
             <button
               onClick={exitDriverMode}
               className="flex items-center gap-1 sm:gap-2 rounded-lg sm:rounded-xl bg-red-500/20 px-2 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-medium text-red-400 transition-colors hover:bg-red-500/30 flex-shrink-0"

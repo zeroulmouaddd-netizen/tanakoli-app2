@@ -65,11 +65,13 @@ const en: Record<string, string> = {
   "drivers.lat": "Lat",
   "drivers.lng": "Lng",
   "drivers.addDriver": "Add Driver",
-  "drivers.status.active": "Active",
+  "drivers.status.active": "Active / Online",
   "drivers.status.idle": "Idle",
   "drivers.registered": "Registered",
   "drivers.fallbackNote": "No live drivers right now — showing registered drivers",
   "drivers.noLocation": "No live location",
+  "drivers.activeRoute": "Active route:",
+  "drivers.onlineCount": "{n} Online",
 
   /* ── Add driver modal ───────────────────────────────────────────────── */
   "addDriver.title": "Add Driver",
@@ -250,11 +252,13 @@ const ar: Record<string, string> = {
   "drivers.lat": "خط العرض",
   "drivers.lng": "خط الطول",
   "drivers.addDriver": "إضافة سائق",
-  "drivers.status.active": "نشط",
+  "drivers.status.active": "نشط / متصل",
   "drivers.status.idle": "غير نشط",
   "drivers.registered": "مسجل",
   "drivers.fallbackNote": "لا يوجد سائقون نشطون حالياً — يتم عرض السائقين المسجلين",
   "drivers.noLocation": "لا يوجد موقع مباشر",
+  "drivers.activeRoute": "المسار النشط:",
+  "drivers.onlineCount": "{n} متصل",
 
   /* ── Add driver modal ───────────────────────────────────────────────── */
   "addDriver.title": "إضافة سائق",

@@ -1,8 +1,8 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { rtdb, db } from "@/lib/firebase"
-import { ref, onValue } from "firebase/database"
+import { db } from "@/lib/firebase"
+import { subscribeActiveDrivers } from "@/lib/admin-utils"
 import { collection, query, where, orderBy, limit, onSnapshot, Timestamp } from "firebase/firestore"
 import { Truck, ArrowUpRight, TrendingUp, ShieldCheck } from "lucide-react"
 
@@ -27,9 +27,8 @@ export function AdminKPICards() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    const unsubDrivers = onValue(ref(rtdb, "drivers"), (snap) => {
-      const count = snap.exists() ? Object.keys(snap.val()).length : 0
-      setKpi((prev) => ({ ...prev, activeBuses: count }))
+    const unsubDrivers = subscribeActiveDrivers((snapshot) => {
+      setKpi((prev) => ({ ...prev, activeBuses: snapshot.activeCount }))
       setLoading(false)
     })
 
