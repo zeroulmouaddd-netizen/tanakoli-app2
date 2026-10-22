@@ -2,9 +2,7 @@
 
 import { useEffect, useRef, useState } from "react"
 import { motion, useReducedMotion } from "framer-motion"
-import { rtdb } from "@/lib/firebase"
-import { ref, onValue } from "firebase/database"
-import { fetchRecentTransactions } from "@/lib/admin-utils"
+import { fetchRecentTransactions, subscribeActiveDrivers } from "@/lib/admin-utils"
 import { Amount } from "@/components/admin-bidi"
 import { useAdminI18n } from "@/lib/i18n/admin-i18n"
 import { Users, TrendingUp, Grid3x3, type LucideIcon } from "lucide-react"
@@ -145,13 +143,9 @@ export function AdminStatsCards() {
   const [expired, setExpired] = useState(false)
 
   useEffect(() => {
-    const unsubDrivers = onValue(
-      ref(rtdb, "drivers"),
-      (snapshot) => {
-        setActiveDrivers(snapshot.exists() ? Object.keys(snapshot.val() as object).length : 0)
-      },
-      () => setExpired(true)
-    )
+    const unsubDrivers = subscribeActiveDrivers((snapshot) => {
+      setActiveDrivers(snapshot.activeCount)
+    })
 
     const unsubTx = fetchRecentTransactions((txns) => {
       const today = new Date()

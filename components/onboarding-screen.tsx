@@ -5,7 +5,14 @@ import { useRouter } from "next/navigation"
 import { motion, AnimatePresence } from "framer-motion"
 import { auth, db } from "@/lib/firebase"
 import { signInWithPhoneNumber, RecaptchaVerifier, signInAnonymously, type ConfirmationResult } from "firebase/auth"
-import { doc, setDoc, getDoc } from "firebase/firestore"
+import { doc, setDoc, getDoc, serverTimestamp } from "firebase/firestore"
+import {
+  isAuthorizedDriverPhone,
+  isAuthorizedDriverInFirebase,
+  recordGrantsDriverRole,
+  AUTHENTICATED_PHONE_STORAGE_KEY,
+} from "@/lib/driver-config"
+import { syncDriverOnlinePresence } from "@/hooks/use-driver-location-tracking"
 import { User, Phone, Shield, ArrowRight, Loader2, Check, Mail } from "lucide-react"
 
 type Step = "splash" | "step1" | "step2" | "otp"
@@ -245,9 +252,14 @@ export function OnboardingScreen({ onShowIntro }: OnboardingScreenProps = {}) {
 
     if (isPassengerTest || isDriverTest) {
       try {
+        const testE164 = isDriverTest ? TEST_DRIVER_PHONE_E164 : TEST_PHONE_E164
+        try {
+          localStorage.setItem(AUTHENTICATED_PHONE_STORAGE_KEY, testE164)
+        } catch {}
         if (isDriverTest) {
           // Mark this session as a test driver so driver-mode-context allows it
           try { sessionStorage.setItem("tanakoli_test_driver_mode", "true") } catch {}
+          void syncDriverOnlinePresence(TEST_DRIVER_PHONE_E164)
         }
         await signInAnonymously(auth)
         try { sessionStorage.setItem("splashShown", "true") } catch {}
@@ -266,6 +278,10 @@ export function OnboardingScreen({ onShowIntro }: OnboardingScreenProps = {}) {
       const result = await confirmationRef.current.confirm(code)
       const user = result.user
       if (user.phoneNumber) {
+        try {
+          localStorage.setItem(AUTHENTICATED_PHONE_STORAGE_KEY, user.phoneNumber)
+        } catch {}
+
         const docId = user.phoneNumber.startsWith("+213")
           ? "0" + user.phoneNumber.slice(4)
           : user.phoneNumber
@@ -273,26 +289,57 @@ export function OnboardingScreen({ onShowIntro }: OnboardingScreenProps = {}) {
         const primaryEmail = authMethod === "email" ? email : ""
         const userDocRef = doc(db, "users", docId)
         const existing = await getDoc(userDocRef)
+        const existingData = existing.exists() ? existing.data() : null
+
+        const isDriver =
+          isAuthorizedDriverPhone(user.phoneNumber) ||
+          recordGrantsDriverRole(existingData) ||
+          (await isAuthorizedDriverInFirebase(user.phoneNumber))
+
+        const driverPresenceFields = isDriver
+          ? {
+              role: "driver",
+              isDriver: true,
+              isAuthorizedDriver: true,
+              isOnline: true,
+              online: true,
+              status: "active",
+              lastSeen: serverTimestamp(),
+              updatedAt: serverTimestamp(),
+              lastSeenClientAt: Date.now(),
+            }
+          : {
+              role: "passenger",
+            }
 
         if (existing.exists()) {
           // Returning user — update profile fields only, never touch balance
           await setDoc(userDocRef, {
             Phone: docId,
-            fullName: name.trim(),
-            email: primaryEmail,
-            address: address.trim(),
-            role: "passenger",
+            phone: docId,
+            phoneE164: user.phoneNumber,
+            ...(name.trim() ? { fullName: name.trim(), name: name.trim() } : {}),
+            ...(primaryEmail ? { email: primaryEmail } : {}),
+            ...(address.trim() ? { address: address.trim() } : {}),
+            ...driverPresenceFields,
           }, { merge: true })
         } else {
           // New user — create document with initial balance of 0
           await setDoc(userDocRef, {
             Phone: docId,
+            phone: docId,
+            phoneE164: user.phoneNumber,
             fullName: name.trim(),
+            name: name.trim(),
             email: primaryEmail,
             address: address.trim(),
             balance: 0,
-            role: "passenger",
-          })
+            ...driverPresenceFields,
+          }, { merge: true })
+        }
+
+        if (isDriver) {
+          void syncDriverOnlinePresence(user.phoneNumber)
         }
       }
       try { sessionStorage.setItem("splashShown", "true") } catch {}

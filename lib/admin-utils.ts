@@ -17,11 +17,17 @@ import {
   runTransaction,
 } from "firebase/firestore"
 import { registerAuthorizedDriverPhone } from "@/lib/driver-config"
+import {
+  PRESENCE_BROADCAST_KEY,
+  PRESENCE_CHANNEL_NAME,
+  type DriverPresenceBroadcast,
+} from "@/hooks/use-driver-location-tracking"
 import { ref, onValue } from "firebase/database"
 
 export interface DriverLocation {
   lat: number
   lng: number
+  timestamp?: number
 }
 
 export interface ActiveDriver {
@@ -56,13 +62,18 @@ export interface DriverRecord {
 
 // ─── Internal helpers ────────────────────────────────────────────────────────
 
-/** Normalise any phone format to local "0XXXXXXXXX" */
+/** Normalise any phone format to local "0XXXXXXXXX" (preserves non-phone IDs). */
 function localPhone(raw: string): string {
   if (!raw) return ""
-  const s = raw.trim()
-  if (s.startsWith("+213")) return "0" + s.slice(4)
-  if (s.startsWith("213") && s.length === 12) return "0" + s.slice(3)
-  return s
+  const trimmed = raw.trim()
+  const digits = trimmed.replace(/[^\d+]/g, "")
+  const digitCount = digits.replace(/\+/g, "").length
+  if (digitCount < 8) return trimmed
+  if (digits.startsWith("+213")) return "0" + digits.slice(4)
+  if (digits.startsWith("00213")) return "0" + digits.slice(5)
+  if (digits.startsWith("213") && digits.length === 12) return "0" + digits.slice(3)
+  if (/^[567]\d{8}$/.test(digits)) return "0" + digits
+  return digits
 }
 
 /** Extract the phone field regardless of casing */
@@ -73,6 +84,7 @@ function extractPhone(data: Record<string, any>): string {
     data.phoneNumber ||
     data.PhoneNumber ||
     data.mobile ||
+    data.phoneE164 ||
     ""
   )
 }
@@ -90,35 +102,42 @@ function extractBalance(data: Record<string, any>): number {
 
 /** Return true if the Firestore doc looks like a driver */
 function isDriverDoc(data: Record<string, any>): boolean {
-  if (data.isDriver === true)        return true
-  if (data.role === "driver")        return true
-  if (data.userType === "driver")    return true
-  if (data.type === "driver")        return true
-  if (data.accountType === "driver") return true
+  if (data.isDriver === true)           return true
+  if (data.isAuthorized === true)       return true
+  if (data.isAuthorizedDriver === true) return true
+  if (data.authorized === true)         return true
+  if (data.role === "driver")           return true
+  if (data.userType === "driver")       return true
+  if (data.type === "driver")           return true
+  if (data.accountType === "driver")    return true
   return false
 }
 
 /** Return true when a `drivers`/`users` record carries authorized-driver privileges. */
 function isAuthorizedDriverRecord(data: Record<string, any> | undefined | null): boolean {
   if (!data) return false
-  if (data.isAuthorized === true)       return true
-  if (data.isAuthorizedDriver === true) return true
-  if (data.authorized === true)         return true
-  if (data.isDriver === true)           return true
-  if (data.role === "driver")           return true
-  return false
+  return isDriverDoc(data)
 }
 
 /** Normalise any phone format to E.164 "+213XXXXXXXXX" */
 export function normalizeE164Phone(raw: string): string {
   const local = localPhone(raw)
-  if (!local) return ""
+  if (!local || !/^0\d{9}$/.test(local)) return ""
   return "+213" + local.slice(1)
 }
 
 /** Public wrapper around {@link localPhone}. */
 export function normalizeLocalPhone(raw: string): string {
   return localPhone(raw)
+}
+
+function toFiniteNumber(value: unknown): number | null {
+  if (typeof value === "number" && Number.isFinite(value)) return value
+  if (typeof value === "string" && value.trim() !== "") {
+    const n = Number(value)
+    return Number.isFinite(n) ? n : null
+  }
+  return null
 }
 
 /**
@@ -151,135 +170,122 @@ function toMillis(value: unknown): number | null {
   return null
 }
 
-// ─── Fetch all registered drivers ────────────────────────────────────────────
+// ─── Fetch all registered drivers (real-time via onSnapshot + RTDB) ──────────
 
 /**
- * Returns a live-updating list of all drivers from Firestore.
- * Tries several role-field strategies; also merges RTDB live-status.
- * Calls `callback` immediately and on every change.
+ * Returns a live-updating list of all drivers from Firestore (`drivers` + `users`)
+ * and Realtime Database (`drivers/*`) using real-time `onSnapshot` listeners.
+ * Calls `callback` immediately on every change.
  */
 export function fetchAllDrivers(
   callback: (drivers: DriverRecord[]) => void
 ): () => void {
-  // We keep both the Firestore snapshot and the RTDB snapshot in memory
-  // and merge them each time either changes.
-  let firestoreUsers: Array<{ id: string; phone: string; name: string; balance: number }> = []
-  let rtdbStatus: Record<string, { lat: number; lng: number; ts: number }> = {}
+  const usersMap = new Map<string, { id: string; phone: string; name: string; balance: number }>()
+  const driversMetaMap = new Map<string, { id: string; phone: string; name: string; balance?: number }>()
+  let activeSnapshot: DriversPanelSnapshot = { rows: [], mode: "empty", activeCount: 0 }
 
-  function merge() {
-    const now = Date.now()
-    const rows: DriverRecord[] = firestoreUsers.map((u) => {
-      const rtdbKey =
-        rtdbStatus[u.phone] != null
-          ? u.phone
-          // also try "+213" variant
-          : rtdbStatus["+213" + u.phone.slice(1)] != null
-          ? "+213" + u.phone.slice(1)
-          : null
+  function emit() {
+    const activeByKey = new Map<string, DriverPanelRow>()
+    for (const row of activeSnapshot.rows) {
+      activeByKey.set(row.key, row)
+    }
 
-      const live = rtdbKey ? rtdbStatus[rtdbKey] : null
-      const isLive = live ? now - live.ts < 5 * 60 * 1000 : false
+    const allKeys = new Set<string>([
+      ...usersMap.keys(),
+      ...driversMetaMap.keys(),
+      ...activeByKey.keys(),
+    ])
 
-      return {
-        id: u.id,
-        phone: u.phone,
-        name: u.name,
-        balance: u.balance,
-        isLive,
-        lat: live?.lat ?? null,
-        lng: live?.lng ?? null,
-        lastSeen: live?.ts ?? null,
-      }
+    const records: DriverRecord[] = []
+    for (const key of allKeys) {
+      const u = usersMap.get(key)
+      const d = driversMetaMap.get(key)
+      const panelRow = activeByKey.get(key)
+      const phone = u?.phone || d?.phone || panelRow?.phone || key
+      if (!phone) continue
+
+      records.push({
+        id: u?.id || d?.id || key,
+        phone,
+        name: d?.name || u?.name || panelRow?.name || phone,
+        balance: u?.balance ?? d?.balance ?? 0,
+        isLive: panelRow?.isActive ?? false,
+        lat: panelRow?.location?.lat ?? null,
+        lng: panelRow?.location?.lng ?? null,
+        lastSeen: panelRow?.lastSeen ?? null,
+      })
+    }
+
+    records.sort((a, b) => {
+      if (a.isLive !== b.isLive) return a.isLive ? -1 : 1
+      return (a.name || a.phone).localeCompare(b.name || b.phone)
     })
-    callback(rows)
+
+    callback(records)
   }
 
-  // ── Firestore: fetch ALL users, filter client-side for maximum recall ──────
-  let firestoreUnsub = () => {}
-  ;(async () => {
+  let unsubUsers = () => {}
+  let unsubDrivers = () => {}
+  const unsubActive = subscribeActiveDrivers((snap) => {
+    activeSnapshot = snap
+    emit()
+  })
+
+  if (db) {
     try {
-      // Strategy 1: query by known driver fields
-      let snap = await getDocs(
-        query(collection(db, "users"), where("isDriver", "==", true))
-      )
-
-      // Strategy 2: role == driver
-      if (snap.empty) {
-        snap = await getDocs(
-          query(collection(db, "users"), where("role", "==", "driver"))
-        )
-      }
-
-      // Strategy 3: fetch all and filter — handles any field name
-      if (snap.empty) {
-        snap = await getDocs(collection(db, "users"))
-      }
-
-      // Build initial list from whichever snap we got
-      const list: typeof firestoreUsers = []
-      snap.forEach((d) => {
-        const data = d.data()
-        // Include doc if it passed a driver query, or if client-side check passes
-        if (isDriverDoc(data) || snap.query) {
-          const phone = localPhone(extractPhone(data))
-          if (phone) {
-            list.push({
-              id: d.id,
+      unsubUsers = onSnapshot(
+        collection(db, "users"),
+        (snap) => {
+          usersMap.clear()
+          snap.forEach((docSnap) => {
+            const data = docSnap.data({ serverTimestamps: "estimate" }) as Record<string, any>
+            if (!isDriverDoc(data)) return
+            const phone = localPhone(extractPhone(data) || docSnap.id)
+            if (!phone) return
+            usersMap.set(phone, {
+              id: docSnap.id,
               phone,
               name: data.fullName || data.name || data.displayName || phone,
               balance: extractBalance(data),
             })
-          }
-        }
-      })
-      firestoreUsers = list
-      merge()
-
-      // Now set up a live listener for balance updates
-      const liveQuery = query(collection(db, "users"), orderBy("__name__"))
-      firestoreUnsub = onSnapshot(liveQuery, (liveSnap) => {
-        const updated: typeof firestoreUsers = []
-        liveSnap.forEach((d) => {
-          const data = d.data()
-          if (isDriverDoc(data)) {
-            const phone = localPhone(extractPhone(data))
-            if (phone) {
-              updated.push({
-                id: d.id,
-                phone,
-                name: data.fullName || data.name || data.displayName || phone,
-                balance: extractBalance(data),
-              })
-            }
-          }
-        })
-        firestoreUsers = updated
-        merge()
-      }, () => {})
+          })
+          emit()
+        },
+        () => { emit() }
+      )
     } catch {
-      // Ignore — RTDB merge will still work
+      // Ignore
     }
-  })()
 
-  // ── RTDB: live GPS status ─────────────────────────────────────────────────
-  const rtdbUnsub = onValue(ref(rtdb, "drivers"), (snap) => {
-    rtdbStatus = {}
-    if (snap.exists()) {
-      const val = snap.val() as Record<string, any>
-      for (const [key, entry] of Object.entries(val)) {
-        const loc = entry?.location
-        if (loc?.lat && loc?.lng) {
-          rtdbStatus[key] = { lat: loc.lat, lng: loc.lng, ts: loc.timestamp ?? Date.now() }
-        }
-      }
+    try {
+      unsubDrivers = onSnapshot(
+        collection(db, "drivers"),
+        (snap) => {
+          driversMetaMap.clear()
+          snap.forEach((docSnap) => {
+            const data = docSnap.data({ serverTimestamps: "estimate" }) as Record<string, any>
+            const phone = localPhone(extractPhone(data) || docSnap.id)
+            if (!phone) return
+            driversMetaMap.set(phone, {
+              id: docSnap.id,
+              phone,
+              name: data.fullName || data.name || data.displayName || phone,
+              balance: data.balance !== undefined ? extractBalance(data) : undefined,
+            })
+          })
+          emit()
+        },
+        () => { emit() }
+      )
+    } catch {
+      // Ignore
     }
-    merge()
-  }, () => {})
+  }
 
-  // ── Cleanup ───────────────────────────────────────────────────────────────
   return () => {
-    firestoreUnsub()
-    rtdbUnsub()
+    unsubUsers()
+    unsubDrivers()
+    unsubActive()
   }
 }
 
@@ -301,33 +307,51 @@ export async function sendMoneyToDriver(
       ? driverPhone
       : "+213" + local.slice(1)
 
-    // Try every phone field / format variant
-    const phoneVariants = [local, international, driverPhone]
-    const phoneFields = ["Phone", "phone", "phoneNumber", "PhoneNumber", "mobile"]
-
+    // Try direct doc lookup first (`users/{local}`)
     let driverDocId: string | null = null
     let currentBalance = 0
     let driverName = ""
 
-    for (const field of phoneFields) {
-      for (const variant of phoneVariants) {
-        if (!variant) continue
-        try {
-          const qs = await getDocs(
-            query(collection(db, "users"), where(field, "==", variant))
-          )
-          if (!qs.empty) {
-            const d = qs.docs[0]
-            driverDocId = d.id
-            currentBalance = extractBalance(d.data())
-            driverName = d.data().fullName || d.data().name || d.data().displayName || local
-            break
-          }
-        } catch {
-          // Index may not exist for this field — skip
-        }
+    try {
+      const directSnap = await getDoc(doc(db, "users", local))
+      if (directSnap.exists()) {
+        driverDocId = directSnap.id
+        currentBalance = extractBalance(directSnap.data())
+        driverName =
+          directSnap.data().fullName ||
+          directSnap.data().name ||
+          directSnap.data().displayName ||
+          local
       }
-      if (driverDocId) break
+    } catch {
+      // Fall through to query search
+    }
+
+    // Try every phone field / format variant
+    const phoneVariants = [local, international, driverPhone]
+    const phoneFields = ["Phone", "phone", "phoneNumber", "PhoneNumber", "mobile"]
+
+    if (!driverDocId) {
+      for (const field of phoneFields) {
+        for (const variant of phoneVariants) {
+          if (!variant) continue
+          try {
+            const qs = await getDocs(
+              query(collection(db, "users"), where(field, "==", variant))
+            )
+            if (!qs.empty) {
+              const d = qs.docs[0]
+              driverDocId = d.id
+              currentBalance = extractBalance(d.data())
+              driverName = d.data().fullName || d.data().name || d.data().displayName || local
+              break
+            }
+          } catch {
+            // Index may not exist for this field — skip
+          }
+        }
+        if (driverDocId) break
+      }
     }
 
     if (!driverDocId) {
@@ -344,11 +368,10 @@ export async function sendMoneyToDriver(
       const bal = extractBalance(snap.data())
       tx.update(driverRef, {
         balance: increment(amount),
-        walletBalance: increment(amount),  // update both if present
+        walletBalance: increment(amount),
       })
       return bal + amount
     }).catch(async () => {
-      // Fallback: plain updateDoc (if runTransaction fails due to missing field)
       await updateDoc(driverRef, { balance: increment(amount) })
     })
 
@@ -379,91 +402,96 @@ export function fetchRecentTransactions(
   callback: (transactions: Transaction[]) => void,
   limitCount = 50
 ): () => void {
+  const usersMap = new Map<string, string>()
+
+  let unsubUsers = () => {}
+  if (db) {
+    try {
+      unsubUsers = onSnapshot(
+        collection(db, "users"),
+        (usersSnap) => {
+          usersSnap.forEach((d) => {
+            const data = d.data()
+            const name = data.fullName || data.name || data.displayName || ""
+            if (name) usersMap.set(d.id, name)
+          })
+        },
+        () => {}
+      )
+    } catch {}
+  }
+
   const q = query(
     collection(db, "transactions"),
     orderBy("timestamp", "desc"),
     limit(limitCount)
   )
 
-  const unsub = onSnapshot(q, async (snapshot) => {
-    const transactions: Transaction[] = []
-
-    let usersMap: Map<string, string> = new Map()
-    try {
-      const usersSnap = await getDocs(collection(db, "users"))
-      usersSnap.forEach((d) => {
-        const data = d.data()
-        const name = data.fullName || data.name || data.displayName || ""
-        usersMap.set(d.id, name)
+  const unsubTx = onSnapshot(
+    q,
+    (snapshot) => {
+      const transactions: Transaction[] = []
+      snapshot.forEach((d) => {
+        const data = d.data({ serverTimestamps: "estimate" })
+        transactions.push({
+          id: d.id,
+          timestamp: data.timestamp,
+          userId: data.userId || "",
+          userName: data.userName || usersMap.get(data.userId) || data.driverPhone || "Unknown",
+          type: data.type || "payment",
+          amount: data.amount || 0,
+          status: data.status || "completed",
+          driverPhone: data.driverPhone,
+          previousBalance: data.previousBalance,
+          newBalance: data.newBalance,
+        })
       })
-    } catch {}
+      callback(transactions)
+    },
+    () => {}
+  )
 
-    snapshot.forEach((d) => {
-      const data = d.data()
-      transactions.push({
-        id: d.id,
-        timestamp: data.timestamp,
-        userId: data.userId || "",
-        userName: data.userName || usersMap.get(data.userId) || data.driverPhone || "Unknown",
-        type: data.type || "payment",
-        amount: data.amount || 0,
-        status: data.status || "completed",
-        driverPhone: data.driverPhone,
-        previousBalance: data.previousBalance,
-        newBalance: data.newBalance,
-      })
-    })
-
-    callback(transactions)
-  }, () => {})
-
-  return unsub
+  return () => {
+    unsubUsers()
+    unsubTx()
+  }
 }
 
-// ─── Legacy helpers (kept for back-compat) ────────────────────────────────────
+// ─── Legacy helpers (kept for back-compat, now powered by real-time onSnapshot) ──
 
 export async function fetchActiveDrivers(callback: (drivers: ActiveDriver[]) => void) {
-  const driversRef = ref(rtdb, "drivers")
-  const unsubscribe = onValue(driversRef, async (snapshot) => {
-    if (!snapshot.exists()) { callback([]); return }
-    const driversData = snapshot.val()
-    const drivers: ActiveDriver[] = []
-    try {
-      const usersSnap = await getDocs(collection(db, "users"))
-      const usersMap = new Map<string, string>()
-      usersSnap.forEach((d) => { usersMap.set(extractPhone(d.data()), d.data().line || "Unknown") })
-      for (const [phone, driverData] of Object.entries(driversData)) {
-        const data = driverData as any
-        if (data.location) {
-          drivers.push({ phone, line: usersMap.get(phone) || "Unknown", location: data.location })
-        }
-      }
-    } catch {}
-    callback(drivers)
+  const unsubscribe = subscribeActiveDrivers((snapshot) => {
+    const activeDrivers: ActiveDriver[] = snapshot.rows
+      .filter((r) => r.isActive)
+      .map((r) => ({
+        phone: r.phone,
+        line: r.activeRoute || r.line || "Unknown",
+        location: r.location ? { lat: r.location.lat, lng: r.location.lng } : null,
+      }))
+    callback(activeDrivers)
   })
   return unsubscribe
 }
 
 export async function getAllDrivers() {
-  const snap = await getDocs(collection(db, "users"))
-  const result: Array<{ phone: string; name: string; balance: number }> = []
-  snap.forEach((d) => {
-    const data = d.data()
-    if (isDriverDoc(data)) {
-      const phone = localPhone(extractPhone(data))
-      if (phone) {
-        result.push({
-          phone,
-          name: data.fullName || data.name || data.displayName || phone,
-          balance: extractBalance(data),
-        })
-      }
-    }
+  return new Promise<Array<{ phone: string; name: string; balance: number }>>((resolve) => {
+    let settled = false
+    const unsub = fetchAllDrivers((drivers) => {
+      if (settled) return
+      settled = true
+      setTimeout(() => unsub(), 0)
+      resolve(
+        drivers.map((d) => ({
+          phone: d.phone,
+          name: d.name,
+          balance: d.balance,
+        }))
+      )
+    })
   })
-  return result
 }
 
-// ─── Active drivers panel (multi-source listener) ────────────────────────────
+// ─── Active drivers panel (multi-source real-time listener) ──────────────────
 
 /** A driver row as rendered by the Admin "Active Drivers" panel. */
 export interface DriverPanelRow {
@@ -472,6 +500,8 @@ export interface DriverPanelRow {
   phone: string
   name: string
   line: string
+  activeRoute: string | null
+  status: "active" | "idle"
   isActive: boolean
   /** Mock / test driver seeded in Firebase. */
   isMock: boolean
@@ -482,11 +512,13 @@ export interface DriverPanelRow {
 
 export interface DriversPanelSnapshot {
   rows: DriverPanelRow[]
-  /** "active": live drivers · "fallback": registered drivers only · "empty": nothing found */
+  /** Number of drivers currently online / active. */
+  activeCount: number
+  /** "active": live drivers present · "fallback": registered drivers only · "empty": nothing found */
   mode: "active" | "fallback" | "empty"
 }
 
-/** Heartbeat window for considering a driver "active". */
+/** Heartbeat window for considering a driver "active" (5 minutes). */
 const FRESH_MS = 5 * 60 * 1000
 
 interface RawDriver {
@@ -494,13 +526,15 @@ interface RawDriver {
   phone: string
   name: string
   line: string
-  isOnline: boolean
+  activeRoute: string | null
+  explicitOnline: boolean
+  explicitOffline: boolean
   hasActiveRoute: boolean
   isMock: boolean
   heartbeat: number | null
+  presenceHeartbeat: number | null
   location: { lat: number; lng: number; timestamp?: number } | null
-  /** True when live GPS presence came from the Realtime Database. */
-  rtdbLive: boolean
+  fromRtdb: boolean
 }
 
 function extractName(data: Record<string, any>): string {
@@ -511,69 +545,265 @@ function extractLine(data: Record<string, any>): string {
   return data.line || data.busLine || data.route || data.bus_line || ""
 }
 
-function extractHeartbeat(data: Record<string, any>): number | null {
-  return toMillis(
-    data.lastSeen ??
-    data.updatedAt ??
-    data.lastHeartbeat ??
-    data.heartbeat ??
-    data.location?.timestamp ??
-    data.timestamp
-  )
-}
-
-function extractLocation(data: Record<string, any>): { lat: number; lng: number; timestamp?: number } | null {
-  const loc = data.location
-  if (loc && typeof loc === "object" && typeof loc.lat === "number" && typeof loc.lng === "number") {
-    const ts = toMillis(loc.timestamp ?? loc.ts ?? loc.updatedAt)
-    return ts != null ? { lat: loc.lat, lng: loc.lng, timestamp: ts } : { lat: loc.lat, lng: loc.lng }
-  }
-  if (typeof data.lat === "number" && typeof data.lng === "number") {
-    const ts = toMillis(data.locationTimestamp ?? data.updatedAt ?? data.lastSeen)
-    return ts != null ? { lat: data.lat, lng: data.lng, timestamp: ts } : { lat: data.lat, lng: data.lng }
+function extractActiveRoute(data: Record<string, any>): string | null {
+  const r = data.activeRoute ?? data.currentRoute
+  if (typeof r === "string" && r.trim() && r !== "none" && r !== "idle" && r !== "false") {
+    return r.trim()
   }
   return null
 }
 
-function parseDriverEntry(data: Record<string, any>, fallbackId: string, fromRtdb: boolean): RawDriver {
-  const phone = localPhone(extractPhone(data) || data.phoneE164 || "") || localPhone(fallbackId) || fallbackId
+function extractPresenceHeartbeat(data: Record<string, any>): number | null {
+  const candidates = [
+    toMillis(data.lastSeen),
+    toMillis(data.lastHeartbeat),
+    toMillis(data.heartbeat),
+    toMillis(data.location?.updatedAt),
+    toMillis(data.location?.timestamp),
+    toMillis(data.lastSeenClientAt),
+  ].filter((t): t is number => t !== null && t > 0)
+  return candidates.length > 0 ? Math.max(...candidates) : null
+}
+
+function extractHeartbeat(data: Record<string, any>): number | null {
+  const candidates = [
+    extractPresenceHeartbeat(data),
+    toMillis(data.updatedAt),
+    toMillis(data.timestamp),
+  ].filter((t): t is number => t !== null && t > 0)
+  return candidates.length > 0 ? Math.max(...candidates) : null
+}
+
+function extractLocation(
+  data: Record<string, any>
+): { lat: number; lng: number; timestamp?: number } | null {
+  const loc = data.location && typeof data.location === "object" ? data.location : null
+  const coords = data.coords && typeof data.coords === "object" ? data.coords : null
+
+  const lat = toFiniteNumber(
+    data.latitude ??
+      data.lat ??
+      loc?.latitude ??
+      loc?.lat ??
+      coords?.latitude ??
+      coords?.lat
+  )
+  const lng = toFiniteNumber(
+    data.longitude ??
+      data.lng ??
+      loc?.longitude ??
+      loc?.lng ??
+      coords?.longitude ??
+      coords?.lng
+  )
+
+  if (lat !== null && lng !== null && (lat !== 0 || lng !== 0)) {
+    const ts = toMillis(
+      loc?.updatedAt ??
+        loc?.timestamp ??
+        loc?.ts ??
+        data.locationTimestamp ??
+        data.updatedAt ??
+        data.lastSeen ??
+        data.lastSeenClientAt
+    )
+    return ts != null ? { lat, lng, timestamp: ts } : { lat, lng }
+  }
+  return null
+}
+
+function parseDriverEntry(
+  data: Record<string, any>,
+  fallbackId: string,
+  fromRtdb: boolean
+): RawDriver {
+  const phone =
+    localPhone(extractPhone(data)) || localPhone(fallbackId) || fallbackId
+  const statusStr =
+    typeof data.status === "string" ? data.status.toLowerCase().trim() : ""
+
+  // Handle explicit boolean `isOnline` / `online` first so `isOnline: false` on
+  // disconnect always overrides an older `status: "active"` field.
+  let explicitOnline = false
+  let explicitOffline = false
+
+  if (data.isOnline === false || data.online === false) {
+    explicitOffline = true
+  } else if (data.isOnline === true || data.online === true) {
+    explicitOnline = true
+  } else if (
+    statusStr === "active" ||
+    statusStr === "online" ||
+    statusStr === "live"
+  ) {
+    explicitOnline = true
+  } else if (
+    statusStr === "idle" ||
+    statusStr === "offline" ||
+    statusStr === "inactive"
+  ) {
+    explicitOffline = true
+  }
+
+  const activeRoute = extractActiveRoute(data)
+  const hasActiveRoute =
+    activeRoute !== null ||
+    data.activeRoute === true
+
+  const presenceHeartbeat = extractPresenceHeartbeat(data)
+  const heartbeat = extractHeartbeat(data)
+  const location = extractLocation(data)
+
   return {
     key: phone,
     phone,
     name: extractName(data),
     line: extractLine(data),
-    isOnline: data.isOnline === true || data.online === true || data.status === "online",
-    hasActiveRoute:
-      data.activeRoute !== undefined &&
-      data.activeRoute !== null &&
-      data.activeRoute !== false &&
-      data.activeRoute !== "",
+    activeRoute,
+    explicitOnline,
+    explicitOffline,
+    hasActiveRoute,
     isMock:
       data.isMock === true ||
       data.isTest === true ||
       data.isTestDriver === true ||
       data.testDriver === true ||
       data.mock === true,
-    heartbeat: extractHeartbeat(data),
-    location: extractLocation(data),
-    rtdbLive: fromRtdb,
+    heartbeat,
+    presenceHeartbeat,
+    location,
+    fromRtdb,
+  }
+}
+
+function combineSameCollectionRaw(a: RawDriver, b: RawDriver): RawDriver {
+  const aTs = a.presenceHeartbeat ?? a.heartbeat ?? 0
+  const bTs = b.presenceHeartbeat ?? b.heartbeat ?? 0
+  const primary = bTs >= aTs ? b : a
+  const secondary = bTs >= aTs ? a : b
+
+  const locA = a.location
+  const locB = b.location
+  const pickedLoc =
+    locA && locB
+      ? (locB.timestamp ?? bTs) >= (locA.timestamp ?? aTs)
+        ? locB
+        : locA
+      : locB ?? locA
+
+  return {
+    ...primary,
+    name: primary.name || secondary.name,
+    line: primary.line || secondary.line,
+    activeRoute: primary.activeRoute ?? secondary.activeRoute,
+    hasActiveRoute: primary.hasActiveRoute || secondary.hasActiveRoute,
+    isMock: primary.isMock || secondary.isMock,
+    heartbeat: Math.max(a.heartbeat ?? 0, b.heartbeat ?? 0) || null,
+    presenceHeartbeat:
+      Math.max(a.presenceHeartbeat ?? 0, b.presenceHeartbeat ?? 0) || null,
+    location: pickedLoc,
+  }
+}
+
+function resolveDriverRowFromSources(
+  key: string,
+  sources: RawDriver[]
+): DriverPanelRow {
+  // Sort sources by most recent presence heartbeat / general heartbeat descending
+  const sorted = [...sources].sort((a, b) => {
+    const aTs = a.presenceHeartbeat ?? a.heartbeat ?? 0
+    const bTs = b.presenceHeartbeat ?? b.heartbeat ?? 0
+    return bTs - aTs
+  })
+
+  const newest = sorted[0]
+  // Prefer `drivers` collection metadata for name/line when present
+  const name =
+    sources.find((s) => !s.fromRtdb && s.name)?.name ||
+    sources.find((s) => s.name)?.name ||
+    ""
+  const line =
+    sources.find((s) => !s.fromRtdb && s.line)?.line ||
+    sources.find((s) => s.line)?.line ||
+    ""
+  const activeRoute =
+    sorted.find((s) => s.activeRoute)?.activeRoute ?? null
+  const isMock = sources.some((s) => s.isMock)
+
+  // Pick freshest non-null location across all sources
+  let bestLocation: { lat: number; lng: number; timestamp?: number } | null = null
+  let bestLocTs = -1
+  for (const s of sorted) {
+    if (!s.location) continue
+    const ts = s.location.timestamp ?? s.presenceHeartbeat ?? s.heartbeat ?? 0
+    if (!bestLocation || ts >= bestLocTs) {
+      bestLocation = s.location
+      bestLocTs = ts
+    }
+  }
+
+  const maxPresenceHb =
+    Math.max(...sources.map((s) => s.presenceHeartbeat ?? 0), 0) || null
+  const maxGeneralHb =
+    Math.max(...sources.map((s) => s.heartbeat ?? 0), 0) || null
+  const lastSeen = maxPresenceHb ?? maxGeneralHb
+
+  // Determine whether the driver is currently active / online:
+  // 1. If the most recently updated source has an explicit online/offline signal, honour it.
+  // 2. Otherwise check if any source has explicitOnline, activeRoute, fresh presence heartbeat, or live RTDB GPS.
+  const now = Date.now()
+  let isActive = false
+
+  // Find the most recent source that explicitly declared online or offline
+  const explicitSources = sorted.filter(
+    (s) => s.explicitOnline || s.explicitOffline
+  )
+  if (explicitSources.length > 0) {
+    const latestExplicit = explicitSources[0]
+    if (latestExplicit.explicitOnline) {
+      isActive = true
+    } else if (latestExplicit.explicitOffline) {
+      // Only override explicitOffline if another source has a strictly newer explicitOnline
+      isActive = false
+    }
+  } else {
+    const hasActiveRoute = sources.some((s) => s.hasActiveRoute)
+    const presenceFresh =
+      maxPresenceHb !== null && now - maxPresenceHb < FRESH_MS
+    const rtdbSource = sources.find((s) => s.fromRtdb)
+    const rtdbLive =
+      rtdbSource?.location != null &&
+      (rtdbSource.location.timestamp == null ||
+        now - rtdbSource.location.timestamp < FRESH_MS)
+
+    isActive = hasActiveRoute || presenceFresh || rtdbLive
+  }
+
+  return {
+    key,
+    phone: newest.phone || key,
+    name,
+    line,
+    activeRoute,
+    status: isActive ? "active" : "idle",
+    isActive,
+    isMock,
+    location: bestLocation,
+    lastSeen,
   }
 }
 
 /**
  * Live "Active Drivers" panel feed.
  *
- * Aggregates every place driver records/status live in Firebase:
- *   1. Firestore `drivers` collection  — driver records (incl. mock/test drivers)
- *   2. Firestore `users` collection    — registered users flagged as drivers
- *   3. Realtime Database `drivers/*`   — live GPS + heartbeat (isOnline / lastSeen / updatedAt)
+ * Aggregates every place driver records/status live in Firebase in real-time:
+ *   1. Firestore `drivers` collection  — `onSnapshot` (driver records, incl. mock/test drivers)
+ *   2. Firestore `users` collection    — `onSnapshot` (registered users flagged as drivers)
+ *   3. Realtime Database `drivers/*`   — `onValue` (live GPS + heartbeat + onDisconnect)
+ *   4. Same-origin broadcast channel   — instant 0ms cross-tab sync
  *
- * A driver is "active" when any status signal is present:
- * `isOnline: true`, an `activeRoute`, a recent heartbeat (lastSeen / updatedAt),
- * or a live GPS location in the Realtime Database.
- *
- * When no driver is currently active, the feed gracefully falls back to listing
- * registered drivers so the panel is never falsely empty.
+ * All driver accounts are rendered with Active / Online drivers first (glowing green
+ * status badge + live coordinates / active route), followed by Idle registered drivers.
  */
 export function subscribeActiveDrivers(
   callback: (snapshot: DriversPanelSnapshot) => void
@@ -581,83 +811,35 @@ export function subscribeActiveDrivers(
   const firestoreDrivers = new Map<string, RawDriver>()
   const firestoreUsers = new Map<string, RawDriver>()
   const rtdbDrivers = new Map<string, RawDriver>()
+  const broadcastDrivers = new Map<string, RawDriver>()
 
-  // Listener setup must never throw (SSR/prerender, missing Firebase config or
-  // security-rule rejections) — the panel degrades to an empty list instead.
-  if (!db || !rtdb) {
-    callback({ rows: [], mode: "empty" })
+  if (!db && !rtdb) {
+    callback({ rows: [], activeCount: 0, mode: "empty" })
     return () => {}
   }
 
   function merge() {
-    // Registered drivers: `drivers` collection wins over `users` metadata.
-    const merged = new Map<string, RawDriver>()
-    for (const [key, raw] of firestoreDrivers) {
-      merged.set(key, { ...raw })
-    }
-    for (const [key, raw] of firestoreUsers) {
-      const existing = merged.get(key)
-      if (existing) {
-        merged.set(key, {
-          ...raw,
-          name: existing.name || raw.name,
-          line: existing.line || raw.line,
-          heartbeat: Math.max(existing.heartbeat ?? 0, raw.heartbeat ?? 0) || null,
-          isOnline: existing.isOnline || raw.isOnline,
-          hasActiveRoute: existing.hasActiveRoute || raw.hasActiveRoute,
-          isMock: existing.isMock || raw.isMock,
-          location: existing.location ?? raw.location,
-        })
-      } else {
-        merged.set(key, { ...raw })
-      }
-    }
+    const allKeys = new Set<string>([
+      ...firestoreDrivers.keys(),
+      ...firestoreUsers.keys(),
+      ...rtdbDrivers.keys(),
+      ...broadcastDrivers.keys(),
+    ])
 
-    // Live RTDB status: location + heartbeat + presence flags.
     const rows: DriverPanelRow[] = []
-    for (const [key, raw] of merged) {
-      const live = rtdbDrivers.get(key)
-      const location = live?.location ?? raw.location
-      const heartbeat = Math.max(raw.heartbeat ?? 0, live?.heartbeat ?? 0) || null
-      // RTDB presence means the driver app is in driver mode (the location node
-      // is cleared on exit). Tracking currently writes no timestamp — treat a
-      // present location without one as live.
-      const rtdbLive =
-        live?.location != null &&
-        (live.location.timestamp == null || Date.now() - live.location.timestamp < FRESH_MS)
+    for (const key of allKeys) {
+      const sources: RawDriver[] = []
+      const d = firestoreDrivers.get(key)
+      const u = firestoreUsers.get(key)
+      const r = rtdbDrivers.get(key)
+      const b = broadcastDrivers.get(key)
+      if (d) sources.push(d)
+      if (u) sources.push(u)
+      if (r) sources.push(r)
+      if (b) sources.push(b)
+      if (sources.length === 0) continue
 
-      const heartbeatFresh = heartbeat != null && Date.now() - heartbeat < FRESH_MS
-      const isActive = raw.isOnline || live?.isOnline === true || raw.hasActiveRoute || heartbeatFresh || rtdbLive
-
-      rows.push({
-        key,
-        phone: raw.phone || key,
-        name: raw.name,
-        line: raw.line,
-        isActive,
-        isMock: raw.isMock,
-        location: location ?? null,
-        lastSeen: heartbeat,
-      })
-    }
-
-    // RTDB-only entries (live drivers with no Firestore record yet).
-    for (const [key, live] of rtdbDrivers) {
-      if (merged.has(key)) continue
-      const rtdbLive =
-        live.location != null &&
-        (live.location.timestamp == null || Date.now() - live.location.timestamp < FRESH_MS)
-      const heartbeatFresh = live.heartbeat != null && Date.now() - live.heartbeat < FRESH_MS
-      rows.push({
-        key,
-        phone: live.phone || key,
-        name: live.name,
-        line: live.line,
-        isActive: live.isOnline || live.hasActiveRoute || heartbeatFresh || rtdbLive,
-        isMock: live.isMock,
-        location: live.location,
-        lastSeen: live.heartbeat,
-      })
+      rows.push(resolveDriverRowFromSources(key, sources))
     }
 
     const active = rows
@@ -668,83 +850,179 @@ export function subscribeActiveDrivers(
       .sort((a, b) => (a.name || a.phone).localeCompare(b.name || b.phone))
 
     const mode: DriversPanelSnapshot["mode"] =
-      active.length > 0 ? "active" : registered.length > 0 ? "fallback" : "empty"
-    const list = active.length > 0 ? active : registered
+      active.length > 0
+        ? "active"
+        : registered.length > 0
+          ? "fallback"
+          : "empty"
 
-    callback({ rows: list, mode })
+    // Always include active drivers at the top followed by idle registered drivers
+    // so every driver account remains visible and transitions Idle <-> Active in place.
+    const list = [...active, ...registered]
+
+    callback({
+      rows: list,
+      activeCount: active.length,
+      mode,
+    })
   }
 
-  // ── 1. Firestore `drivers` collection (driver records, incl. mock/test) ──
-  // Each listener is guarded: a failure on one source still lets the others
-  // populate the panel, and no error can escape into the render tree.
   let driversUnsub = () => {}
   let usersUnsub = () => {}
   let rtdbUnsub = () => {}
+  let broadcastClean = () => {}
 
-  try {
-    driversUnsub = onSnapshot(
-      collection(db, "drivers"),
-      (snap) => {
-        firestoreDrivers.clear()
-        snap.forEach((d) => {
-          const data = d.data() as Record<string, any>
-          const raw = parseDriverEntry(data, d.id, false)
-          if (raw.key) firestoreDrivers.set(raw.key, raw)
-        })
-        merge()
-      },
-      () => { merge() }
-    )
-  } catch (error) {
-    console.error("[admin-utils] subscribeActiveDrivers (drivers):", error)
+  // ── 1. Firestore `drivers` collection (real-time onSnapshot) ──────────────
+  if (db) {
+    try {
+      driversUnsub = onSnapshot(
+        collection(db, "drivers"),
+        { includeMetadataChanges: true },
+        (snap) => {
+          firestoreDrivers.clear()
+          snap.forEach((d) => {
+            const data = d.data({ serverTimestamps: "estimate" }) as Record<string, any>
+            const raw = parseDriverEntry(data, d.id, false)
+            if (!raw.key) return
+            const existing = firestoreDrivers.get(raw.key)
+            firestoreDrivers.set(
+              raw.key,
+              existing ? combineSameCollectionRaw(existing, raw) : raw
+            )
+          })
+          merge()
+        },
+        () => { merge() }
+      )
+    } catch (error) {
+      console.error("[admin-utils] subscribeActiveDrivers (drivers):", error)
+    }
+
+    // ── 2. Firestore `users` collection (real-time onSnapshot) ────────────────
+    try {
+      usersUnsub = onSnapshot(
+        collection(db, "users"),
+        { includeMetadataChanges: true },
+        (snap) => {
+          firestoreUsers.clear()
+          snap.forEach((d) => {
+            const data = d.data({ serverTimestamps: "estimate" }) as Record<string, any>
+            if (!isDriverDoc(data)) return
+            const raw = parseDriverEntry(data, d.id, false)
+            if (!raw.key) return
+            const existing = firestoreUsers.get(raw.key)
+            firestoreUsers.set(
+              raw.key,
+              existing ? combineSameCollectionRaw(existing, raw) : raw
+            )
+          })
+          merge()
+        },
+        () => { merge() }
+      )
+    } catch (error) {
+      console.error("[admin-utils] subscribeActiveDrivers (users):", error)
+    }
   }
 
-  // ── 2. Firestore `users` collection (registered drivers) ─────────────────
-  try {
-    usersUnsub = onSnapshot(
-      collection(db, "users"),
-      (snap) => {
-        firestoreUsers.clear()
-        snap.forEach((d) => {
-          const data = d.data() as Record<string, any>
-          if (!isDriverDoc(data)) return
-          const raw = parseDriverEntry(data, d.id, false)
-          if (raw.key) firestoreUsers.set(raw.key, raw)
-        })
-        merge()
-      },
-      () => { merge() }
-    )
-  } catch (error) {
-    console.error("[admin-utils] subscribeActiveDrivers (users):", error)
-  }
-
-  // ── 3. Realtime Database `drivers/*` (live GPS + heartbeat) ──────────────
-  try {
-    rtdbUnsub = onValue(
-      ref(rtdb, "drivers"),
-      (snap) => {
-        rtdbDrivers.clear()
-        if (snap.exists()) {
-          const val = snap.val() as Record<string, any>
-          for (const [key, entry] of Object.entries(val)) {
-            const raw = parseDriverEntry((entry ?? {}) as Record<string, any>, key, true)
-            if (raw.key) rtdbDrivers.set(raw.key, raw)
+  // ── 3. Realtime Database `drivers/*` (live GPS + heartbeat + onDisconnect) ─
+  if (rtdb) {
+    try {
+      rtdbUnsub = onValue(
+        ref(rtdb, "drivers"),
+        (snap) => {
+          rtdbDrivers.clear()
+          if (snap.exists()) {
+            const val = snap.val() as Record<string, any>
+            for (const [key, entry] of Object.entries(val)) {
+              const raw = parseDriverEntry((entry ?? {}) as Record<string, any>, key, true)
+              if (!raw.key) continue
+              const existing = rtdbDrivers.get(raw.key)
+              rtdbDrivers.set(
+                raw.key,
+                existing ? combineSameCollectionRaw(existing, raw) : raw
+              )
+            }
           }
-        }
-        merge()
-      },
-      () => { merge() }
-    )
-  } catch (error) {
-    console.error("[admin-utils] subscribeActiveDrivers (rtdb):", error)
-    merge()
+          merge()
+        },
+        () => { merge() }
+      )
+    } catch (error) {
+      console.error("[admin-utils] subscribeActiveDrivers (rtdb):", error)
+      merge()
+    }
   }
+
+  // ── 4. Same-origin cross-tab broadcast listener ───────────────────────────
+  if (typeof window !== "undefined") {
+    const ingestBroadcast = (payload: DriverPresenceBroadcast | null | undefined) => {
+      if (!payload || !payload.phone) return
+      const raw = parseDriverEntry(
+        {
+          phone: payload.phone,
+          phoneE164: payload.phoneE164,
+          isOnline: payload.isOnline,
+          status: payload.status,
+          lastSeen: payload.lastSeen,
+          updatedAt: payload.updatedAt,
+          latitude: payload.latitude,
+          longitude: payload.longitude,
+          activeRoute: payload.activeRoute,
+        },
+        payload.phone,
+        true
+      )
+      if (!raw.key) return
+      const prev = broadcastDrivers.get(raw.key)
+      broadcastDrivers.set(raw.key, prev ? combineSameCollectionRaw(prev, raw) : raw)
+      merge()
+    }
+
+    // Hydrate any existing active broadcast from localStorage
+    try {
+      const saved = localStorage.getItem(PRESENCE_BROADCAST_KEY)
+      if (saved) {
+        ingestBroadcast(JSON.parse(saved) as DriverPresenceBroadcast)
+      }
+    } catch {}
+
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === PRESENCE_BROADCAST_KEY && e.newValue) {
+        try {
+          ingestBroadcast(JSON.parse(e.newValue) as DriverPresenceBroadcast)
+        } catch {}
+      }
+    }
+    window.addEventListener("storage", onStorage)
+
+    let channel: BroadcastChannel | null = null
+    try {
+      if (typeof BroadcastChannel !== "undefined") {
+        channel = new BroadcastChannel(PRESENCE_CHANNEL_NAME)
+        channel.onmessage = (event) => {
+          ingestBroadcast(event.data as DriverPresenceBroadcast)
+        }
+      }
+    } catch {}
+
+    broadcastClean = () => {
+      window.removeEventListener("storage", onStorage)
+      try {
+        channel?.close()
+      } catch {}
+    }
+  }
+
+  // Periodic staleness re-evaluation every 30s
+  const stalenessTimer = setInterval(merge, 30_000)
 
   return () => {
     driversUnsub()
     usersUnsub()
     rtdbUnsub()
+    broadcastClean()
+    clearInterval(stalenessTimer)
   }
 }
 
@@ -825,8 +1103,7 @@ export async function findDriverInFirebase(
 
   try {
     // 1. Firestore `drivers` collection — doc id may be local or E.164 phone
-    await readDriverDoc(local)
-    await readDriverDoc(e164)
+    await Promise.all([readDriverDoc(local), readDriverDoc(e164)])
     if (!driverDocId) {
       for (const field of ["phone", "phoneE164", "Phone", "phoneNumber"]) {
         for (const variant of [local, e164, rawPhone.trim()]) {
@@ -885,7 +1162,9 @@ export async function findDriverInFirebase(
     line: extractLine(primary),
     role: primary.role ?? null,
     isAuthorized:
-      isAuthorizedDriverRecord(driverData) || isAuthorizedDriverRecord(userData),
+      Boolean(driverDocId) ||
+      isAuthorizedDriverRecord(driverData) ||
+      isAuthorizedDriverRecord(userData),
   }
 
   return { success: true, lookup }
@@ -924,28 +1203,24 @@ export async function registerDriver(
 
     // 1. Driver record — create or update with authorized driver privileges
     const driverRef = doc(db, "drivers", lookup.driverDocId ?? local)
-    await setDoc(
-      driverRef,
-      {
-        phone: local,
-        phoneE164: e164,
-        name: resolvedName,
-        fullName: resolvedName,
-        line: resolvedLine,
-        busLine: resolvedLine,
-        role: "driver",
-        userType: "driver",
-        type: "driver",
-        accountType: "driver",
-        isDriver: true,
-        isAuthorized: true,
-        isAuthorizedDriver: true,
-        authorizedBy: "admin_dashboard",
-        updatedAt: now,
-        ...(lookup.driverDocId ? {} : { createdAt: now }),
-      },
-      { merge: true }
-    )
+    const driverPayload: Record<string, any> = {
+      phone: local,
+      phoneE164: e164,
+      name: resolvedName,
+      fullName: resolvedName,
+      line: resolvedLine,
+      busLine: resolvedLine,
+      role: "driver",
+      userType: "driver",
+      type: "driver",
+      accountType: "driver",
+      isDriver: true,
+      isAuthorized: true,
+      isAuthorizedDriver: true,
+      authorizedBy: "admin_dashboard",
+      updatedAt: now,
+      ...(lookup.driverDocId ? {} : { createdAt: now, isOnline: false, status: "idle" }),
+    }
 
     // 2. Mirror privileges onto the `users` record (login / wallet identity)
     const userPrivileges: Record<string, any> = {
@@ -964,24 +1239,25 @@ export async function registerDriver(
     }
 
     const userRef = doc(db, "users", lookup.userDocId ?? local)
-    if (lookup.userDocId) {
-      await setDoc(userRef, userPrivileges, { merge: true })
-    } else {
-      await setDoc(
-        userRef,
-        {
+    const userPayload = lookup.userDocId
+      ? userPrivileges
+      : {
           Phone: local,
           phone: local,
           phoneE164: e164,
           balance: 0,
           createdAt: now,
+          isOnline: false,
+          status: "idle",
           ...userPrivileges,
           fullName: resolvedName,
           name: resolvedName,
-        },
-        { merge: true }
-      )
-    }
+        }
+
+    await Promise.all([
+      setDoc(driverRef, driverPayload, { merge: true }),
+      setDoc(userRef, userPayload, { merge: true }),
+    ])
 
     // Make the current session recognise the driver right away
     registerAuthorizedDriverPhone(e164)
